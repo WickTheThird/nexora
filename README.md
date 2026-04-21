@@ -5,9 +5,8 @@ contractor onboarding, contract signing, document review, questionnaire,
 payments, and change requests.
 
 - Frontend: Vite + React + TypeScript + TailwindCSS, deployed to **GitHub Pages**.
-- Backend: Cloudflare Worker + D1 + R2 (code lives in the `nexora-api` Worker on
-  Cloudflare; this repo contains only the frontend plus the `WORKER_CORS_PATCH.md`
-  note for wiring CORS).
+- Backend: Cloudflare Worker + D1 + R2 (code lives in the `nexora-api` Worker
+  on Cloudflare; this repo contains only the frontend).
 - Routing: `HashRouter` — works on any GitHub Pages path or a custom domain
   with no server-side routing.
 - Domain-friendly: the API URL is read from a runtime `config.js`, not baked
@@ -32,8 +31,9 @@ window.__NEXORA_CONFIG__ = {
 };
 ```
 
-> The Worker must whitelist your frontend origin in `ALLOWED_ORIGINS` — see
-> [`WORKER_CORS_PATCH.md`](./WORKER_CORS_PATCH.md) for the exact copy-paste.
+> The Worker must whitelist your frontend origin via the `ALLOWED_ORIGINS`
+> environment variable in the Cloudflare dashboard (comma-separated origins,
+> e.g. `https://your-domain.com,http://localhost:5173`).
 
 ## Deploying to GitHub Pages
 
