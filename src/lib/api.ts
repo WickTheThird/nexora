@@ -36,6 +36,30 @@ export function brandName(): string {
   return window.__NEXORA_CONFIG__?.brand || "Nexora";
 }
 
+// Token-based auth fallback for environments where third-party cookies are
+// blocked (incognito Chrome, Safari ITP, etc.). The session id received on
+// login is stored here and sent as Authorization: Bearer on every request.
+const TOKEN_KEY = "nx_token";
+export const tokenStore = {
+  get(): string | null {
+    try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
+  },
+  set(t: string): void {
+    try { localStorage.setItem(TOKEN_KEY, t); } catch { /* private mode */ }
+  },
+  clear(): void {
+    try { localStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
+  },
+};
+
+// For URLs that have to work without an Authorization header (anchor tags,
+// `<img src>`, `window.open`), append the token as a query param. The Worker
+// reads `?_token=` as a fallback for the bearer header on download routes.
+function tokenQuery(): string {
+  const t = tokenStore.get();
+  return t ? `?_token=${encodeURIComponent(t)}` : "";
+}
+
 export class ApiError extends Error {
   code: string;
   status: number;
@@ -57,14 +81,16 @@ async function request<T>(
     raw?: boolean;
   } = {},
 ): Promise<T> {
+  const headers: Record<string, string> = {};
+  const tok = tokenStore.get();
+  if (tok) headers["authorization"] = `Bearer ${tok}`;
   const init: RequestInit = {
     method,
     credentials: "include",
-    headers: {},
+    headers,
   };
   if (opts.body !== undefined) {
-    (init.headers as Record<string, string>)["content-type"] =
-      "application/json";
+    headers["content-type"] = "application/json";
     init.body = JSON.stringify(opts.body);
   } else if (opts.formData) {
     init.body = opts.formData;
@@ -90,8 +116,16 @@ async function request<T>(
     throw new ApiError("PARSE_ERROR", "Malformed response", res.status);
   }
   if (!data.ok) {
+    const code = data.error?.code || "API_ERROR";
+    // Auth lapses (cookie or token rejected): notify the app shell so it can
+    // redirect to /login instead of letting the page silently render zeros.
+    if (code === "AUTH_REQUIRED" || code === "FORBIDDEN") {
+      try {
+        window.dispatchEvent(new CustomEvent("nexora:auth-lost", { detail: { code } }));
+      } catch { /* SSR / older browsers */ }
+    }
     throw new ApiError(
-      data.error?.code || "API_ERROR",
+      code,
       data.error?.message || "Request failed",
       res.status,
     );
@@ -106,7 +140,7 @@ export const api = {
   logout: () => request<Record<string, never>>("POST", "/auth/logout"),
   me: () => request<Me>("GET", "/auth/me"),
   changePassword: (currentPassword: string, newPassword: string) =>
-    request<{ ok: true }>("POST", "/me/change-password", {
+    request<{ ok: true; sessionToken?: string }>("POST", "/me/change-password", {
       body: { currentPassword, newPassword },
     }),
   acceptPrivacy: (version: string) =>
@@ -117,7 +151,7 @@ export const api = {
     ),
   exportMyDataUrl: () =>
     // Returning URL so a plain <a> can download with credentials.
-    (window.__NEXORA_CONFIG__?.apiUrl?.replace(/\/$/, "") || "") + "/me/export",
+    (window.__NEXORA_CONFIG__?.apiUrl?.replace(/\/$/, "") || "") + "/me/export" + tokenQuery(),
   submitErasureRequest: (reason?: string) =>
     request<{ id: string; note: string }>("POST", "/me/erasure-request", {
       body: { reason },
@@ -163,7 +197,7 @@ export const api = {
     return request<DocumentRecord>("POST", "/me/documents", { formData: fd });
   },
   downloadMyDocumentUrl: (id: string) =>
-    apiBase() + `/me/documents/${id}/download`,
+    apiBase() + `/me/documents/${id}/download` + tokenQuery(),
   deleteMyDocument: (id: string) =>
     request<{ ok: true }>("DELETE", `/me/documents/${id}`),
 
@@ -182,7 +216,7 @@ export const api = {
       "/me/payments" + (cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""),
     ),
   downloadMyRemittanceUrl: (id: string) =>
-    apiBase() + `/me/payments/${id}/download`,
+    apiBase() + `/me/payments/${id}/download` + tokenQuery(),
 
   // -------- change requests --------
   listMyChangeRequests: () =>
@@ -269,7 +303,7 @@ export const api = {
       `/admin/subcontractors/${subId}/documents`,
     ),
   adminDownloadSubDocumentUrl: (subId: string, docId: string) =>
-    apiBase() + `/admin/subcontractors/${subId}/documents/${docId}/download`,
+    apiBase() + `/admin/subcontractors/${subId}/documents/${docId}/download` + tokenQuery(),
   adminReviewDocument: (
     subId: string,
     docId: string,

@@ -51,6 +51,10 @@ export interface Me {
   mustChangePassword: boolean;
   privacyAccepted: boolean;
   privacyVersion: string;
+  // Only present on /auth/login responses; persisted in localStorage so the
+  // frontend can authenticate via Authorization: Bearer in environments that
+  // block third-party cookies (incognito Chrome, Safari ITP, etc.).
+  sessionToken?: string;
 }
 
 export interface Subcontractor {

@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { api, ApiError } from "./api";
+import { api, ApiError, tokenStore } from "./api";
 import type { Me } from "./types";
 
 interface AuthCtx {
@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         setMe(null);
+        tokenStore.clear();
       }
     } finally {
       setLoading(false);
@@ -41,8 +42,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refresh();
   }, [refresh]);
 
+  // Any API call returning AUTH_REQUIRED / FORBIDDEN dispatches this event;
+  // we drop the cached user + token so the router bounces back to /login on
+  // the next render, instead of leaving stale UI rendering against a dead
+  // session.
+  useEffect(() => {
+    const onLost = () => {
+      tokenStore.clear();
+      setMe(null);
+    };
+    window.addEventListener("nexora:auth-lost", onLost);
+    return () => window.removeEventListener("nexora:auth-lost", onLost);
+  }, []);
+
   const login = async (email: string, password: string) => {
     const m = await api.login(email, password);
+    if (m.sessionToken) tokenStore.set(m.sessionToken);
     setMe(m);
     return m;
   };
@@ -53,11 +68,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       /* ignore */
     }
+    tokenStore.clear();
     setMe(null);
   };
 
   const changePassword = async (current: string, next: string) => {
-    await api.changePassword(current, next);
+    const r = await api.changePassword(current, next);
+    if (r.sessionToken) tokenStore.set(r.sessionToken);
     await refresh();
   };
 
