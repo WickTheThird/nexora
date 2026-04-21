@@ -1,0 +1,363 @@
+// Thin fetch wrapper that talks to the Nexora Worker API.
+// Reads the API base URL from runtime config (public/config.js), not from build
+// flags — so the SAME build artifact can be deployed to different domains.
+
+import type {
+  BankDetails,
+  ChangeRequest,
+  ContractRecord,
+  ContractTemplate,
+  DocumentRecord,
+  Me,
+  OnboardingView,
+  Page,
+  PaymentRecord,
+  QuestionnaireRecord,
+  Subcontractor,
+} from "./types";
+
+declare global {
+  interface Window {
+    __NEXORA_CONFIG__?: { apiUrl?: string; brand?: string };
+  }
+}
+
+function apiBase(): string {
+  const url = window.__NEXORA_CONFIG__?.apiUrl;
+  if (!url) {
+    throw new Error(
+      "Nexora runtime config missing. Ensure /config.js defines window.__NEXORA_CONFIG__.apiUrl",
+    );
+  }
+  return url.replace(/\/$/, "");
+}
+
+export function brandName(): string {
+  return window.__NEXORA_CONFIG__?.brand || "Nexora";
+}
+
+export class ApiError extends Error {
+  code: string;
+  status: number;
+  constructor(code: string, message: string, status: number) {
+    super(message);
+    this.code = code;
+    this.status = status;
+  }
+}
+
+type Json = Record<string, unknown> | unknown[] | null;
+
+async function request<T>(
+  method: string,
+  path: string,
+  opts: {
+    body?: Json;
+    formData?: FormData;
+    raw?: boolean;
+  } = {},
+): Promise<T> {
+  const init: RequestInit = {
+    method,
+    credentials: "include",
+    headers: {},
+  };
+  if (opts.body !== undefined) {
+    (init.headers as Record<string, string>)["content-type"] =
+      "application/json";
+    init.body = JSON.stringify(opts.body);
+  } else if (opts.formData) {
+    init.body = opts.formData;
+  }
+  const res = await fetch(apiBase() + path, init);
+  if (opts.raw) {
+    if (!res.ok) {
+      const data = await res
+        .json()
+        .catch(() => ({ error: { code: "HTTP_" + res.status, message: res.statusText } }));
+      throw new ApiError(
+        data?.error?.code || "HTTP_ERROR",
+        data?.error?.message || res.statusText,
+        res.status,
+      );
+    }
+    return res as unknown as T;
+  }
+  let data: { ok: boolean; data?: T; error?: { code: string; message: string } };
+  try {
+    data = await res.json();
+  } catch {
+    throw new ApiError("PARSE_ERROR", "Malformed response", res.status);
+  }
+  if (!data.ok) {
+    throw new ApiError(
+      data.error?.code || "API_ERROR",
+      data.error?.message || "Request failed",
+      res.status,
+    );
+  }
+  return data.data as T;
+}
+
+// -------- auth --------
+export const api = {
+  login: (email: string, password: string) =>
+    request<Me>("POST", "/auth/login", { body: { email, password } }),
+  logout: () => request<Record<string, never>>("POST", "/auth/logout"),
+  me: () => request<Me>("GET", "/auth/me"),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<{ ok: true }>("POST", "/me/change-password", {
+      body: { currentPassword, newPassword },
+    }),
+  acceptPrivacy: (version: string) =>
+    request<{ consentedAt: number; privacyVersion: string }>(
+      "POST",
+      "/auth/accept-privacy",
+      { body: { version } },
+    ),
+  exportMyDataUrl: () =>
+    // Returning URL so a plain <a> can download with credentials.
+    (window.__NEXORA_CONFIG__?.apiUrl?.replace(/\/$/, "") || "") + "/me/export",
+  submitErasureRequest: (reason?: string) =>
+    request<{ id: string; note: string }>("POST", "/me/erasure-request", {
+      body: { reason },
+    }),
+  adminAnonymise: (subId: string) =>
+    request<{ anonymised: true; anonymisedAt: number }>(
+      "POST",
+      `/admin/subcontractors/${subId}/anonymise`,
+    ),
+
+  // -------- profile --------
+  getMyProfile: () =>
+    request<{
+      user: { id: string; email: string; role: string };
+      subcontractor: Subcontractor;
+      bank: BankDetails;
+    }>("GET", "/me/profile"),
+  patchMyProfile: (data: Partial<Subcontractor>) =>
+    request<Subcontractor>("PATCH", "/me/profile", { body: data as Json }),
+  patchMyBank: (data: Partial<BankDetails>) =>
+    request<BankDetails>("PATCH", "/me/bank-details", { body: data as Json }),
+  submitMyProfile: () =>
+    request<{ onboardingStatus: string; submittedAt: number }>(
+      "POST",
+      "/me/profile/submit",
+    ),
+  getMyOnboarding: () => request<OnboardingView>("GET", "/me/onboarding"),
+
+  // -------- contracts --------
+  getMyContract: () => request<ContractRecord>("GET", "/me/contracts/current"),
+  signMyContract: (signedName: string, signaturePng?: string) =>
+    request<ContractRecord>("POST", "/me/contracts/current/sign", {
+      body: { signedName, agreed: true, signaturePng },
+    }),
+
+  // -------- documents --------
+  listMyDocuments: () =>
+    request<{ items: DocumentRecord[] }>("GET", "/me/documents"),
+  uploadMyDocument: (documentType: string, file: File) => {
+    const fd = new FormData();
+    fd.append("documentType", documentType);
+    fd.append("file", file);
+    return request<DocumentRecord>("POST", "/me/documents", { formData: fd });
+  },
+  downloadMyDocumentUrl: (id: string) =>
+    apiBase() + `/me/documents/${id}/download`,
+  deleteMyDocument: (id: string) =>
+    request<{ ok: true }>("DELETE", `/me/documents/${id}`),
+
+  // -------- questionnaire --------
+  getMyQuestionnaire: () =>
+    request<QuestionnaireRecord | null>("GET", "/me/questionnaire"),
+  submitMyQuestionnaire: (version: number, answers: Record<string, unknown>) =>
+    request<QuestionnaireRecord>("POST", "/me/questionnaire", {
+      body: { version, answers },
+    }),
+
+  // -------- payments --------
+  listMyPayments: (cursor?: string) =>
+    request<Page<PaymentRecord>>(
+      "GET",
+      "/me/payments" + (cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""),
+    ),
+  downloadMyRemittanceUrl: (id: string) =>
+    apiBase() + `/me/payments/${id}/download`,
+
+  // -------- change requests --------
+  listMyChangeRequests: () =>
+    request<{ items: ChangeRequest[] }>("GET", "/me/change-requests"),
+  postMyChangeRequest: (message: string) =>
+    request<ChangeRequest>("POST", "/me/change-requests", {
+      body: { message },
+    }),
+
+  // -------- admin: subcontractors --------
+  adminListSubcontractors: (params: {
+    status?: string;
+    q?: string;
+    cursor?: string;
+    limit?: number;
+  }) => {
+    const q = new URLSearchParams();
+    if (params.status) q.set("status", params.status);
+    if (params.q) q.set("q", params.q);
+    if (params.cursor) q.set("cursor", params.cursor);
+    if (params.limit) q.set("limit", String(params.limit));
+    return request<Page<Subcontractor>>(
+      "GET",
+      "/admin/subcontractors" + (q.toString() ? `?${q}` : ""),
+    );
+  },
+  adminGetSubcontractor: (id: string) =>
+    request<{ subcontractor: Subcontractor; bank: BankDetails }>(
+      "GET",
+      `/admin/subcontractors/${id}`,
+    ),
+  adminCreateSubcontractor: (data: {
+    email: string;
+    fullName?: string;
+    clientRef?: string;
+  }) =>
+    request<{
+      subcontractorId: string;
+      userId: string;
+      email: string;
+      tempPassword: string;
+      note: string;
+    }>("POST", "/admin/subcontractors", { body: data }),
+  adminPatchSubcontractor: (id: string, data: Partial<Subcontractor>) =>
+    request<Subcontractor>(
+      "PATCH",
+      `/admin/subcontractors/${id}`,
+      { body: data as Json },
+    ),
+  adminApprove: (id: string, note?: string) =>
+    request<Subcontractor>(
+      "POST",
+      `/admin/subcontractors/${id}/approve`,
+      { body: { note } },
+    ),
+  adminReject: (id: string, reason?: string) =>
+    request<Subcontractor>(
+      "POST",
+      `/admin/subcontractors/${id}/reject`,
+      { body: { reason } },
+    ),
+  adminRequestChanges: (id: string, note: string) =>
+    request<Subcontractor>(
+      "POST",
+      `/admin/subcontractors/${id}/request-changes`,
+      { body: { note } },
+    ),
+  adminResetPassword: (id: string) =>
+    request<{ tempPassword: string; note: string }>(
+      "POST",
+      `/admin/subcontractors/${id}/reset-password`,
+    ),
+  adminGenerateContract: (id: string, templateId?: string) =>
+    request<ContractRecord>(
+      "POST",
+      `/admin/subcontractors/${id}/generate-contract`,
+      { body: templateId ? { templateId } : {} },
+    ),
+
+  // -------- admin: documents --------
+  adminListSubDocuments: (subId: string) =>
+    request<{ items: DocumentRecord[] }>(
+      "GET",
+      `/admin/subcontractors/${subId}/documents`,
+    ),
+  adminDownloadSubDocumentUrl: (subId: string, docId: string) =>
+    apiBase() + `/admin/subcontractors/${subId}/documents/${docId}/download`,
+  adminReviewDocument: (
+    subId: string,
+    docId: string,
+    status: "approved" | "rejected",
+    note?: string,
+  ) =>
+    request<DocumentRecord>(
+      "POST",
+      `/admin/subcontractors/${subId}/documents/${docId}/review`,
+      { body: { status, note } },
+    ),
+
+  // -------- admin: questionnaire --------
+  adminGetQuestionnaire: (subId: string) =>
+    request<QuestionnaireRecord | null>(
+      "GET",
+      `/admin/subcontractors/${subId}/questionnaire`,
+    ),
+  adminReviewQuestionnaire: (
+    subId: string,
+    status: "approved" | "rejected",
+    note?: string,
+  ) =>
+    request<QuestionnaireRecord>(
+      "POST",
+      `/admin/subcontractors/${subId}/questionnaire/review`,
+      { body: { status, note } },
+    ),
+
+  // -------- admin: payments --------
+  adminListSubPayments: (subId: string, cursor?: string) =>
+    request<Page<PaymentRecord>>(
+      "GET",
+      `/admin/subcontractors/${subId}/payments` +
+        (cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""),
+    ),
+  adminCreatePayment: (
+    subId: string,
+    data: {
+      paymentDate: string;
+      amountMinor: number;
+      currency?: string;
+      reference?: string;
+      status?: string;
+      hours?: number | null;
+      periodStart?: string | null;
+      periodEnd?: string | null;
+      rctRate?: string | null;
+      rctAuthNumber?: string | null;
+      vatReverseCharge?: boolean;
+    },
+  ) =>
+    request<PaymentRecord>(
+      "POST",
+      `/admin/subcontractors/${subId}/payments`,
+      { body: data },
+    ),
+  adminUploadRemittance: (subId: string, paymentId: string, file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return request<PaymentRecord>(
+      "POST",
+      `/admin/subcontractors/${subId}/payments/${paymentId}/remittance`,
+      { formData: fd },
+    );
+  },
+  adminDeletePayment: (subId: string, paymentId: string) =>
+    request<{ ok: true }>(
+      "DELETE",
+      `/admin/subcontractors/${subId}/payments/${paymentId}`,
+    ),
+
+  // -------- admin: templates --------
+  adminCreateTemplate: (name: string, bodyHtml: string) =>
+    request<ContractTemplate>("POST", "/admin/contract-templates", {
+      body: { name, bodyHtml },
+    }),
+  adminListTemplates: () =>
+    request<{ items: ContractTemplate[] }>("GET", "/admin/contract-templates"),
+
+  // -------- admin: change requests --------
+  adminListChangeRequests: (status?: string) =>
+    request<Page<ChangeRequest>>(
+      "GET",
+      "/admin/change-requests" + (status ? `?status=${status}` : ""),
+    ),
+  adminPatchChangeRequest: (id: string, status: string) =>
+    request<ChangeRequest>("PATCH", `/admin/change-requests/${id}`, {
+      body: { status },
+    }),
+};

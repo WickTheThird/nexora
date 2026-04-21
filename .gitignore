@@ -1,0 +1,16 @@
+node_modules
+dist
+.DS_Store
+*.log
+.env
+.env.local
+.vite
+# TypeScript incremental build cache
+tsconfig.tsbuildinfo
+# Editor / agent metadata
+.claude/
+.vscode/
+.idea/
+# Worker source lives in Cloudflare dashboard, not in the repo
+worker.js
+worker.ts
