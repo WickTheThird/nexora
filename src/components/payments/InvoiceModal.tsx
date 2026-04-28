@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, ApiError, brandName } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import type { InvoicePayload } from "@/lib/types";
-import { Download, Mail, FileText } from "lucide-react";
+import type { InvoicePayload, PaymentRecord } from "@/lib/types";
+import { Download, Mail, FileText, FileSpreadsheet, History } from "lucide-react";
+import { exportRowsAsCsv } from "@/lib/csv";
 
 // Lazy-load the PDF module so jsPDF + html2canvas (~700 KB) only enter the
 // bundle when the user actually clicks Download — not on every page load.
@@ -37,6 +38,29 @@ export function InvoiceModal({
   const [to, setTo] = useState(defaultTo);
   const [loading, setLoading] = useState(false);
   const [inv, setInv] = useState<InvoicePayload | null>(null);
+  const [history, setHistory] = useState<{ from: string; to: string; payments: PaymentRecord[] }[]>([]);
+
+  // Load past invoiced periods (distinct period_start/period_end on payments)
+  // when the modal opens, so the "History" section can offer one-click access.
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      try {
+        const r = await api.adminListSubPayments(subId);
+        const buckets = new Map<string, { from: string; to: string; payments: PaymentRecord[] }>();
+        for (const p of r.items) {
+          if (!p.periodStart || !p.periodEnd) continue;
+          const key = `${p.periodStart}__${p.periodEnd}`;
+          const cur = buckets.get(key);
+          if (cur) cur.payments.push(p);
+          else buckets.set(key, { from: p.periodStart, to: p.periodEnd, payments: [p] });
+        }
+        setHistory(
+          [...buckets.values()].sort((a, b) => b.from.localeCompare(a.from)).slice(0, 10),
+        );
+      } catch { /* non-fatal */ }
+    })();
+  }, [open, subId]);
 
   const preview = async () => {
     setLoading(true);
@@ -48,6 +72,53 @@ export function InvoiceModal({
     } finally {
       setLoading(false);
     }
+  };
+
+  const usePreset = (preset: "thisMonth" | "lastMonth" | "thisYear") => {
+    const now = new Date();
+    let f: Date, t: Date;
+    if (preset === "thisMonth") {
+      f = new Date(now.getFullYear(), now.getMonth(), 1);
+      t = now;
+    } else if (preset === "lastMonth") {
+      f = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      t = new Date(now.getFullYear(), now.getMonth(), 0);
+    } else {
+      f = new Date(now.getFullYear(), 0, 1);
+      t = now;
+    }
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    setFrom(iso(f));
+    setTo(iso(t));
+    setInv(null);
+  };
+
+  const useHistoryPeriod = (h: { from: string; to: string }) => {
+    setFrom(h.from);
+    setTo(h.to);
+    setInv(null);
+  };
+
+  const downloadCsv = () => {
+    if (!inv) return;
+    exportRowsAsCsv(
+      `invoice_${inv.invoiceNumber}.csv`,
+      inv.lines,
+      [
+        { header: "Date",         value: (p) => p.paymentDate },
+        { header: "Period start", value: (p) => p.periodStart ?? "" },
+        { header: "Period end",   value: (p) => p.periodEnd ?? "" },
+        { header: "Hours",        value: (p) => p.hours ?? "" },
+        { header: "Site",         value: (p) => p.siteRef ?? "" },
+        { header: "Reference",    value: (p) => p.reference ?? "" },
+        { header: "Currency",     value: (p) => p.currency },
+        { header: "Gross (minor)", value: (p) => p.grossMinor },
+        { header: "RCT rate",     value: (p) => p.rctRate ?? "" },
+        { header: "RCT (minor)",  value: (p) => p.rctDeductionMinor },
+        { header: "Net (minor)",  value: (p) => p.netMinor },
+        { header: "Status",       value: (p) => p.status },
+      ],
+    );
   };
 
   const download = async () => {
@@ -93,6 +164,14 @@ export function InvoiceModal({
             <>
               <Button
                 variant="outline"
+                onClick={downloadCsv}
+                leftIcon={<FileSpreadsheet className="h-4 w-4" />}
+                disabled={inv.lines.length === 0}
+              >
+                CSV
+              </Button>
+              <Button
+                variant="outline"
                 onClick={sendToAccountant}
                 leftIcon={<Mail className="h-4 w-4" />}
                 disabled={!inv.accountantEmail}
@@ -109,6 +188,12 @@ export function InvoiceModal({
       }
     >
       <div className="space-y-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs uppercase tracking-wider text-ink-500 font-semibold mr-1">Quick:</span>
+          <Button variant="ghost" size="sm" onClick={() => usePreset("thisMonth")}>This month</Button>
+          <Button variant="ghost" size="sm" onClick={() => usePreset("lastMonth")}>Last month</Button>
+          <Button variant="ghost" size="sm" onClick={() => usePreset("thisYear")}>This year</Button>
+        </div>
         <div className="grid grid-cols-3 gap-3">
           <Input label="From" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
           <Input label="To" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
@@ -118,6 +203,38 @@ export function InvoiceModal({
             </Button>
           </div>
         </div>
+
+        {!inv && history.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2 text-xs uppercase tracking-wider text-ink-500 font-semibold">
+              <History className="h-3.5 w-3.5" /> Recent invoiced periods
+            </div>
+            <div className="card divide-y divide-ink-100">
+              {history.map((h) => {
+                const totalGross = h.payments.reduce((s, p) => s + p.grossMinor, 0);
+                const totalNet   = h.payments.reduce((s, p) => s + p.netMinor, 0);
+                const currency = h.payments[0]?.currency || "EUR";
+                return (
+                  <button
+                    key={`${h.from}__${h.to}`}
+                    type="button"
+                    onClick={() => useHistoryPeriod(h)}
+                    className="w-full px-4 py-3 text-left flex items-center justify-between gap-3 hover:bg-ink-50/50 transition"
+                  >
+                    <div>
+                      <div className="text-sm font-medium text-ink-900">{h.from} → {h.to}</div>
+                      <div className="text-xs text-ink-500">{h.payments.length} payment{h.payments.length === 1 ? "" : "s"}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-semibold text-ink-900 tabular-nums">{fmtMoney(totalGross, currency)} gross</div>
+                      <div className="text-xs text-ink-500 tabular-nums">{fmtMoney(totalNet, currency)} net</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {inv && (
           <div className="space-y-4">

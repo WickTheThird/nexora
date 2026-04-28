@@ -18,6 +18,7 @@ import { fmtBytes, fmtDate, fmtDateTime, fmtMoney, initials } from "@/lib/format
 import { IncomeSummary } from "@/components/payments/IncomeSummary";
 import { InvoiceModal } from "@/components/payments/InvoiceModal";
 import { Select, Checkbox } from "@/components/ui/Input";
+import { exportRowsAsCsv } from "@/lib/csv";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -710,7 +711,27 @@ function TimesheetsTab({ subId, sub }: { subId: string; sub: Subcontractor }) {
             />
           </div>
           <Button variant="outline" onClick={applyFilters}>Apply</Button>
-          <div className="ml-auto">
+          <div className="ml-auto flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => exportRowsAsCsv(
+                `timesheets_${sub.fullName?.replace(/\s+/g, "_") || sub.id.slice(0,6)}_${from}_${to}.csv`,
+                items,
+                [
+                  { header: "Date",     value: (t) => t.workDate },
+                  { header: "Hours",    value: (t) => t.hours ?? "" },
+                  { header: "Clock in", value: (t) => t.clockInAt ? new Date(t.clockInAt).toISOString() : "" },
+                  { header: "Clock out",value: (t) => t.clockOutAt ? new Date(t.clockOutAt).toISOString() : "" },
+                  { header: "Site",     value: (t) => t.siteRef ?? "" },
+                  { header: "Notes",    value: (t) => t.notes ?? "" },
+                  { header: "Status",   value: (t) => t.status },
+                ],
+              )}
+              leftIcon={<Download className="h-4 w-4" />}
+              disabled={items.length === 0}
+            >
+              CSV
+            </Button>
             <Button
               variant="accent"
               onClick={() => { setGenFrom(from); setGenTo(to); setGenOpen(true); }}

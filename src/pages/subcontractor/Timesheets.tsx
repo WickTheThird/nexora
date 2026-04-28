@@ -18,7 +18,9 @@ import {
   Square,
   CheckCircle2,
   XCircle,
+  Download,
 } from "lucide-react";
+import { exportRowsAsCsv } from "@/lib/csv";
 
 function statusBadge(s: Timesheet["status"]) {
   switch (s) {
@@ -184,9 +186,31 @@ export function Timesheets() {
         title="Timesheets"
         description="Track your hours daily. Clock in when you start, clock out when you finish, or just enter the hours manually."
         right={
-          <Button variant="accent" onClick={() => { setCreateDate(isoToday()); setCreateOpen(true); }} leftIcon={<Plus className="h-4 w-4" />}>
-            Add timesheet
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              onClick={() => exportRowsAsCsv(
+                `timesheets_${from}_${to}.csv`,
+                items,
+                [
+                  { header: "Date",     value: (t) => t.workDate },
+                  { header: "Hours",    value: (t) => t.hours ?? "" },
+                  { header: "Clock in", value: (t) => t.clockInAt ? new Date(t.clockInAt).toISOString() : "" },
+                  { header: "Clock out",value: (t) => t.clockOutAt ? new Date(t.clockOutAt).toISOString() : "" },
+                  { header: "Site",     value: (t) => t.siteRef ?? "" },
+                  { header: "Notes",    value: (t) => t.notes ?? "" },
+                  { header: "Status",   value: (t) => t.status },
+                ],
+              )}
+              leftIcon={<Download className="h-4 w-4" />}
+              disabled={items.length === 0}
+            >
+              CSV
+            </Button>
+            <Button variant="accent" onClick={() => { setCreateDate(isoToday()); setCreateOpen(true); }} leftIcon={<Plus className="h-4 w-4" />}>
+              Add timesheet
+            </Button>
+          </>
         }
       />
 
