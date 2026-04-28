@@ -33,7 +33,7 @@ import {
   UserX,
 } from "lucide-react";
 
-type Tab = "overview" | "documents" | "contract" | "questionnaire" | "payments";
+type Tab = "overview" | "documents" | "contract" | "questionnaire" | "timesheets" | "payments";
 
 export function SubcontractorDetail() {
   const { id = "" } = useParams();
@@ -128,6 +128,7 @@ export function SubcontractorDetail() {
     { key: "documents", label: "Documents" },
     { key: "contract", label: "Contract" },
     { key: "questionnaire", label: "Questionnaire" },
+    { key: "timesheets", label: "Timesheets" },
     { key: "payments", label: "Payments" },
   ];
 
@@ -206,6 +207,7 @@ export function SubcontractorDetail() {
         />
       )}
       {tab === "questionnaire" && <QuestionnaireTab subId={id} />}
+      {tab === "timesheets" && <TimesheetsTab subId={id} sub={sub} />}
       {tab === "payments" && (
         <PaymentsTab
           subId={id}
@@ -618,6 +620,211 @@ function QuestionnaireTab({ subId }: { subId: string }) {
         }
       >
         <Textarea label="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} rows={4} />
+      </Modal>
+    </>
+  );
+}
+
+function TimesheetsTab({ subId, sub }: { subId: string; sub: Subcontractor }) {
+  const toast = useToast();
+  const [items, setItems] = useState<import("@/lib/types").Timesheet[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [from, setFrom] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+  });
+  const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10));
+  const [statusFilter, setStatusFilter] = useState("");
+  const [genOpen, setGenOpen] = useState(false);
+  const [genFrom, setGenFrom] = useState(from);
+  const [genTo, setGenTo] = useState(to);
+  const [generating, setGenerating] = useState(false);
+
+  const refresh = async () => {
+    const r = await api.adminListSubTimesheets(subId, {
+      from, to, status: statusFilter || undefined,
+    });
+    setItems(r.items);
+  };
+  useEffect(() => {
+    (async () => { try { await refresh(); } finally { setLoading(false); } })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subId]);
+
+  const applyFilters = async () => {
+    setLoading(true);
+    try { await refresh(); } finally { setLoading(false); }
+  };
+
+  const review = async (id: string, status: "approved" | "rejected") => {
+    try {
+      await api.adminReviewTimesheet(id, status);
+      await refresh();
+      toast.success(`Timesheet ${status}`);
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed");
+    }
+  };
+
+  const generate = async () => {
+    setGenerating(true);
+    try {
+      const p = await api.adminGeneratePaymentFromPeriod(subId, genFrom, genTo);
+      toast.success(`Payment created: ${fmtMoney(p.grossMinor, p.currency)} gross`);
+      setGenOpen(false);
+      await refresh();
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const totalHours = items.reduce((s, t) => s + (t.hours || 0), 0);
+  const approvedUnpaidHours = items.filter(t => t.status === "approved").reduce((s, t) => s + (t.hours || 0), 0);
+  const projectedGross =
+    sub.rateAmountMinor && sub.rateUnit === "hour"
+      ? Math.round(approvedUnpaidHours * sub.rateAmountMinor)
+      : null;
+
+  return (
+    <>
+      <div className="card-padded mb-5">
+        <div className="flex items-end gap-3 flex-wrap">
+          <Input label="From" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+          <Input label="To" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+          <div className="w-40">
+            <Select
+              label="Status"
+              value={statusFilter}
+              options={[
+                { value: "", label: "All" },
+                { value: "draft", label: "Draft" },
+                { value: "submitted", label: "Submitted" },
+                { value: "approved", label: "Approved" },
+                { value: "rejected", label: "Rejected" },
+                { value: "paid", label: "Paid" },
+              ]}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            />
+          </div>
+          <Button variant="outline" onClick={applyFilters}>Apply</Button>
+          <div className="ml-auto">
+            <Button
+              variant="accent"
+              onClick={() => { setGenFrom(from); setGenTo(to); setGenOpen(true); }}
+              disabled={!sub.rateAmountMinor || !sub.rateUnit}
+              leftIcon={<Send className="h-4 w-4" />}
+            >
+              Generate payment from period
+            </Button>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
+          <div>
+            <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold">Hours in range</div>
+            <div className="text-xl font-bold tabular-nums mt-1">{totalHours.toFixed(2)}</div>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold">Approved &amp; unpaid</div>
+            <div className="text-xl font-bold tabular-nums mt-1 text-emerald-700">{approvedUnpaidHours.toFixed(2)}</div>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold">Projected gross</div>
+            <div className="text-xl font-bold tabular-nums mt-1">
+              {projectedGross != null ? fmtMoney(projectedGross, "EUR") : <span className="text-ink-400">·</span>}
+            </div>
+            <div className="text-[10px] text-ink-500 mt-0.5">
+              {sub.rateAmountMinor && sub.rateUnit
+                ? `Based on ${fmtMoney(sub.rateAmountMinor, "EUR")} / ${sub.rateUnit}`
+                : "No contracted rate set"}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="skeleton h-64" />
+      ) : items.length === 0 ? (
+        <div className="card p-6 text-sm text-ink-500">No timesheets in this range.</div>
+      ) : (
+        <div className="card overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-ink-50 border-b border-ink-100">
+              <tr className="text-left text-xs font-semibold uppercase tracking-wider text-ink-500">
+                <th className="px-5 py-3">Date</th>
+                <th className="px-5 py-3">Hours</th>
+                <th className="px-5 py-3">Clock in / out</th>
+                <th className="px-5 py-3">Site</th>
+                <th className="px-5 py-3">Notes</th>
+                <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((t) => (
+                <tr key={t.id} className="border-b border-ink-100 last:border-b-0">
+                  <td className="px-5 py-3 text-sm text-ink-900">{fmtDate(t.workDate)}</td>
+                  <td className="px-5 py-3 text-sm tabular-nums text-ink-900">{t.hours != null ? t.hours.toFixed(2) : "·"}</td>
+                  <td className="px-5 py-3 text-xs text-ink-600">
+                    {t.clockInAt ? new Date(t.clockInAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "·"}
+                    {" → "}
+                    {t.clockOutAt ? new Date(t.clockOutAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "·"}
+                  </td>
+                  <td className="px-5 py-3 text-sm text-ink-600">{t.siteRef || <span className="text-ink-400">·</span>}</td>
+                  <td className="px-5 py-3 text-sm text-ink-600 max-w-[220px] truncate" title={t.notes || ""}>
+                    {t.notes || <span className="text-ink-400">·</span>}
+                  </td>
+                  <td className="px-5 py-3">
+                    {t.status === "approved" && <Badge tone="success">Approved</Badge>}
+                    {t.status === "rejected" && <Badge tone="danger">Rejected</Badge>}
+                    {t.status === "submitted" && <Badge tone="info">Submitted</Badge>}
+                    {t.status === "draft" && <Badge tone="warn">Draft</Badge>}
+                    {t.status === "paid" && <Badge tone="success">Paid</Badge>}
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    {t.status === "submitted" && (
+                      <>
+                        <Button variant="ghost" size="sm" onClick={() => review(t.id, "rejected")}>Reject</Button>
+                        <Button variant="accent" size="sm" onClick={() => review(t.id, "approved")}>Approve</Button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <Modal
+        open={genOpen}
+        onClose={() => setGenOpen(false)}
+        title="Generate payment from approved timesheets"
+        description="Sums all approved + unpaid timesheets in the period and creates a payment using the contracted rate. Approved timesheets in range will be marked 'paid' and linked to the new payment."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setGenOpen(false)}>Cancel</Button>
+            <Button variant="accent" onClick={generate} loading={generating}>Generate</Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="From" type="date" value={genFrom} onChange={(e) => setGenFrom(e.target.value)} />
+            <Input label="To" type="date" value={genTo} onChange={(e) => setGenTo(e.target.value)} />
+          </div>
+          {sub.rateAmountMinor && sub.rateUnit ? (
+            <div className="rounded-lg bg-ink-100 border border-ink-200 p-3 text-sm text-ink-700">
+              Rate: <strong>{fmtMoney(sub.rateAmountMinor, "EUR")} / {sub.rateUnit}</strong>{sub.rctRate ? ` · RCT ${sub.rctRate}%` : ""}
+              {sub.vatReverseCharge ? " · VAT reverse charge" : ""}
+            </div>
+          ) : (
+            <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-800">
+              Subcontractor has no contracted rate set. Add one on the Payments tab first.
+            </div>
+          )}
+        </div>
       </Modal>
     </>
   );

@@ -3,6 +3,7 @@
 // flags — so the SAME build artifact can be deployed to different domains.
 
 import type {
+  AppSettings,
   BankDetails,
   ChangeRequest,
   ContractRecord,
@@ -14,6 +15,7 @@ import type {
   PaymentRecord,
   QuestionnaireRecord,
   Subcontractor,
+  Timesheet,
 } from "./types";
 
 declare global {
@@ -356,6 +358,7 @@ export const api = {
       rctRate?: string | null;
       rctAuthNumber?: string | null;
       vatReverseCharge?: boolean;
+      siteRef?: string | null;
     },
   ) =>
     request<PaymentRecord>(
@@ -396,4 +399,57 @@ export const api = {
     request<ChangeRequest>("PATCH", `/admin/change-requests/${id}`, {
       body: { status },
     }),
+
+  // -------- timesheets: subcontractor --------
+  listMyTimesheets: (params: { from?: string; to?: string } = {}) => {
+    const q = new URLSearchParams();
+    if (params.from) q.set("from", params.from);
+    if (params.to) q.set("to", params.to);
+    return request<{ items: Timesheet[] }>(
+      "GET",
+      "/me/timesheets" + (q.toString() ? `?${q}` : ""),
+    );
+  },
+  createMyTimesheet: (data: {
+    workDate: string;
+    hours?: number | null;
+    siteRef?: string | null;
+    notes?: string | null;
+  }) => request<Timesheet>("POST", "/me/timesheets", { body: data }),
+  patchMyTimesheet: (id: string, data: Partial<{ hours: number | null; siteRef: string | null; notes: string | null; workDate: string }>) =>
+    request<Timesheet>("PATCH", `/me/timesheets/${id}`, { body: data }),
+  deleteMyTimesheet: (id: string) =>
+    request<{ ok: true }>("DELETE", `/me/timesheets/${id}`),
+  clockIn: (siteRef?: string | null) =>
+    request<Timesheet>("POST", "/me/timesheets/clock-in", { body: siteRef ? { siteRef } : {} }),
+  clockOut: () => request<Timesheet>("POST", "/me/timesheets/clock-out"),
+  getMyActiveClock: () => request<Timesheet | null>("GET", "/me/timesheets/active"),
+
+  // -------- timesheets: admin --------
+  adminListSubTimesheets: (
+    subId: string,
+    params: { from?: string; to?: string; status?: string } = {},
+  ) => {
+    const q = new URLSearchParams();
+    if (params.from) q.set("from", params.from);
+    if (params.to) q.set("to", params.to);
+    if (params.status) q.set("status", params.status);
+    return request<{ items: Timesheet[] }>(
+      "GET",
+      `/admin/subcontractors/${subId}/timesheets` + (q.toString() ? `?${q}` : ""),
+    );
+  },
+  adminReviewTimesheet: (id: string, status: "approved" | "rejected") =>
+    request<Timesheet>("POST", `/admin/timesheets/${id}/review`, { body: { status } }),
+  adminGeneratePaymentFromPeriod: (subId: string, from: string, to: string) =>
+    request<PaymentRecord>(
+      "POST",
+      `/admin/subcontractors/${subId}/payments/from-period`,
+      { body: { from, to } },
+    ),
+
+  // -------- settings (admin) --------
+  getSettings: () => request<AppSettings>("GET", "/admin/settings"),
+  putSettings: (data: Partial<AppSettings>) =>
+    request<{ ok: true }>("PUT", "/admin/settings", { body: data }),
 };

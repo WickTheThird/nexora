@@ -43,6 +43,37 @@ export type QuestionnaireStatus =
   | "approved"
   | "rejected";
 
+export type TimesheetStatus =
+  | "draft"
+  | "submitted"
+  | "approved"
+  | "rejected"
+  | "paid";
+
+export interface Timesheet {
+  id: string;
+  subcontractorId: string;
+  workDate: string;          // 'YYYY-MM-DD'
+  hours: number | null;      // explicit; or derived from clockInAt/clockOutAt
+  clockInAt: number | null;
+  clockOutAt: number | null;
+  siteRef: string | null;
+  notes: string | null;
+  status: TimesheetStatus;
+  paymentId: string | null;
+  createdBy: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface AppSettings {
+  principal_name: string | null;
+  principal_address: string | null;
+  principal_vat: string | null;
+  principal_email: string | null;
+  accountant_email: string | null;
+}
+
 export interface Me {
   id: string;
   email: string;
@@ -171,6 +202,7 @@ export interface PaymentRecord {
   hours: number | null;
   periodStart: string | null;
   periodEnd: string | null;
+  siteRef: string | null;
   createdAt: number;
   createdBy: string | null;
 }

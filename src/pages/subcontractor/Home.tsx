@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { useToast } from "@/components/ui/Toast";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/layout/PortalShell";
 import type {
   OnboardingStatus,
   OnboardingView,
   StepKey,
   StepStatus,
+  Timesheet,
 } from "@/lib/types";
 import {
   Check,
@@ -22,6 +25,8 @@ import {
   User,
   ShieldCheck,
   ArrowRight,
+  Play,
+  Square,
 } from "lucide-react";
 
 const stepMeta: Record<StepKey, { label: string; icon: React.ComponentType<{className?: string}>; href: string; hint: string }> = {
@@ -64,21 +69,30 @@ function statusBadge(s: OnboardingStatus) {
 
 export function Home() {
   const { me } = useAuth();
+  const toast = useToast();
   const [onboarding, setOnboarding] = useState<OnboardingView | null>(null);
   const [profile, setProfile] = useState<{ fullName: string | null } | null>(null);
+  const [active, setActive] = useState<Timesheet | null>(null);
+  const [clocking, setClocking] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const refreshClock = async () => {
+    try { setActive(await api.getMyActiveClock()); } catch { /* ignore */ }
+  };
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const [ob, p] = await Promise.all([
+        const [ob, p, ac] = await Promise.all([
           api.getMyOnboarding(),
           api.getMyProfile(),
+          api.getMyActiveClock().catch(() => null),
         ]);
         if (!mounted) return;
         setOnboarding(ob);
         setProfile({ fullName: p.subcontractor.fullName });
+        setActive(ac);
       } catch {
         /* noop */
       } finally {
@@ -87,6 +101,27 @@ export function Home() {
     })();
     return () => { mounted = false; };
   }, []);
+
+  const startClock = async () => {
+    setClocking(true);
+    try {
+      await api.clockIn();
+      await refreshClock();
+      toast.success("Clocked in");
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed to clock in");
+    } finally { setClocking(false); }
+  };
+  const stopClock = async () => {
+    setClocking(true);
+    try {
+      await api.clockOut();
+      await refreshClock();
+      toast.success("Clocked out");
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed to clock out");
+    } finally { setClocking(false); }
+  };
 
   const steps = onboarding?.steps;
   const totalSteps = steps ? Object.keys(steps).length : 5;
@@ -101,6 +136,41 @@ export function Home() {
         title={`Welcome, ${greeting}`}
         description="Complete each step below to finish your onboarding."
       />
+
+      {/* Clock in/out widget */}
+      <div className="card p-5 mb-6 flex items-center gap-4 flex-wrap">
+        <div className={`h-10 w-10 rounded-full grid place-items-center ${active ? "bg-emerald-100 text-emerald-700" : "bg-ink-100 text-ink-600"}`}>
+          <Clock className="h-5 w-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          {active ? (
+            <>
+              <div className="text-sm font-semibold text-ink-900">Clocked in</div>
+              <div className="text-xs text-ink-500">
+                Since {new Date(active.clockInAt as number).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                {active.siteRef ? ` · ${active.siteRef}` : ""}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-sm font-semibold text-ink-900">Ready to start your day?</div>
+              <div className="text-xs text-ink-500">Clock in to start tracking your hours.</div>
+            </>
+          )}
+        </div>
+        {active ? (
+          <Button variant="primary" onClick={stopClock} loading={clocking} leftIcon={<Square className="h-4 w-4" />}>
+            Clock out
+          </Button>
+        ) : (
+          <Button variant="accent" onClick={startClock} loading={clocking} leftIcon={<Play className="h-4 w-4" />}>
+            Clock in
+          </Button>
+        )}
+        <Link to="/app/timesheets" className="text-sm text-ink-500 hover:text-ink-800 underline">
+          View timesheets
+        </Link>
+      </div>
 
       {/* Status hero */}
       <div className="card-padded bg-ink-950 text-white mb-8 relative overflow-hidden">
