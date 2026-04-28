@@ -201,13 +201,46 @@ function GenerateInvoiceModal({
   const [markup, setMarkup] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  // Fee settings (admin's default fee charged to primaries).
+  const [feeAmountCents, setFeeAmountCents] = useState(0);
+  const [feePercent, setFeePercent] = useState(0);
+  const [feeOverridden, setFeeOverridden] = useState(false);
+
+  // Load fee settings each time the modal opens so we always show fresh
+  // values (in case they were just edited in Settings).
+  useEffect(() => {
+    if (!open) return;
+    setFeeOverridden(false);
+    (async () => {
+      try {
+        const s = await api.getSettings();
+        const flat = s.admin_fee_amount_minor ? parseInt(s.admin_fee_amount_minor, 10) || 0 : 0;
+        const pct  = s.admin_fee_percent ? parseFloat(s.admin_fee_percent) || 0 : 0;
+        setFeeAmountCents(flat);
+        setFeePercent(pct);
+        // Pre-fill the markup with just the flat component initially. The
+        // percent component depends on the gross which we don't know yet,
+        // so we display it informationally below and the worker re-applies.
+        setMarkup(flat > 0 ? (flat / 100).toFixed(2) : "");
+      } catch {
+        // Non-fatal — admin can still type a markup manually.
+      }
+    })();
+  }, [open]);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
-      const markupMinor = markup ? Math.round(parseFloat(markup) * 100) : 0;
-      await api.adminCreatePrimaryInvoice(primaryId, { from, to, markupMinor, notes });
+      // If the admin didn't change anything (feeOverridden=false), omit
+      // markupMinor entirely so the worker computes it from settings
+      // (admin_fee_amount_minor + admin_fee_percent × gross). If they
+      // typed a number, send that exact amount.
+      const payload: { from: string; to: string; markupMinor?: number; notes?: string } = { from, to, notes };
+      if (feeOverridden) {
+        payload.markupMinor = markup ? Math.round(parseFloat(markup) * 100) : 0;
+      }
+      await api.adminCreatePrimaryInvoice(primaryId, payload);
       toast.success("Invoice created");
       await onSaved();
     } catch (e) {
@@ -217,12 +250,17 @@ function GenerateInvoiceModal({
     }
   };
 
+  const feeConfigured = feeAmountCents > 0 || feePercent > 0;
+  const feeDescription = feeConfigured
+    ? `Auto: €${(feeAmountCents / 100).toFixed(2)} flat${feePercent > 0 ? ` + ${feePercent}% of gross` : ""} (from Settings).`
+    : "No default fee in Settings. Worker will use €0 unless you enter a markup below.";
+
   return (
     <Modal
       open={open}
       onClose={onClose}
       title="Generate invoice"
-      description={`Sums up all sub payments in the period for subs linked to ${primaryName}, plus any markup.`}
+      description={`Sums up all sub payments in the period for subs linked to ${primaryName}, plus your admin fee.`}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
@@ -235,16 +273,40 @@ function GenerateInvoiceModal({
           <Input label="From" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
           <Input label="To" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
         </div>
-        <Input
-          label="Markup (€, optional)"
-          type="number"
-          step="0.01"
-          min="0"
-          value={markup}
-          onChange={(e) => setMarkup(e.target.value)}
-          placeholder="e.g. 500.00 for BC's margin"
-          hint="Added on top of the consolidated sub total. Leave blank for none."
-        />
+
+        {/* Fee summary card — auto-computed, with explicit "override" toggle */}
+        <div className={`rounded-lg border p-3 ${feeOverridden ? "bg-accent-50 border-accent-200" : "bg-ink-50 border-ink-200"}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs uppercase tracking-wider font-semibold text-ink-500">
+                {feeOverridden ? "Admin fee — overridden" : "Admin fee — auto from Settings"}
+              </div>
+              <div className="text-sm text-ink-800 mt-1">{feeDescription}</div>
+            </div>
+            {!feeOverridden ? (
+              <Button type="button" variant="ghost" size="sm" onClick={() => setFeeOverridden(true)}>
+                Override
+              </Button>
+            ) : (
+              <Button type="button" variant="ghost" size="sm" onClick={() => { setFeeOverridden(false); setMarkup(""); }}>
+                Reset to auto
+              </Button>
+            )}
+          </div>
+          {feeOverridden && (
+            <Input
+              label="Markup (€)"
+              type="number"
+              step="0.01"
+              min="0"
+              value={markup}
+              onChange={(e) => setMarkup(e.target.value)}
+              placeholder="0.00"
+              className="mt-3"
+            />
+          )}
+        </div>
+
         <Input
           label="Notes (internal)"
           value={notes}

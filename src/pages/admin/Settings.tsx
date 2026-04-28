@@ -13,6 +13,8 @@ const empty: AppSettings = {
   principal_vat: null,
   principal_email: null,
   accountant_email: null,
+  admin_fee_amount_minor: null,
+  admin_fee_percent: null,
 };
 
 export function Settings() {
@@ -108,6 +110,42 @@ export function Settings() {
                 placeholder="ops@yourcompany.ie"
               />
             </div>
+          </div>
+        </section>
+
+        <section className="card-padded">
+          <h2 className="text-base font-semibold text-ink-900 mb-1">Primary invoice fee</h2>
+          <p className="text-sm text-ink-500 mb-5">
+            BC's default fee charged on consolidated invoices issued <em>to primaries</em>.
+            Fixed amount and percentage are added together. The
+            "Generate invoice" modal pre-fills the markup with this calculation
+            so you can override per-invoice if needed.
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Fixed fee (€)"
+              type="number"
+              step="0.01"
+              min="0"
+              value={data.admin_fee_amount_minor ? (parseInt(data.admin_fee_amount_minor, 10) / 100).toFixed(2) : ""}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                set("admin_fee_amount_minor", Number.isFinite(v) && v > 0 ? String(Math.round(v * 100)) : null);
+              }}
+              placeholder="e.g. 50.00"
+              hint="A flat fee applied to every primary invoice."
+            />
+            <Input
+              label="Percentage fee (%)"
+              type="number"
+              step="0.1"
+              min="0"
+              max="100"
+              value={data.admin_fee_percent || ""}
+              onChange={(e) => set("admin_fee_percent", e.target.value || null)}
+              placeholder="e.g. 2.5"
+              hint="A percentage of the consolidated gross."
+            />
           </div>
         </section>
 

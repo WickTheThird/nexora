@@ -82,6 +82,10 @@ export interface AppSettings {
   principal_vat: string | null;
   principal_email: string | null;
   accountant_email: string | null;
+  // Default fee BC charges the primary on consolidated invoices.
+  // Stored as strings (worker stores all settings as strings).
+  admin_fee_amount_minor: string | null;
+  admin_fee_percent: string | null;
 }
 
 export interface InvoicePayload {
