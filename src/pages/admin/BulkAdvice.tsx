@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { Button } from "@/components/ui/Button";
@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/Input";
 import { Empty } from "@/components/ui/Empty";
 import { Badge } from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
-import { Send, Eye, Mail, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Send, Eye, Mail, AlertTriangle, CheckCircle2, Upload, FileSpreadsheet } from "lucide-react";
 
 // Bulk Payment Advice page. Admin picks a date range, sees a per-sub
 // preview of approved+unpaid hours and the computed gross/RCT/net, ticks
@@ -24,14 +24,18 @@ function fmtMoney(minor: number, currency = "EUR") {
   }
 }
 
+type CsvPreview = Awaited<ReturnType<typeof api.adminBulkAdviceImport>>;
+
 export function BulkAdvice() {
   const toast = useToast();
+  const fileRef = useRef<HTMLInputElement | null>(null);
   // Default range: this calendar week (Mon → today). Easy to change.
   const today = new Date();
   const day = today.getDay() || 7; // Sun=0 → 7
   const monday = new Date(today); monday.setDate(today.getDate() - (day - 1));
   const iso = (d: Date) => d.toISOString().slice(0, 10);
 
+  const [tab, setTab] = useState<"timesheets" | "csv">("timesheets");
   const [from, setFrom] = useState(iso(monday));
   const [to, setTo] = useState(iso(today));
   const [items, setItems] = useState<PreviewItem[] | null>(null);
@@ -40,6 +44,34 @@ export function BulkAdvice() {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<Awaited<ReturnType<typeof api.adminBulkAdviceSend>> | null>(null);
+
+  // CSV import state (separate flow under the second tab).
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvPreview, setCsvPreview] = useState<CsvPreview | null>(null);
+  const [csvBusy, setCsvBusy] = useState(false);
+
+  const csvUpload = async (commit: boolean) => {
+    if (!csvFile) { toast.error("Select a CSV file first"); return; }
+    if (commit) {
+      const matched = csvPreview?.matchedCount ?? 0;
+      if (!matched) { toast.error("Nothing to commit (no matched rows)"); return; }
+      if (!confirm(`Create ${matched} payment advice${matched === 1 ? "" : "s"} from this CSV?\n\n${notify ? "Each subcontractor will be EMAILED." : "No emails will be sent."}`)) return;
+    }
+    setCsvBusy(true);
+    try {
+      const r = await api.adminBulkAdviceImport(csvFile, from, to, { commit, notify });
+      setCsvPreview(r);
+      if (commit) {
+        toast.success(`Created ${r.created?.length || 0}${r.skipped?.length ? `, skipped ${r.skipped.length}` : ""}`);
+      } else {
+        toast.info(`Preview: ${r.matchedCount} matched / ${r.itemCount} total`);
+      }
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Upload failed");
+    } finally {
+      setCsvBusy(false);
+    }
+  };
 
   const preview = async () => {
     setLoading(true); setResult(null);
@@ -95,6 +127,25 @@ export function BulkAdvice() {
         description="Generate a payment advice for every subcontractor with approved hours in a period. They'll see it in their portal and (optionally) get an email."
       />
 
+      {/* Tab switcher: timesheet-driven (built-in) vs CSV import (Enagh-style) */}
+      <div className="flex gap-1 mb-5 border-b border-ink-200">
+        <button
+          type="button"
+          onClick={() => setTab("timesheets")}
+          className={`px-4 py-2 text-sm font-medium -mb-px border-b-2 ${tab === "timesheets" ? "border-ink-900 text-ink-900" : "border-transparent text-ink-500 hover:text-ink-700"}`}
+        >
+          From timesheets
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("csv")}
+          className={`px-4 py-2 text-sm font-medium -mb-px border-b-2 ${tab === "csv" ? "border-ink-900 text-ink-900" : "border-transparent text-ink-500 hover:text-ink-700"}`}
+        >
+          From CSV upload
+        </button>
+      </div>
+
+      {tab === "timesheets" && (
       <div className="card-padded mb-5">
         <div className="grid sm:grid-cols-4 gap-3 items-end">
           <Input label="From" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
@@ -113,8 +164,130 @@ export function BulkAdvice() {
           </Button>
         </div>
       </div>
+      )}
 
-      {result && (
+      {tab === "csv" && (
+        <div className="card-padded mb-5">
+          <p className="text-sm text-ink-600 mb-4">
+            Upload a CSV in the Enagh export shape. Required columns:{" "}
+            <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">SubcontractorCo</code>,{" "}
+            <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">Quantity</code>,{" "}
+            <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">Rate</code>. Optional:{" "}
+            <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">MaterialValue</code>,{" "}
+            <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">Extras</code>,{" "}
+            <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">SiteAddress</code>,{" "}
+            <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">JobNumber</code>,{" "}
+            <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">Name</code>. Matching is by{" "}
+            <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">SubcontractorCo</code> against the sub's{" "}
+            <em>subcontractor reference</em> or <em>client reference</em>.
+          </p>
+          <div className="grid sm:grid-cols-4 gap-3 items-end mb-3">
+            <Input label="Period start" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <Input label="Period end" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+            <div>
+              <label className="text-xs uppercase tracking-wider text-ink-500 font-semibold">CSV file</label>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".csv,text/csv,application/vnd.ms-excel"
+                onChange={(e) => { setCsvFile(e.target.files?.[0] || null); setCsvPreview(null); }}
+                className="block mt-2 w-full text-sm file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:bg-ink-100 file:text-ink-800 hover:file:bg-ink-200"
+              />
+              {csvFile && <div className="text-xs text-ink-500 mt-1">{csvFile.name} · {(csvFile.size / 1024).toFixed(1)} KB</div>}
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button variant="primary" onClick={() => csvUpload(false)} disabled={!csvFile} loading={csvBusy} leftIcon={<Eye className="h-4 w-4" />}>
+                Preview
+              </Button>
+              <label className="text-xs text-ink-600 flex items-center gap-2">
+                <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
+                Email each sub when committed
+              </label>
+            </div>
+          </div>
+
+          {csvPreview && csvPreview.mode === "preview" && csvPreview.items && (
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-sm text-ink-600">
+                  <strong>{csvPreview.matchedCount}</strong> matched / {csvPreview.itemCount} rows · total gross{" "}
+                  <strong>{fmtMoney(csvPreview.totalGrossMinor || 0)}</strong>
+                </div>
+                <Button
+                  variant="accent"
+                  onClick={() => csvUpload(true)}
+                  disabled={!csvPreview.matchedCount}
+                  loading={csvBusy}
+                  leftIcon={notify ? <Mail className="h-4 w-4" /> : <Upload className="h-4 w-4" />}
+                >
+                  Commit & create {csvPreview.matchedCount} advice{csvPreview.matchedCount === 1 ? "" : "s"}
+                </Button>
+              </div>
+              <div className="card overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead className="bg-ink-50 border-b border-ink-100">
+                    <tr className="text-left uppercase tracking-wider text-ink-500 font-semibold">
+                      <th className="px-3 py-2">Row</th>
+                      <th className="px-3 py-2">Sub code</th>
+                      <th className="px-3 py-2">Name</th>
+                      <th className="px-3 py-2">Job</th>
+                      <th className="px-3 py-2">Site</th>
+                      <th className="px-3 py-2 text-right">Qty</th>
+                      <th className="px-3 py-2 text-right">Rate</th>
+                      <th className="px-3 py-2 text-right">Gross</th>
+                      <th className="px-3 py-2 text-right">RCT</th>
+                      <th className="px-3 py-2 text-right">Net</th>
+                      <th className="px-3 py-2">Match</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {csvPreview.items.map((it) => (
+                      <tr key={it.rowIndex} className={`border-b border-ink-100 last:border-b-0 ${it.matched ? "" : "bg-amber-50/40"}`}>
+                        <td className="px-3 py-2 text-ink-500">{it.rowIndex}</td>
+                        <td className="px-3 py-2 font-mono">{it.code}</td>
+                        <td className="px-3 py-2">{it.subcontractorName || it.csvName}</td>
+                        <td className="px-3 py-2 text-ink-600">{it.jobNumber || "—"}</td>
+                        <td className="px-3 py-2 text-ink-600">{it.siteAddress || "—"}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{it.quantity.toFixed(2)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{it.rate.toFixed(2)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{fmtMoney(it.grossMinor)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums text-red-700">{it.rctRate ? `-${fmtMoney(it.rctDeductionMinor)} (${it.rctRate}%)` : "—"}</td>
+                        <td className="px-3 py-2 text-right tabular-nums font-bold">{fmtMoney(it.netMinor)}</td>
+                        <td className="px-3 py-2">
+                          {it.matched
+                            ? <Badge tone="success">match</Badge>
+                            : <span className="text-amber-700 text-xs flex items-center gap-1"><AlertTriangle className="h-3 w-3" />{it.ineligibleReason}</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {csvPreview && csvPreview.mode === "committed" && (
+            <div className="mt-4 card-padded bg-green-50 border-green-200">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="h-5 w-5 text-green-700 mt-0.5" />
+                <div className="text-sm text-green-900">
+                  <div className="font-semibold mb-1">
+                    Committed {csvPreview.created?.length || 0}
+                    {csvPreview.skipped?.length ? ` · skipped ${csvPreview.skipped.length}` : ""}
+                  </div>
+                  {csvPreview.skipped?.length ? (
+                    <ul className="text-xs mt-2 list-disc list-inside text-green-800">
+                      {csvPreview.skipped.map((s, i) => <li key={i}>{s.code}: {s.reason}</li>)}
+                    </ul>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === "timesheets" && result && (
         <div className="card-padded mb-5 bg-green-50 border-green-200">
           <div className="flex items-start gap-3">
             <CheckCircle2 className="h-5 w-5 text-green-700 mt-0.5" />
@@ -135,7 +308,7 @@ export function BulkAdvice() {
         </div>
       )}
 
-      {items === null ? (
+      {tab === "timesheets" && (items === null ? (
         <Empty
           icon={Eye}
           title="No preview yet"
@@ -235,7 +408,7 @@ export function BulkAdvice() {
             </table>
           </div>
         </>
-      )}
+      ))}
     </>
   );
 }

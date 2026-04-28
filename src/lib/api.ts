@@ -511,6 +511,55 @@ export const api = {
       period: { from: string; to: string };
     }>("POST", "/admin/bulk-advice", { body: { from, to, subcontractorIds, notify } }),
 
+  // CSV import for bulk advice. The CSV mirrors Enagh's export shape.
+  // commit=false → preview only (per-row resolution). commit=true → create
+  // payment records for matched rows, optionally email each sub.
+  adminBulkAdviceImport: (
+    file: File,
+    periodStart: string,
+    periodEnd: string,
+    opts: { commit?: boolean; notify?: boolean } = {},
+  ) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("periodStart", periodStart);
+    fd.append("periodEnd", periodEnd);
+    const qp = new URLSearchParams();
+    if (opts.commit) qp.set("commit", "true");
+    if (opts.notify === false) qp.set("notify", "false");
+    return request<{
+      mode: "preview" | "committed";
+      period: { from: string; to: string };
+      headerColumns?: string[];
+      itemCount?: number;
+      matchedCount?: number;
+      totalGrossMinor?: number;
+      items?: Array<{
+        rowIndex: number;
+        code: string;
+        csvName: string;
+        jobNumber: string;
+        siteAddress: string;
+        quantity: number;
+        rate: number;
+        materialValue: number;
+        extras: number;
+        grossMinor: number;
+        rctRate: string | null;
+        rctDeductionMinor: number;
+        netMinor: number;
+        subcontractorId: string | null;
+        subcontractorName: string | null;
+        subcontractorEmail: string | null;
+        primaryId: string | null;
+        matched: boolean;
+        ineligibleReason: string | null;
+      }>;
+      created?: Array<{ code: string; paymentId: string; grossMinor: number; netMinor: number }>;
+      skipped?: Array<{ code: string; reason: string }>;
+    }>("POST", "/admin/bulk-advice/import" + (qp.toString() ? `?${qp}` : ""), { formData: fd });
+  },
+
   // -------- primaries (admin) --------
   // Primary = top of the 3-tier hierarchy: developers / main contractors who
   // hire BC Construction. Subs are linked to a primary; BC consolidates sub
