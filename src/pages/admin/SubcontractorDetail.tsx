@@ -959,6 +959,20 @@ function PaymentsTab({
     }
   };
 
+  // Admin confirms the bank transfer went out for this payment.
+  // Server flips status to 'paid'; the timesheets attached have already
+  // been moved to 'paid' status when the payment was created.
+  const markPaid = async (p: PaymentRecord) => {
+    if (!confirm(`Mark payment ${p.invoiceNumber || p.reference || p.id.slice(0,8)} as paid? This is irreversible.`)) return;
+    try {
+      await api.adminMarkPaymentPaid(p.id);
+      await refresh();
+      toast.success("Marked as paid");
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed");
+    }
+  };
+
   const uploadRemit = async (file: File) => {
     if (!uploadFor) return;
     setUploading(uploadFor);
@@ -1012,7 +1026,7 @@ function PaymentsTab({
       </div>
       <div className="flex justify-end gap-2 mb-5">
         <Button variant="outline" onClick={() => setInvoiceOpen(true)} leftIcon={<FileText className="h-4 w-4" />}>
-          Generate invoice
+          Generate payment advice
         </Button>
         <Button variant="accent" onClick={openCreate} leftIcon={<Send className="h-4 w-4" />}>
           Record payment
@@ -1067,7 +1081,21 @@ function PaymentsTab({
                           {p.reference || "·"}
                           {p.vatReverseCharge && <span className="ml-1 inline-block"><Badge tone="info">VAT RC</Badge></span>}
                         </td>
-                        <td className="px-5 py-3"><Badge tone="info">{p.status}</Badge></td>
+                        <td className="px-5 py-3">
+                          {(() => {
+                            const cfg: Record<string, { tone: "neutral"|"info"|"success"|"danger"|"warn"; label: string }> = {
+                              advised:   { tone: "warn", label: "Advised — awaiting sub invoice" },
+                              invoiced:  { tone: "info",    label: p.invoiceNumber ? `Invoiced ${p.invoiceNumber}` : "Invoiced" },
+                              paid:      { tone: "success", label: "Paid" },
+                              cancelled: { tone: "danger",  label: "Cancelled" },
+                              processed: { tone: "warn", label: "Advised — awaiting sub invoice" },
+                              pending:   { tone: "neutral", label: "Pending" },
+                              reversed:  { tone: "danger",  label: "Reversed" },
+                            };
+                            const c = cfg[p.status] || { tone: "neutral" as const, label: p.status };
+                            return <Badge tone={c.tone}>{c.label}</Badge>;
+                          })()}
+                        </td>
                         <td className="px-5 py-3 text-sm text-ink-900 text-right font-medium tabular-nums">
                           {fmtMoney(p.grossMinor, p.currency)}
                         </td>
@@ -1102,9 +1130,16 @@ function PaymentsTab({
                           )}
                         </td>
                         <td className="px-5 py-3 text-right">
-                          <Button variant="ghost" size="sm" onClick={() => del(p)} leftIcon={<Trash2 className="h-4 w-4"/>}>
-                            Delete
-                          </Button>
+                          <div className="flex justify-end gap-1">
+                            {p.status !== "paid" && p.status !== "cancelled" && (
+                              <Button variant="accent" size="sm" onClick={() => markPaid(p)}>
+                                Mark paid
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="sm" onClick={() => del(p)} leftIcon={<Trash2 className="h-4 w-4"/>}>
+                              Delete
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}

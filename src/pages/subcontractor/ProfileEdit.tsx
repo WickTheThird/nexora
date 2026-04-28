@@ -64,6 +64,7 @@ export function ProfileEdit() {
         workType: sub.workType,
         vatRegistered: sub.vatRegistered,
         vatNumber: sub.vatNumber,
+        accountantEmail: sub.accountantEmail,
       });
       const newBank = await api.patchMyBank({
         bankName: bank.bankName,
@@ -204,6 +205,17 @@ export function ProfileEdit() {
           {sub.vatRegistered && (
             <Input label="VAT number" value={sub.vatNumber || ""} onChange={(e) => setS("vatNumber", e.target.value)} disabled={!editable} />
           )}
+          <div className="sm:col-span-2">
+            <Input
+              label="Your accountant's email (optional)"
+              type="email"
+              value={sub.accountantEmail || ""}
+              onChange={(e) => setS("accountantEmail", e.target.value)}
+              disabled={!editable}
+              hint="Your invoices can be CC'd here when you generate them. Separate from the principal's accountant."
+              placeholder="accountant@example.ie"
+            />
+          </div>
         </div>
       </section>
 

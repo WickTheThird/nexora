@@ -32,7 +32,16 @@ export type ContractStatus =
   | "viewed"
   | "signed"
   | "superseded";
-export type PaymentStatus = "pending" | "processed" | "paid" | "reversed";
+// New lifecycle: advised → invoiced → paid (or cancelled).
+// Legacy values kept so old records still type-check.
+export type PaymentStatus =
+  | "advised"
+  | "invoiced"
+  | "paid"
+  | "cancelled"
+  | "pending"
+  | "processed"
+  | "reversed";
 export type RateUnit = "hour" | "day" | "week" | "fixed";
 export type RctRate = "0" | "20" | "35";
 export type ChangeRequestStatus = "open" | "seen" | "actioned" | "closed";
@@ -162,6 +171,10 @@ export interface Subcontractor {
   vatReverseCharge: boolean;
   onboardingStatus: OnboardingStatus;
   submittedAt: number | null;
+  // Subcontractor's own accountant — who they want their invoices CC'd to.
+  // Distinct from the principal's accountant (in AppSettings).
+  accountantEmail: string | null;
+  anonymisedAt: number | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -246,6 +259,10 @@ export interface PaymentRecord {
   reference: string | null;
   hasRemittance: boolean;
   status: PaymentStatus;
+  // Sub-issued invoice number (assigned when sub clicks "Generate invoice"
+  // on an advised payment). Null while still in 'advised' state.
+  invoiceNumber: string | null;
+  invoicedAt: number | null;
   hours: number | null;
   periodStart: string | null;
   periodEnd: string | null;

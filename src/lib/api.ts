@@ -232,6 +232,10 @@ export const api = {
     ),
   downloadMyRemittanceUrl: (id: string) =>
     apiBase() + `/me/payments/${id}/download` + tokenQuery(),
+  // Sub accepts a payment advice and issues their own invoice. Server
+  // assigns the invoice number and flips status from 'advised' → 'invoiced'.
+  generateMyInvoice: (paymentId: string) =>
+    request<PaymentRecord>("POST", `/me/payments/${paymentId}/generate-invoice`),
 
   // -------- change requests --------
   listMyChangeRequests: () =>
@@ -391,6 +395,10 @@ export const api = {
       "DELETE",
       `/admin/subcontractors/${subId}/payments/${paymentId}`,
     ),
+  // Admin marks a sub-issued invoice as paid (after the bank transfer).
+  // Status flips to 'paid'.
+  adminMarkPaymentPaid: (paymentId: string) =>
+    request<PaymentRecord>("POST", `/admin/payments/${paymentId}/mark-paid`),
 
   // -------- admin: templates --------
   adminCreateTemplate: (name: string, bodyHtml: string) =>
