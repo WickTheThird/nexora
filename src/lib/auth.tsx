@@ -51,8 +51,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       tokenStore.clear();
       setMe(null);
     };
-    window.addEventListener("nexora:auth-lost", onLost);
-    return () => window.removeEventListener("nexora:auth-lost", onLost);
+    window.addEventListener("samwise:auth-lost", onLost);
+    return () => window.removeEventListener("samwise:auth-lost", onLost);
   }, []);
 
   const login = async (email: string, password: string) => {

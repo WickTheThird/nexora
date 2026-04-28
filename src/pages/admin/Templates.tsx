@@ -19,7 +19,7 @@ const PLACEHOLDERS = [
 
 const SAMPLE = `<h1>Subcontractor Services Agreement</h1>
 <p><strong>Date:</strong> {{date}}</p>
-<p>This agreement is between <strong>Nexora Ltd</strong> (the "Contractor") and <strong>{{fullName}}</strong> (the "Subcontractor"), of {{address1}}, {{town}}, {{postcode}}.</p>
+<p>This agreement is between <strong>[Your Company Ltd]</strong> (the "Contractor") and <strong>{{fullName}}</strong> (the "Subcontractor"), of {{address1}}, {{town}}, {{postcode}}.</p>
 <h2>1. Services</h2>
 <p>The Subcontractor shall provide: {{natureOfServices}} ({{workType}}).</p>
 <h2>2. Signature</h2>

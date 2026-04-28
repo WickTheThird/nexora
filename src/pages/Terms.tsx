@@ -33,7 +33,7 @@ export function Terms() {
 
         <h2>1. Definitions</h2>
         <p>
-          "Service" means the Nexora portal accessible via a web browser.
+          "Service" means the Samwise portal accessible via a web browser.
           "Operator" means the contractor business that operates the Service.
           "User" means any person granted access to the Service, including the
           Operator's administrators and the subcontractors they engage.
@@ -68,7 +68,7 @@ export function Terms() {
         <p>
           The Service records information used by the Operator to comply with
           the Relevant Contracts Tax (RCT) regime, VAT obligations and other
-          tax filings. <strong>Nexora is not affiliated with, endorsed by, or
+          tax filings. <strong>Samwise is not affiliated with, endorsed by, or
           operated on behalf of the Revenue Commissioners.</strong>
         </p>
         <ul>

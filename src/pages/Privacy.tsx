@@ -30,7 +30,7 @@ export function PrivacyPolicy({ showHeader = true }: { showHeader?: boolean }) {
 
         <h2>1. Who we are</h2>
         <p>
-          This portal ("Nexora") is operated by the contractor business that
+          This portal ("Samwise") is operated by the contractor business that
           engages you as a subcontractor (the "Controller" / "Principal Contractor").
           Any reference to "we", "us", or "our" means the Controller. For
           questions relating to the processing of your personal data, you may
@@ -38,9 +38,9 @@ export function PrivacyPolicy({ showHeader = true }: { showHeader?: boolean }) {
           onboarding.
         </p>
         <p className="rounded-lg bg-ink-100 border border-ink-200 p-3 text-sm not-prose">
-          <strong>Disclaimer.</strong> Nexora is not affiliated with, endorsed by,
+          <strong>Disclaimer.</strong> Samwise is not affiliated with, endorsed by,
           or operated on behalf of the Revenue Commissioners or any other
-          government agency. Nexora is a record-keeping and onboarding tool used
+          government agency. Samwise is a record-keeping and onboarding tool used
           by the Principal Contractor; the Principal Contractor remains solely
           responsible for compliance with the Relevant Contracts Tax (RCT)
           regime, VAT obligations and any other tax filings, and the

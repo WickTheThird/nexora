@@ -1,4 +1,4 @@
-// Thin fetch wrapper that talks to the Nexora Worker API.
+// Thin fetch wrapper that talks to the Samwise Worker API.
 // Reads the API base URL from runtime config (public/config.js), not from build
 // flags — so the SAME build artifact can be deployed to different domains.
 
@@ -18,22 +18,24 @@ import type {
 
 declare global {
   interface Window {
-    __NEXORA_CONFIG__?: { apiUrl?: string; brand?: string };
+    // Runtime config injected by public/config.js. Window-attached so it can
+    // be edited in place after deployment without rebuilding the SPA.
+    __SAMWISE_CONFIG__?: { apiUrl?: string; brand?: string };
   }
 }
 
 function apiBase(): string {
-  const url = window.__NEXORA_CONFIG__?.apiUrl;
+  const url = window.__SAMWISE_CONFIG__?.apiUrl;
   if (!url) {
     throw new Error(
-      "Nexora runtime config missing. Ensure /config.js defines window.__NEXORA_CONFIG__.apiUrl",
+      "Samwise runtime config missing. Ensure /config.js defines window.__SAMWISE_CONFIG__.apiUrl",
     );
   }
   return url.replace(/\/$/, "");
 }
 
 export function brandName(): string {
-  return window.__NEXORA_CONFIG__?.brand || "Nexora";
+  return window.__SAMWISE_CONFIG__?.brand || "Samwise";
 }
 
 // Token-based auth fallback for environments where third-party cookies are
@@ -121,7 +123,7 @@ async function request<T>(
     // redirect to /login instead of letting the page silently render zeros.
     if (code === "AUTH_REQUIRED" || code === "FORBIDDEN") {
       try {
-        window.dispatchEvent(new CustomEvent("nexora:auth-lost", { detail: { code } }));
+        window.dispatchEvent(new CustomEvent("samwise:auth-lost", { detail: { code } }));
       } catch { /* SSR / older browsers */ }
     }
     throw new ApiError(
@@ -151,7 +153,7 @@ export const api = {
     ),
   exportMyDataUrl: () =>
     // Returning URL so a plain <a> can download with credentials.
-    (window.__NEXORA_CONFIG__?.apiUrl?.replace(/\/$/, "") || "") + "/me/export" + tokenQuery(),
+    (window.__SAMWISE_CONFIG__?.apiUrl?.replace(/\/$/, "") || "") + "/me/export" + tokenQuery(),
   submitErasureRequest: (reason?: string) =>
     request<{ id: string; note: string }>("POST", "/me/erasure-request", {
       body: { reason },

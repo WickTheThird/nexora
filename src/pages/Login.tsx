@@ -56,7 +56,7 @@ export function Login() {
           </h2>
         </div>
         <div className="relative text-xs text-ink-500">
-          © {new Date().getFullYear()} Nexora
+          © {new Date().getFullYear()} Samwise · bc
         </div>
       </div>
 
@@ -66,7 +66,7 @@ export function Login() {
           <div className="lg:hidden mb-8"><Logo /></div>
           <h1 className="text-2xl font-bold text-ink-900">Welcome back</h1>
           <p className="text-ink-500 mt-1.5 mb-8">
-            Sign in to your Nexora portal.
+            Sign in to your Samwise portal.
           </p>
           <form onSubmit={submit} className="space-y-5">
             <Input
