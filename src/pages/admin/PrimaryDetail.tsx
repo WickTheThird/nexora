@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, ApiError } from "@/lib/api";
-import type { Primary, PrimaryInvoice } from "@/lib/types";
+import type { Primary, PrimaryInvoice, Subcontractor } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -9,7 +9,11 @@ import { Modal } from "@/components/ui/Modal";
 import { Badge } from "@/components/ui/Badge";
 import { Empty } from "@/components/ui/Empty";
 import { useToast } from "@/components/ui/Toast";
-import { ArrowLeft, FileText, Mail, CheckCircle2, Plus } from "lucide-react";
+import { ArrowLeft, FileText, Mail, CheckCircle2, Plus, Users, ArrowUpRight } from "lucide-react";
+
+function fmtMoney(minor: number) {
+  return `\u20AC${(minor / 100).toLocaleString("en-IE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 // Admin Primary detail page. Shows the primary's contact info, the count
 // of subcontractors linked to them, and the list of consolidated invoices
@@ -19,7 +23,11 @@ export function PrimaryDetail() {
   const { id } = useParams<{ id: string }>();
   const toast = useToast();
   const [primary, setPrimary] = useState<Primary | null>(null);
-  const [stats, setStats] = useState<{ subcontractorCount: number } | null>(null);
+  const [stats, setStats] = useState<{
+    subcontractorCount: number;
+    moneyByStatus: Record<string, { count: number; grossMinor: number; netMinor: number }>;
+  } | null>(null);
+  const [subs, setSubs] = useState<Subcontractor[]>([]);
   const [invoices, setInvoices] = useState<PrimaryInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [genOpen, setGenOpen] = useState(false);
@@ -33,6 +41,7 @@ export function PrimaryDetail() {
       ]);
       setPrimary(p.primary);
       setStats(p.stats);
+      setSubs(p.subcontractors);
       setInvoices(list.items);
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : "Failed to load");
@@ -86,7 +95,7 @@ export function PrimaryDetail() {
         <ArrowLeft className="h-4 w-4" /> Back to primaries
       </Link>
 
-      <div className="grid md:grid-cols-3 gap-4 mb-8">
+      <div className="grid md:grid-cols-3 gap-4 mb-6">
         <div className="card-padded">
           <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-2">Contact</div>
           {primary.contactName && <div className="font-medium text-ink-900">{primary.contactName}</div>}
@@ -101,12 +110,91 @@ export function PrimaryDetail() {
           {primary.vat && <div className="text-sm">VAT: <span className="font-medium">{primary.vat}</span></div>}
           {primary.address && <div className="text-sm text-ink-700 mt-1">{primary.address}</div>}
         </div>
-        <div className="card-padded">
+        <Link
+          to={`/admin/subcontractors?primaryId=${primary.id}`}
+          className="card-padded block group transition hover:shadow-md hover:-translate-y-0.5 hover:border-ink-300 relative"
+        >
           <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-2">Subcontractors</div>
           <div className="text-3xl font-bold text-ink-900 tabular-nums">{stats?.subcontractorCount ?? "—"}</div>
-          <div className="text-xs text-ink-500 mt-1">linked to this primary</div>
-        </div>
+          <div className="text-xs text-ink-500 mt-1">linked · click to filter Subs list</div>
+          <ArrowUpRight className="absolute top-4 right-4 h-4 w-4 text-ink-300 group-hover:text-ink-700 transition" />
+        </Link>
       </div>
+
+      {/* Money rollup */}
+      {stats?.moneyByStatus && Object.keys(stats.moneyByStatus).length > 0 && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+          {(["advised", "invoiced", "paid"] as const).map((status) => {
+            const m = stats.moneyByStatus[status] || { count: 0, grossMinor: 0, netMinor: 0 };
+            const tone =
+              status === "paid" ? "bg-emerald-50 border-emerald-200" :
+              status === "invoiced" ? "bg-sky-50 border-sky-200" :
+              "bg-accent-50 border-accent-200";
+            const label =
+              status === "advised" ? "Advised (sub still to invoice)" :
+              status === "invoiced" ? "Invoiced (awaiting payment)" :
+              "Paid";
+            return (
+              <div key={status} className={`rounded-lg border p-4 ${tone}`}>
+                <div className="text-[11px] uppercase tracking-wider text-ink-500 font-semibold">{label}</div>
+                <div className="text-lg font-bold text-ink-900 tabular-nums mt-1">{fmtMoney(m.grossMinor)}</div>
+                <div className="text-xs text-ink-500">{m.count} payment{m.count === 1 ? "" : "s"} · net {fmtMoney(m.netMinor)}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Linked subcontractors */}
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-semibold text-ink-900">Linked subcontractors</h2>
+        <Link to={`/admin/subcontractors?primaryId=${primary.id}`} className="text-sm text-ink-600 hover:text-ink-900 inline-flex items-center gap-1">
+          See all <ArrowUpRight className="h-4 w-4" />
+        </Link>
+      </div>
+      {subs.length === 0 ? (
+        <div className="card-padded text-sm text-ink-500 mb-8 flex items-center gap-3">
+          <Users className="h-5 w-5 text-ink-400" />
+          No subcontractors linked yet. Open any sub and set their Primary, or use the Subcontractors list filter.
+        </div>
+      ) : (
+        <div className="card overflow-hidden mb-8">
+          <table className="w-full text-sm">
+            <thead className="bg-ink-50 border-b border-ink-100">
+              <tr className="text-left text-xs uppercase tracking-wider text-ink-500 font-semibold">
+                <th className="px-5 py-3">Name</th>
+                <th className="px-5 py-3">Email</th>
+                <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3">Rate</th>
+                <th className="px-5 py-3">RCT</th>
+                <th className="px-5 py-3 text-right"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {subs.map((s) => (
+                <tr key={s.id} className="border-b border-ink-100 last:border-b-0 hover:bg-ink-50/50">
+                  <td className="px-5 py-3 font-medium text-ink-900">{s.fullName || "—"}</td>
+                  <td className="px-5 py-3 text-ink-600">{s.email}</td>
+                  <td className="px-5 py-3"><Badge tone="info">{s.onboardingStatus.replace(/_/g, " ")}</Badge></td>
+                  <td className="px-5 py-3 text-ink-700 tabular-nums">
+                    {s.rateAmountMinor && s.rateUnit
+                      ? `${fmtMoney(s.rateAmountMinor)}/${s.rateUnit}`
+                      : <span className="text-ink-400">—</span>}
+                  </td>
+                  <td className="px-5 py-3 text-ink-700">
+                    {s.rctRate ? `${s.rctRate}%` : <span className="text-ink-400">—</span>}
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    <Link to={`/admin/subcontractors/${s.id}`} className="btn-ghost !py-1.5 inline-flex text-xs">
+                      Open <ArrowUpRight className="h-4 w-4" />
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <h2 className="text-lg font-semibold text-ink-900 mb-4">Invoices issued to this primary</h2>
       {invoices.length === 0 ? (

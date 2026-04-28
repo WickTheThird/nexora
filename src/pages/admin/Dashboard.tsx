@@ -14,11 +14,13 @@ function StatCard({
   label,
   value,
   tone = "neutral",
+  to,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string | number;
   tone?: "neutral" | "info" | "warn" | "success";
+  to?: string;
 }) {
   const toneClass = {
     neutral: "bg-ink-100 text-ink-700",
@@ -26,8 +28,8 @@ function StatCard({
     warn: "bg-accent-100 text-accent-700",
     success: "bg-emerald-100 text-emerald-700",
   }[tone];
-  return (
-    <div className="card p-5">
+  const inner = (
+    <>
       <div className="flex items-center gap-3 mb-3">
         <div className={`h-9 w-9 rounded-lg grid place-items-center ${toneClass}`}>
           <Icon className="h-5 w-5" />
@@ -35,8 +37,22 @@ function StatCard({
         <div className="text-xs font-semibold uppercase tracking-wider text-ink-500">{label}</div>
       </div>
       <div className="text-3xl font-bold text-ink-900 tabular-nums">{value}</div>
-    </div>
+    </>
   );
+  // When `to` is set the whole card becomes a link with a hover lift and an
+  // arrow chip in the corner — clearly affording navigation.
+  if (to) {
+    return (
+      <Link
+        to={to}
+        className="card p-5 block group transition hover:shadow-md hover:-translate-y-0.5 hover:border-ink-300 relative"
+      >
+        {inner}
+        <ArrowUpRight className="absolute top-4 right-4 h-4 w-4 text-ink-300 group-hover:text-ink-700 transition" />
+      </Link>
+    );
+  }
+  return <div className="card p-5">{inner}</div>;
 }
 
 export function Dashboard() {
@@ -73,25 +89,67 @@ export function Dashboard() {
         description="At-a-glance overview of the whole 3-tier flow: primaries, subcontractors, and payments."
       />
 
-      {/* Top row: 3-tier counts */}
+      {/* Top row: 3-tier counts. Each card links to its natural drill-down. */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-        <StatCard icon={Building2} label="Primaries" value={loading ? "·" : (stats?.primaries ?? 0)} tone="info" />
-        <StatCard icon={Users} label="Subcontractors" value={loading ? "·" : (stats?.subcontractors ?? 0)} />
-        <StatCard icon={Send} label="Advices awaiting sub invoice" value={loading ? "·" : (stats?.advisedPayments ?? 0)} tone="warn" />
-        <StatCard icon={FileText} label="Sub invoices awaiting payment" value={loading ? "·" : (stats?.invoicedPayments ?? 0)} tone="info" />
+        <StatCard
+          icon={Building2}
+          label="Primaries"
+          value={loading ? "·" : (stats?.primaries ?? 0)}
+          tone="info"
+          to="/admin/primaries"
+        />
+        <StatCard
+          icon={Users}
+          label="Subcontractors"
+          value={loading ? "·" : (stats?.subcontractors ?? 0)}
+          to="/admin/subcontractors"
+        />
+        <StatCard
+          icon={Send}
+          label="Advices awaiting sub invoice"
+          value={loading ? "·" : (stats?.advisedPayments ?? 0)}
+          tone="warn"
+          to="/admin/bulk-advice"
+        />
+        <StatCard
+          icon={FileText}
+          label="Sub invoices awaiting payment"
+          value={loading ? "·" : (stats?.invoicedPayments ?? 0)}
+          tone="info"
+          to="/admin/subcontractors"
+        />
       </div>
 
-      {/* Second row: money flow + change requests */}
+      {/* Second row: money flow + change requests. */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
         <StatCard
           icon={Wallet}
           label="Net paid (last 30 days)"
           value={loading ? "·" : `\u20AC${((stats?.netPaidLast30Minor ?? 0) / 100).toLocaleString("en-IE", { maximumFractionDigits: 0 })}`}
           tone="success"
+          to="/admin/subcontractors"
         />
-        <StatCard icon={FileText} label="Open primary invoices" value={loading ? "·" : (stats?.primaryInvoicesOpen ?? 0)} tone="warn" />
-        <StatCard icon={MessagesSquare} label="Open change requests" value={loading ? "·" : requests.length} tone="info" />
-        <StatCard icon={Users} label="Pending sub approvals" value={loading ? "·" : awaiting.length} tone="warn" />
+        <StatCard
+          icon={FileText}
+          label="Open primary invoices"
+          value={loading ? "·" : (stats?.primaryInvoicesOpen ?? 0)}
+          tone="warn"
+          to="/admin/primaries"
+        />
+        <StatCard
+          icon={MessagesSquare}
+          label="Open change requests"
+          value={loading ? "·" : requests.length}
+          tone="info"
+          to="/admin/change-requests"
+        />
+        <StatCard
+          icon={Users}
+          label="Pending sub approvals"
+          value={loading ? "·" : awaiting.length}
+          tone="warn"
+          to="/admin/subcontractors?status=submitted"
+        />
       </div>
 
       <section className="mb-10">

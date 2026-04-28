@@ -253,12 +253,14 @@ export const api = {
     q?: string;
     cursor?: string;
     limit?: number;
+    primaryId?: string | "none";  // "none" = unlinked subs only
   }) => {
     const q = new URLSearchParams();
     if (params.status) q.set("status", params.status);
     if (params.q) q.set("q", params.q);
     if (params.cursor) q.set("cursor", params.cursor);
     if (params.limit) q.set("limit", String(params.limit));
+    if (params.primaryId) q.set("primaryId", params.primaryId);
     return request<Page<Subcontractor>>(
       "GET",
       "/admin/subcontractors" + (q.toString() ? `?${q}` : ""),
@@ -572,10 +574,14 @@ export const api = {
   adminCreatePrimary: (data: Partial<Primary>) =>
     request<Primary>("POST", "/admin/primaries", { body: data as Json }),
   adminGetPrimary: (id: string) =>
-    request<{ primary: Primary; stats: { subcontractorCount: number } }>(
-      "GET",
-      `/admin/primaries/${id}`,
-    ),
+    request<{
+      primary: Primary;
+      stats: {
+        subcontractorCount: number;
+        moneyByStatus: Record<string, { count: number; grossMinor: number; netMinor: number }>;
+      };
+      subcontractors: Subcontractor[];
+    }>("GET", `/admin/primaries/${id}`),
   adminPatchPrimary: (id: string, data: Partial<Primary>) =>
     request<Primary>("PATCH", `/admin/primaries/${id}`, { body: data as Json }),
   adminArchivePrimary: (id: string) =>

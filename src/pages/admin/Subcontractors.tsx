@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { api, ApiError } from "@/lib/api";
-import type { OnboardingStatus, Subcontractor } from "@/lib/types";
+import type { OnboardingStatus, Primary, Subcontractor } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
@@ -10,7 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Empty } from "@/components/ui/Empty";
 import { useToast } from "@/components/ui/Toast";
 import { fmtDate, initials } from "@/lib/format";
-import { UserPlus, Search, ArrowUpRight, Users } from "lucide-react";
+import { UserPlus, Search, ArrowUpRight, Users, Building2 } from "lucide-react";
 
 const STATUSES: { value: string; label: string }[] = [
   { value: "", label: "All statuses" },
@@ -40,11 +40,20 @@ function statusBadge(s: OnboardingStatus) {
 
 export function Subcontractors() {
   const toast = useToast();
+  // Read initial filter values from the URL so deep links from the dashboard
+  // (e.g. /admin/subcontractors?status=submitted) and from PrimaryDetail
+  // (?primaryId=...) land filtered.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialStatus = searchParams.get("status") || "";
+  const initialPrimary = searchParams.get("primaryId") || "";
+
   const [items, setItems] = useState<Subcontractor[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState(initialStatus);
+  const [primaryId, setPrimaryId] = useState(initialPrimary);
   const [q, setQ] = useState("");
+  const [primaries, setPrimaries] = useState<Primary[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
 
   const load = async (reset: boolean, nextCursor?: string | null) => {
@@ -53,18 +62,38 @@ export function Subcontractors() {
       q: q || undefined,
       cursor: nextCursor || undefined,
       limit: 25,
+      primaryId: primaryId || undefined,
     });
     setItems((prev) => (reset ? r.items : [...prev, ...r.items]));
     setCursor(r.nextCursor);
   };
 
   useEffect(() => {
-    (async () => { try { await load(true); } finally { setLoading(false); } })();
+    (async () => {
+      try {
+        await load(true);
+        // Side-load primaries for the column rendering + filter dropdown.
+        const p = await api.adminListPrimaries();
+        setPrimaries(p.items);
+      } finally { setLoading(false); }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Look up primary name for a given id (column rendering).
+  const primaryName = (id: string | null) => {
+    if (!id) return null;
+    return primaries.find((p) => p.id === id)?.name ?? "(unknown)";
+  };
+
   const applyFilters = async () => {
     setLoading(true);
+    // Sync URL so the filter is shareable + survives reload.
+    const next = new URLSearchParams();
+    if (status) next.set("status", status);
+    if (primaryId) next.set("primaryId", primaryId);
+    if (q) next.set("q", q);
+    setSearchParams(next, { replace: true });
     try { await load(true); } finally { setLoading(false); }
   };
 
@@ -91,12 +120,24 @@ export function Subcontractors() {
               onKeyDown={(e) => e.key === "Enter" && applyFilters()}
             />
           </div>
-          <div className="md:w-60">
+          <div className="md:w-48">
             <Select
               label="Status"
               value={status}
               options={STATUSES}
               onChange={(e) => setStatus(e.target.value)}
+            />
+          </div>
+          <div className="md:w-56">
+            <Select
+              label="Primary"
+              value={primaryId}
+              options={[
+                { value: "", label: "All primaries" },
+                { value: "none", label: "Unlinked only" },
+                ...primaries.map((p) => ({ value: p.id, label: p.name })),
+              ]}
+              onChange={(e) => setPrimaryId(e.target.value)}
             />
           </div>
           <Button variant="primary" onClick={applyFilters} leftIcon={<Search className="h-4 w-4" />}>
@@ -117,6 +158,7 @@ export function Subcontractors() {
                 <tr className="text-left text-xs font-semibold uppercase tracking-wider text-ink-500">
                   <th className="px-5 py-3">Name</th>
                   <th className="px-5 py-3">Email</th>
+                  <th className="px-5 py-3">Primary</th>
                   <th className="px-5 py-3">Client ref</th>
                   <th className="px-5 py-3">Status</th>
                   <th className="px-5 py-3">Created</th>
@@ -135,6 +177,19 @@ export function Subcontractors() {
                       </div>
                     </td>
                     <td className="px-5 py-3 text-sm text-ink-600">{s.email}</td>
+                    <td className="px-5 py-3 text-sm">
+                      {s.primaryId ? (
+                        <Link
+                          to={`/admin/primaries/${s.primaryId}`}
+                          className="inline-flex items-center gap-1 text-ink-700 hover:text-ink-900 hover:underline"
+                        >
+                          <Building2 className="h-3.5 w-3.5" />
+                          {primaryName(s.primaryId)}
+                        </Link>
+                      ) : (
+                        <span className="text-ink-400">—</span>
+                      )}
+                    </td>
                     <td className="px-5 py-3 text-sm text-ink-600">{s.clientRef || "·"}</td>
                     <td className="px-5 py-3">{statusBadge(s.onboardingStatus)}</td>
                     <td className="px-5 py-3 text-sm text-ink-500">{fmtDate(s.createdAt)}</td>
