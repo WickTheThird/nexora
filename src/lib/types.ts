@@ -74,6 +74,29 @@ export interface AppSettings {
   accountant_email: string | null;
 }
 
+export interface InvoicePayload {
+  issuedAt: string;
+  period: { from: string; to: string };
+  invoiceNumber: string;
+  principal: {
+    name: string | null;
+    address: string | null;
+    vat: string | null;
+    email: string | null;
+  };
+  subcontractor: Subcontractor;
+  bank: BankDetails | null;
+  lines: PaymentRecord[];
+  totalsByCurrency: Record<string, {
+    gross: number;
+    rct: number;
+    net: number;
+    hours: number;
+    count: number;
+  }>;
+  accountantEmail: string | null;
+}
+
 export interface Me {
   id: string;
   email: string;

@@ -16,6 +16,7 @@ import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { fmtBytes, fmtDate, fmtDateTime, fmtMoney, initials } from "@/lib/format";
 import { IncomeSummary } from "@/components/payments/IncomeSummary";
+import { InvoiceModal } from "@/components/payments/InvoiceModal";
 import { Select, Checkbox } from "@/components/ui/Input";
 import {
   ArrowLeft,
@@ -845,6 +846,7 @@ function PaymentsTab({
   const [createOpen, setCreateOpen] = useState(false);
   const [rateOpen, setRateOpen] = useState(false);
   const [taxOpen, setTaxOpen] = useState(false);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("EUR");
@@ -987,7 +989,10 @@ function PaymentsTab({
           </Button>
         </div>
       </div>
-      <div className="flex justify-end mb-5">
+      <div className="flex justify-end gap-2 mb-5">
+        <Button variant="outline" onClick={() => setInvoiceOpen(true)} leftIcon={<FileText className="h-4 w-4" />}>
+          Generate invoice
+        </Button>
         <Button variant="accent" onClick={openCreate} leftIcon={<Send className="h-4 w-4" />}>
           Record payment
         </Button>
@@ -1234,6 +1239,14 @@ function PaymentsTab({
           setTaxOpen(false);
           toast.success("RCT settings updated");
         }}
+      />
+
+      <InvoiceModal
+        open={invoiceOpen}
+        onClose={() => setInvoiceOpen(false)}
+        subId={subId}
+        defaultFrom={(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-01`; })()}
+        defaultTo={new Date().toISOString().slice(0, 10)}
       />
     </>
   );

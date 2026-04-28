@@ -9,6 +9,7 @@ import type {
   ContractRecord,
   ContractTemplate,
   DocumentRecord,
+  InvoicePayload,
   Me,
   OnboardingView,
   Page,
@@ -446,6 +447,11 @@ export const api = {
       "POST",
       `/admin/subcontractors/${subId}/payments/from-period`,
       { body: { from, to } },
+    ),
+  adminGetInvoice: (subId: string, from: string, to: string) =>
+    request<InvoicePayload>(
+      "GET",
+      `/admin/subcontractors/${subId}/invoice?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
     ),
 
   // -------- settings (admin) --------
