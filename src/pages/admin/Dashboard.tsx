@@ -4,8 +4,10 @@ import { api } from "@/lib/api";
 import type { ChangeRequest, Subcontractor } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { Badge } from "@/components/ui/Badge";
-import { Users, Clock, CheckCircle2, MessagesSquare, ArrowUpRight } from "lucide-react";
+import { Users, Building2, FileText, Wallet, MessagesSquare, ArrowUpRight, Send } from "lucide-react";
 import { fmtDateTime } from "@/lib/format";
+
+type Stats = Awaited<ReturnType<typeof api.adminDashboardStats>>;
 
 function StatCard({
   icon: Icon,
@@ -40,31 +42,25 @@ function StatCard({
 export function Dashboard() {
   const [subs, setSubs] = useState<Subcontractor[]>([]);
   const [requests, setRequests] = useState<ChangeRequest[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
-        const [all, open] = await Promise.all([
+        const [all, open, st] = await Promise.all([
           api.adminListSubcontractors({ limit: 100 }),
           api.adminListChangeRequests("open"),
+          api.adminDashboardStats(),
         ]);
         setSubs(all.items);
         setRequests(open.items);
+        setStats(st);
       } finally {
         setLoading(false);
       }
     })();
   }, []);
-
-  const total = subs.length;
-  const inProgress = subs.filter(
-    (s) => !["approved", "active", "rejected"].includes(s.onboardingStatus),
-  ).length;
-  const approved = subs.filter(
-    (s) => s.onboardingStatus === "approved" || s.onboardingStatus === "active",
-  ).length;
-  const openRequests = requests.length;
 
   const awaiting = subs.filter(
     (s) => s.onboardingStatus === "submitted" || s.onboardingStatus === "under_review",
@@ -74,14 +70,28 @@ export function Dashboard() {
     <>
       <PageHeader
         title="Dashboard"
-        description="At-a-glance overview of onboarding activity."
+        description="At-a-glance overview of the whole 3-tier flow: primaries, subcontractors, and payments."
       />
 
+      {/* Top row: 3-tier counts */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <StatCard icon={Building2} label="Primaries" value={loading ? "·" : (stats?.primaries ?? 0)} tone="info" />
+        <StatCard icon={Users} label="Subcontractors" value={loading ? "·" : (stats?.subcontractors ?? 0)} />
+        <StatCard icon={Send} label="Advices awaiting sub invoice" value={loading ? "·" : (stats?.advisedPayments ?? 0)} tone="warn" />
+        <StatCard icon={FileText} label="Sub invoices awaiting payment" value={loading ? "·" : (stats?.invoicedPayments ?? 0)} tone="info" />
+      </div>
+
+      {/* Second row: money flow + change requests */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-        <StatCard icon={Users} label="Subcontractors" value={loading ? "·" : total} />
-        <StatCard icon={Clock} label="In progress" value={loading ? "·" : inProgress} tone="warn" />
-        <StatCard icon={CheckCircle2} label="Approved" value={loading ? "·" : approved} tone="success" />
-        <StatCard icon={MessagesSquare} label="Open requests" value={loading ? "·" : openRequests} tone="info" />
+        <StatCard
+          icon={Wallet}
+          label="Net paid (last 30 days)"
+          value={loading ? "·" : `\u20AC${((stats?.netPaidLast30Minor ?? 0) / 100).toLocaleString("en-IE", { maximumFractionDigits: 0 })}`}
+          tone="success"
+        />
+        <StatCard icon={FileText} label="Open primary invoices" value={loading ? "·" : (stats?.primaryInvoicesOpen ?? 0)} tone="warn" />
+        <StatCard icon={MessagesSquare} label="Open change requests" value={loading ? "·" : requests.length} tone="info" />
+        <StatCard icon={Users} label="Pending sub approvals" value={loading ? "·" : awaiting.length} tone="warn" />
       </div>
 
       <section className="mb-10">

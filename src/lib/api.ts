@@ -14,6 +14,8 @@ import type {
   OnboardingView,
   Page,
   PaymentRecord,
+  Primary,
+  PrimaryInvoice,
   QuestionnaireRecord,
   Subcontractor,
   Timesheet,
@@ -471,6 +473,93 @@ export const api = {
       "GET",
       `/admin/subcontractors/${subId}/invoice?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
     ),
+
+  // -------- bulk advice (admin) --------
+  // Preview: which subs have approved+unpaid timesheets in the period and
+  // would receive a payment advice if we sent now. The UI lets the admin
+  // untick anyone before committing.
+  adminBulkAdvicePreview: (from: string, to: string) =>
+    request<{
+      period: { from: string; to: string };
+      items: Array<{
+        subcontractorId: string;
+        fullName: string | null;
+        email: string | null;
+        rateAmountMinor: number | null;
+        rateUnit: string | null;
+        rctRate: string | null;
+        sheetCount: number;
+        totalHours: number;
+        grossMinor: number;
+        rctDeductionMinor: number;
+        netMinor: number;
+        currency: string;
+        eligible: boolean;
+        ineligibleReason: string | null;
+        timesheetIds: string[];
+      }>;
+    }>("GET", `/admin/bulk-advice/preview?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
+  adminBulkAdviceSend: (
+    from: string,
+    to: string,
+    subcontractorIds: string[],
+    notify = true,
+  ) =>
+    request<{
+      created: Array<{ subId: string; paymentId: string; grossMinor: number; netMinor: number; sheetCount: number }>;
+      skipped: Array<{ subId: string; reason: string }>;
+      period: { from: string; to: string };
+    }>("POST", "/admin/bulk-advice", { body: { from, to, subcontractorIds, notify } }),
+
+  // -------- primaries (admin) --------
+  // Primary = top of the 3-tier hierarchy: developers / main contractors who
+  // hire BC Construction. Subs are linked to a primary; BC consolidates sub
+  // work and invoices the primary.
+  adminListPrimaries: (includeArchived = false) =>
+    request<{ items: Primary[] }>(
+      "GET",
+      "/admin/primaries" + (includeArchived ? "?includeArchived=true" : ""),
+    ),
+  adminCreatePrimary: (data: Partial<Primary>) =>
+    request<Primary>("POST", "/admin/primaries", { body: data as Json }),
+  adminGetPrimary: (id: string) =>
+    request<{ primary: Primary; stats: { subcontractorCount: number } }>(
+      "GET",
+      `/admin/primaries/${id}`,
+    ),
+  adminPatchPrimary: (id: string, data: Partial<Primary>) =>
+    request<Primary>("PATCH", `/admin/primaries/${id}`, { body: data as Json }),
+  adminArchivePrimary: (id: string) =>
+    request<{ archived: true }>("DELETE", `/admin/primaries/${id}`),
+
+  // -------- primary invoices (admin) --------
+  adminListPrimaryInvoices: (primaryId: string) =>
+    request<{ items: PrimaryInvoice[] }>("GET", `/admin/primaries/${primaryId}/invoices`),
+  adminCreatePrimaryInvoice: (
+    primaryId: string,
+    data: { from: string; to: string; markupMinor?: number; notes?: string },
+  ) => request<PrimaryInvoice>("POST", `/admin/primaries/${primaryId}/invoices`, { body: data }),
+  adminGetPrimaryInvoice: (id: string) =>
+    request<{
+      invoice: PrimaryInvoice;
+      primary: Primary;
+      lines: (PaymentRecord & { subFullName: string })[];
+    }>("GET", `/admin/primary-invoices/${id}`),
+  adminMarkPrimaryInvoiceSent: (id: string) =>
+    request<PrimaryInvoice>("POST", `/admin/primary-invoices/${id}/mark-sent`),
+  adminMarkPrimaryInvoicePaid: (id: string) =>
+    request<PrimaryInvoice>("POST", `/admin/primary-invoices/${id}/mark-paid`),
+
+  // -------- dashboard --------
+  adminDashboardStats: () =>
+    request<{
+      primaries: number;
+      subcontractors: number;
+      advisedPayments: number;
+      invoicedPayments: number;
+      primaryInvoicesOpen: number;
+      netPaidLast30Minor: number;
+    }>("GET", "/admin/dashboard-stats"),
 
   // -------- settings (admin) --------
   getSettings: () => request<AppSettings>("GET", "/admin/settings"),

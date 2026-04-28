@@ -70,6 +70,7 @@ export interface Timesheet {
   notes: string | null;
   status: TimesheetStatus;
   paymentId: string | null;
+  primaryId: string | null;
   createdBy: string;
   createdAt: number;
   updatedAt: number;
@@ -174,6 +175,9 @@ export interface Subcontractor {
   // Subcontractor's own accountant — who they want their invoices CC'd to.
   // Distinct from the principal's accountant (in AppSettings).
   accountantEmail: string | null;
+  // Default Primary this sub typically works for (per-timesheet override
+  // possible via Timesheet.primaryId).
+  primaryId: string | null;
   anonymisedAt: number | null;
   createdAt: number;
   updatedAt: number;
@@ -242,6 +246,48 @@ export interface QuestionnaireRecord {
   createdAt: number;
 }
 
+// Status of a primary-tier invoice (BC → developer).
+export type PrimaryInvoiceStatus = "draft" | "sent" | "paid" | "cancelled";
+
+// An invoice issued by BC Construction (admin) to the primary (developer)
+// for a period of work. Sums up all sub payments in the window for subs
+// linked to this primary, plus any markup.
+export interface PrimaryInvoice {
+  id: string;
+  primaryId: string;
+  invoiceNumber: string;
+  periodStart: string;
+  periodEnd: string;
+  grossMinor: number;
+  markupMinor: number;
+  netMinor: number;
+  currency: string;
+  status: PrimaryInvoiceStatus;
+  notes: string | null;
+  issuedAt: string;
+  sentAt: number | null;
+  paidAt: number | null;
+  createdAt: number;
+  createdBy: string | null;
+}
+
+// Top of the 3-tier hierarchy: Primary (developer/main contractor) →
+// Admin (BC Construction) → Subcontractors. BC issues invoices UP to the
+// primary by consolidating sub work; subs invoice DOWN to BC.
+export interface Primary {
+  id: string;
+  name: string;
+  contactName: string | null;
+  contactEmail: string | null;
+  address: string | null;
+  vat: string | null;
+  phone: string | null;
+  notes: string | null;
+  archivedAt: number | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface PaymentRecord {
   id: string;
   subcontractorId: string;
@@ -267,6 +313,7 @@ export interface PaymentRecord {
   periodStart: string | null;
   periodEnd: string | null;
   siteRef: string | null;
+  primaryId: string | null;
   createdAt: number;
   createdBy: string | null;
 }
