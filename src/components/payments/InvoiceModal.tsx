@@ -156,7 +156,7 @@ export function InvoiceModal({
       onClose={close}
       width="xl"
       title="Generate invoice"
-      description="Self-billing invoice for any date range. Pulls all payments in the period and renders a downloadable PDF."
+      description="Invoice for any date range. Pulls all payments in the period and renders a downloadable PDF."
       footer={
         <>
           <Button variant="ghost" onClick={close}>Close</Button>

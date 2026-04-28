@@ -87,6 +87,14 @@ export interface InvoicePayload {
   subcontractor: Subcontractor;
   bank: BankDetails | null;
   lines: PaymentRecord[];
+  totals: {
+    gross: number;
+    rct: number;
+    net: number;
+    hours: number;
+    count: number;
+    currency: string;
+  };
   totalsByCurrency: Record<string, {
     gross: number;
     rct: number;
@@ -94,6 +102,22 @@ export interface InvoicePayload {
     hours: number;
     count: number;
   }>;
+  rct: {
+    byRate: Array<{
+      rate: string;
+      gross: number;
+      deduction: number;
+      count: number;
+    }>;
+  };
+  vat: {
+    subcontractorVatRegistered: boolean;
+    subcontractorVatNumber: string | null;
+    principalVatNumber: string | null;
+    reverseChargeApplied: boolean;
+    reverseChargePaymentCount: number;
+    note: string | null;
+  };
   accountantEmail: string | null;
 }
 

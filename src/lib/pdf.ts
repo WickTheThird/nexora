@@ -41,7 +41,7 @@ export function generateInvoicePdf(inv: InvoicePayload, brandName = "Samwise"): 
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
-  doc.text("Self-billing invoice", margin, 38);
+  doc.text("Invoice", margin, 38);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(180, 188, 204);
@@ -242,14 +242,14 @@ export function downloadInvoicePdf(inv: InvoicePayload, brandName?: string): voi
 
 export function invoiceMailto(inv: InvoicePayload, brandName = "Samwise"): string {
   const to = inv.accountantEmail || "";
-  const subject = `Self-billing invoice ${inv.invoiceNumber} — ${inv.subcontractor.fullName || ""}`;
+  const subject = `Invoice ${inv.invoiceNumber} — ${inv.subcontractor.fullName || ""}`;
   const totalsLine = Object.entries(inv.totalsByCurrency)
     .map(([c, t]) => `${c} ${(t.gross / 100).toFixed(2)} gross / ${(t.rct / 100).toFixed(2)} RCT / ${(t.net / 100).toFixed(2)} net`)
     .join(" • ");
   const body = [
     "Hi,",
     "",
-    `Please find the self-billing invoice ${inv.invoiceNumber} for ${inv.subcontractor.fullName || ""} attached.`,
+    `Please find invoice ${inv.invoiceNumber} for ${inv.subcontractor.fullName || ""} attached.`,
     "",
     `Period: ${inv.period.from} → ${inv.period.to}`,
     `Totals: ${totalsLine}`,
