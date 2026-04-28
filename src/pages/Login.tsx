@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
@@ -102,6 +102,11 @@ export function Login() {
               Sign in
             </Button>
           </form>
+          <p className="text-sm text-ink-600 mt-6 text-center">
+            <Link to="/forgot-password" className="hover:text-ink-900 underline">
+              Forgot your password?
+            </Link>
+          </p>
           <p className="text-xs text-ink-400 mt-8 text-center">
             Having trouble? Contact your administrator for access.
           </p>

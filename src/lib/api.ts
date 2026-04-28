@@ -154,6 +154,16 @@ export const api = {
       "/auth/accept-privacy",
       { body: { version } },
     ),
+  // Password reset (public). Always returns 200 from the worker regardless of
+  // whether the email exists, so the UI shouldn't reveal account existence.
+  requestPasswordReset: (email: string) =>
+    request<{ ok: true }>("POST", "/auth/request-password-reset", {
+      body: { email },
+    }),
+  resetPassword: (token: string, newPassword: string) =>
+    request<{ ok: true }>("POST", "/auth/reset-password", {
+      body: { token, newPassword },
+    }),
   exportMyDataUrl: () =>
     // Returning URL so a plain <a> can download with credentials.
     (window.__SAMWISE_CONFIG__?.apiUrl?.replace(/\/$/, "") || "") + "/me/export" + tokenQuery(),

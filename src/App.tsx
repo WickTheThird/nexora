@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./lib/auth";
 import { ToastProvider } from "./components/ui/Toast";
 import { Login } from "./pages/Login";
+import { ForgotPassword } from "./pages/ForgotPassword";
+import { ResetPassword } from "./pages/ResetPassword";
 import { ChangePassword } from "./pages/ChangePassword";
 import { ConsentGate } from "./pages/ConsentGate";
 import { PrivacyPolicy } from "./pages/Privacy";
@@ -53,6 +55,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Gate />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/legal/privacy" element={<PrivacyPolicy />} />
         <Route path="/legal/terms" element={<Terms />} />
         <Route
