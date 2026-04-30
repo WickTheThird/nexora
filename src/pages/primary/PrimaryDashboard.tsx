@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import type { Primary } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
-import { Users, FileText, Wallet, ArrowUpRight } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { useToast } from "@/components/ui/Toast";
+import { Users, FileText, Wallet, ArrowUpRight, Save, Pencil } from "lucide-react";
 
 // Primary's home: who they are, headline counts, and money owed to them
 // (advised + invoiced + paid totals across linked subs). All numbers are
@@ -60,21 +63,40 @@ function fmtMoney(minor: number) {
 }
 
 export function PrimaryDashboard() {
+  const toast = useToast();
   const [primary, setPrimary] = useState<Primary | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editingAcc, setEditingAcc] = useState(false);
+  const [accInput, setAccInput] = useState("");
+  const [savingAcc, setSavingAcc] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
         const [p, s] = await Promise.all([api.getMyPrimary(), api.getMyPrimaryDashboard()]);
         setPrimary(p.primary);
+        setAccInput(p.primary.accountantEmail || "");
         setStats(s);
       } finally {
         setLoading(false);
       }
     })();
   }, []);
+
+  const saveAccountant = async () => {
+    setSavingAcc(true);
+    try {
+      const updated = await api.patchMyPrimary({ accountantEmail: accInput.trim() || null });
+      setPrimary(updated);
+      setEditingAcc(false);
+      toast.success("Accountant email saved");
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed to save");
+    } finally {
+      setSavingAcc(false);
+    }
+  };
 
   return (
     <>
@@ -140,20 +162,66 @@ export function PrimaryDashboard() {
           )}
 
           {primary && (
-            <div className="card-padded">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-500 mb-4">Your details on file with BC</h2>
-              <div className="grid sm:grid-cols-2 gap-3 text-sm">
-                <div><span className="text-ink-500">Company:</span> <span className="font-medium">{primary.name}</span></div>
-                {primary.contactName && <div><span className="text-ink-500">Contact:</span> {primary.contactName}</div>}
-                {primary.contactEmail && <div><span className="text-ink-500">Email:</span> {primary.contactEmail}</div>}
-                {primary.phone && <div><span className="text-ink-500">Phone:</span> {primary.phone}</div>}
-                {primary.vat && <div><span className="text-ink-500">VAT:</span> {primary.vat}</div>}
-                {primary.address && <div className="sm:col-span-2"><span className="text-ink-500">Address:</span> {primary.address}</div>}
+            <>
+              <div className="card-padded mb-6">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-500 mb-4">Your details on file with BC</h2>
+                <div className="grid sm:grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-ink-500">Company:</span> <span className="font-medium">{primary.name}</span></div>
+                  {primary.contactName && <div><span className="text-ink-500">Contact:</span> {primary.contactName}</div>}
+                  {primary.contactEmail && <div><span className="text-ink-500">Email:</span> {primary.contactEmail}</div>}
+                  {primary.phone && <div><span className="text-ink-500">Phone:</span> {primary.phone}</div>}
+                  {primary.vat && <div><span className="text-ink-500">VAT:</span> {primary.vat}</div>}
+                  {primary.address && <div className="sm:col-span-2"><span className="text-ink-500">Address:</span> {primary.address}</div>}
+                </div>
+                <p className="text-xs text-ink-400 mt-4">
+                  To update any of these details, please contact BC Construction directly.
+                </p>
               </div>
-              <p className="text-xs text-ink-400 mt-4">
-                To update any of these details, please contact BC Construction directly.
-              </p>
-            </div>
+
+              {/* Accountant email — primary user can self-serve. Used by the
+                  "Send to my accountant" button on each invoice. */}
+              <div className="card-padded">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div>
+                    <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-500">Your accountant</h2>
+                    <p className="text-xs text-ink-500 mt-1">
+                      Used by the &quot;Send to my accountant&quot; button on each invoice.
+                    </p>
+                  </div>
+                  {!editingAcc && (
+                    <Button variant="ghost" size="sm" onClick={() => setEditingAcc(true)} leftIcon={<Pencil className="h-4 w-4" />}>
+                      {primary.accountantEmail ? "Edit" : "Set"}
+                    </Button>
+                  )}
+                </div>
+                {editingAcc ? (
+                  <div className="flex items-end gap-2 max-w-md">
+                    <div className="flex-1">
+                      <Input
+                        label="Accountant email"
+                        type="email"
+                        value={accInput}
+                        onChange={(e) => setAccInput(e.target.value)}
+                        placeholder="accountant@example.ie"
+                        autoFocus
+                      />
+                    </div>
+                    <Button variant="accent" onClick={saveAccountant} loading={savingAcc} leftIcon={<Save className="h-4 w-4" />}>
+                      Save
+                    </Button>
+                    <Button variant="ghost" onClick={() => { setEditingAcc(false); setAccInput(primary.accountantEmail || ""); }}>
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-sm text-ink-700">
+                    {primary.accountantEmail
+                      ? <span className="font-medium">{primary.accountantEmail}</span>
+                      : <span className="text-ink-400 italic">Not set</span>}
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </>
       )}

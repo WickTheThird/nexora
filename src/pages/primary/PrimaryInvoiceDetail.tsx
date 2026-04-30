@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, brandName } from "@/lib/api";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Empty } from "@/components/ui/Empty";
 import { useToast } from "@/components/ui/Toast";
-import { ArrowLeft, FileText } from "lucide-react";
+import { ArrowLeft, FileText, Download, Mail } from "lucide-react";
+
+// Lazy-load the PDF module so jsPDF + html2canvas (~700 KB) only enter the
+// bundle when the user actually clicks Download — not on every page load.
+const loadPdf = () => import("@/lib/pdf");
 
 type Detail = Awaited<ReturnType<typeof api.getMyPrimaryInvoice>>;
 
@@ -33,6 +38,126 @@ export function PrimaryInvoiceDetail() {
     })();
   }, [id, toast]);
 
+  // Build an InvoicePayload-shape object on the fly so the existing PDF
+  // generator can render this primary invoice. We use mode='primaryInvoice'
+  // (BC issuer → primary recipient) and aggregate sub line items.
+  const buildInvoicePayload = () => {
+    if (!data) return null;
+    const inv = data.invoice;
+    const lines = data.lines.map((l: Record<string, unknown>) => ({
+      id: String(l.id),
+      subcontractorId: "",
+      paymentDate: String(l.payment_date),
+      grossMinor: Number(l.amount_minor) || 0,
+      rctRate: null,
+      rctDeductionMinor: 0,
+      netMinor: Number(l.amount_minor) || 0,
+      rctAuthNumber: null,
+      vatReverseCharge: false,
+      amountMinor: Number(l.amount_minor) || 0,
+      currency: inv.currency,
+      reference: l.invoice_number ? String(l.invoice_number) : null,
+      hasRemittance: false,
+      status: "paid" as const,
+      invoiceNumber: l.invoice_number ? String(l.invoice_number) : null,
+      invoicedAt: null,
+      hours: l.hours != null ? Number(l.hours) : null,
+      periodStart: l.period_start ? String(l.period_start) : null,
+      periodEnd: l.period_end ? String(l.period_end) : null,
+      siteRef: null,
+      primaryId: inv.primaryId,
+      createdAt: 0,
+      createdBy: null,
+    }));
+    return {
+      issuedAt: new Date().toISOString(),
+      period: { from: inv.periodStart, to: inv.periodEnd },
+      invoiceNumber: inv.invoiceNumber,
+      principal: { name: "BC Construction Ltd", address: null, vat: null, email: null },
+      // We treat the primary as the "subcontractor" recipient slot since the
+      // PDF generator is structured around two parties; mode='primaryInvoice'
+      // makes the wording reflect "Bill To" rather than "Subcontractor".
+      subcontractor: {
+        id: data.primary.id,
+        userId: "",
+        clientRef: null,
+        subcontractorRef: null,
+        fullName: data.primary.name,
+        address1: data.primary.address,
+        address2: null,
+        town: null,
+        postcode: null,
+        dob: null,
+        placeOfBirth: null,
+        tel: data.primary.phone,
+        mob: null,
+        email: data.primary.contactEmail,
+        ppsNumber: null,
+        natureOfServices: null,
+        workType: null,
+        vatRegistered: !!data.primary.vat,
+        vatNumber: data.primary.vat,
+        rateAmountMinor: null,
+        rateUnit: null,
+        rctRate: null,
+        rctAuthorisationNumber: null,
+        vatReverseCharge: false,
+        onboardingStatus: "approved" as const,
+        submittedAt: null,
+        accountantEmail: data.primary.accountantEmail,
+        primaryId: null,
+        anonymisedAt: null,
+        createdAt: 0,
+        updatedAt: 0,
+      },
+      bank: null,
+      lines,
+      totals: {
+        gross: inv.grossMinor, rct: 0, net: inv.netMinor,
+        hours: 0, count: lines.length, currency: inv.currency,
+      },
+      totalsByCurrency: {
+        [inv.currency]: { gross: inv.grossMinor, rct: 0, net: inv.netMinor, hours: 0, count: lines.length },
+      },
+      rct: { byRate: [] },
+      vat: {
+        subcontractorVatRegistered: !!data.primary.vat,
+        subcontractorVatNumber: data.primary.vat,
+        principalVatNumber: null,
+        reverseChargeApplied: false,
+        reverseChargePaymentCount: 0,
+        note: null,
+      },
+      accountantEmail: data.primary.accountantEmail,
+    };
+  };
+
+  const downloadPdf = async () => {
+    const payload = buildInvoicePayload();
+    if (!payload) return;
+    try {
+      const { downloadInvoicePdf } = await loadPdf();
+      // Reuse 'invoice' mode — sub→principal direction. Here the primary is
+      // in the 'subcontractor' slot as the recipient, BC is the principal/issuer.
+      downloadInvoicePdf(payload, brandName(), "invoice");
+      toast.success("Invoice PDF downloaded");
+    } catch {
+      toast.error("Failed to generate PDF");
+    }
+  };
+
+  const sendToAccountant = async () => {
+    if (!data?.primary.accountantEmail) {
+      toast.error("Set your accountant email on the dashboard first");
+      return;
+    }
+    const payload = buildInvoicePayload();
+    if (!payload) return;
+    const { downloadInvoicePdf, invoiceMailto } = await loadPdf();
+    downloadInvoicePdf(payload, brandName(), "invoice");
+    window.location.href = invoiceMailto(payload, brandName(), "invoice");
+  };
+
   if (loading) return <div className="skeleton h-64" />;
   if (!data) return <Empty icon={ArrowLeft} title="Not found" description="Invoice not found." />;
 
@@ -44,7 +169,26 @@ export function PrimaryInvoiceDetail() {
 
   return (
     <>
-      <PageHeader title={`Invoice ${inv.invoiceNumber}`} description={`From BC Construction · ${inv.periodStart} → ${inv.periodEnd}`} />
+      <PageHeader
+        title={`Invoice ${inv.invoiceNumber}`}
+        description={`From BC Construction · ${inv.periodStart} → ${inv.periodEnd}`}
+        right={
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={sendToAccountant}
+              leftIcon={<Mail className="h-4 w-4" />}
+              disabled={!data.primary.accountantEmail}
+              title={data.primary.accountantEmail ? `Send to ${data.primary.accountantEmail}` : "Set accountant email on dashboard first"}
+            >
+              Send to my accountant
+            </Button>
+            <Button variant="accent" onClick={downloadPdf} leftIcon={<Download className="h-4 w-4" />}>
+              Download PDF
+            </Button>
+          </div>
+        }
+      />
       <Link to="/primary/invoices" className="inline-flex items-center gap-1 text-sm text-ink-600 hover:text-ink-900 mb-6">
         <ArrowLeft className="h-4 w-4" /> Back to invoices
       </Link>

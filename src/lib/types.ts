@@ -254,6 +254,51 @@ export interface QuestionnaireRecord {
 // Status of a primary-tier invoice (BC → developer).
 export type PrimaryInvoiceStatus = "draft" | "sent" | "paid" | "cancelled";
 
+// Status of a primary submission (developer's payment data sent to BC for processing).
+export type PrimarySubmissionStatus =
+  | "draft"
+  | "submitted"
+  | "processing"
+  | "completed"
+  | "rejected";
+
+export interface PrimarySubmission {
+  id: string;
+  primaryId: string;
+  submittedBy: string | null;
+  status: PrimarySubmissionStatus;
+  periodStart: string | null;
+  periodEnd: string | null;
+  notes: string | null;
+  source: "manual" | "csv";
+  itemCount: number;
+  totalGrossMinor: number;
+  submittedAt: number;
+  processedAt: number | null;
+  processedBy: string | null;
+  rejectionReason: string | null;
+  createdAt: number;
+}
+
+export interface PrimarySubmissionItem {
+  id: string;
+  submissionId: string;
+  subcontractorId: string | null;
+  subcontractorRef: string | null;
+  subcontractorName: string | null;
+  jobNumber: string | null;
+  siteAddress: string | null;
+  quantity: number;
+  rateMinor: number;
+  materialValueMinor: number;
+  extrasMinor: number;
+  grossMinor: number;
+  notes: string | null;
+  paymentId: string | null;
+  matched: boolean;
+  createdAt: number;
+}
+
 // An invoice issued by BC Construction (admin) to the primary (developer)
 // for a period of work. Sums up all sub payments in the window for subs
 // linked to this primary, plus any markup.
@@ -288,6 +333,9 @@ export interface Primary {
   vat: string | null;
   phone: string | null;
   notes: string | null;
+  // Primary's own accountant — distinct from the principal's accountant.
+  // The primary user can set this themselves from their portal.
+  accountantEmail: string | null;
   archivedAt: number | null;
   createdAt: number;
   updatedAt: number;

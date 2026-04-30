@@ -16,6 +16,8 @@ import type {
   PaymentRecord,
   Primary,
   PrimaryInvoice,
+  PrimarySubmission,
+  PrimarySubmissionItem,
   QuestionnaireRecord,
   Subcontractor,
   Timesheet,
@@ -602,6 +604,61 @@ export const api = {
       primary: Primary;
       stats: { subcontractorCount: number };
     }>("GET", "/me/primary"),
+  // Primary user updates their own scoped fields (only accountantEmail today).
+  patchMyPrimary: (data: { accountantEmail?: string | null }) =>
+    request<Primary>("PATCH", "/me/primary", { body: data as Json }),
+
+  // -------- primary submissions (primary-side) --------
+  // Primary user submits payment data to BC. Each item references one of
+  // their linked subs by reference code. Server resolves and stores. Admin
+  // is notified by email and processes from their inbox.
+  listMySubmissions: () =>
+    request<{ items: PrimarySubmission[] }>("GET", "/me/primary/submissions"),
+  createMySubmission: (data: {
+    periodStart?: string | null;
+    periodEnd?: string | null;
+    notes?: string | null;
+    source?: "manual" | "csv";
+    items: Array<{
+      subcontractorRef?: string;
+      subcontractorName?: string;
+      jobNumber?: string;
+      siteAddress?: string;
+      quantity?: number | string;
+      rate?: number | string;
+      materialValue?: number | string;
+      extras?: number | string;
+      notes?: string;
+    }>;
+  }) => request<PrimarySubmission>("POST", "/me/primary/submissions", { body: data as Json }),
+  getMySubmission: (id: string) =>
+    request<{ submission: PrimarySubmission; items: PrimarySubmissionItem[] }>(
+      "GET",
+      `/me/primary/submissions/${id}`,
+    ),
+
+  // -------- admin: primary submissions inbox --------
+  adminListPrimarySubmissions: (status?: string) =>
+    request<{ items: PrimarySubmission[] }>(
+      "GET",
+      "/admin/primary-submissions" + (status ? `?status=${status}` : ""),
+    ),
+  adminGetPrimarySubmission: (id: string) =>
+    request<{
+      submission: PrimarySubmission;
+      primary: Primary;
+      items: PrimarySubmissionItem[];
+    }>("GET", `/admin/primary-submissions/${id}`),
+  adminProcessPrimarySubmission: (id: string) =>
+    request<{
+      created: Array<{ itemId: string; paymentId: string; grossMinor: number }>;
+      skipped: Array<{ itemId: string; ref: string | null; reason: string }>;
+      status: string;
+    }>("POST", `/admin/primary-submissions/${id}/process`),
+  adminRejectPrimarySubmission: (id: string, reason: string) =>
+    request<{ rejected: true }>("POST", `/admin/primary-submissions/${id}/reject`, {
+      body: { reason },
+    }),
   getMyPrimaryDashboard: () =>
     request<{
       subcontractorCount: number;
