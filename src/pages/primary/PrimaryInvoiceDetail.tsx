@@ -1,0 +1,117 @@
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { api, ApiError } from "@/lib/api";
+import { PageHeader } from "@/components/layout/PortalShell";
+import { Badge } from "@/components/ui/Badge";
+import { Empty } from "@/components/ui/Empty";
+import { useToast } from "@/components/ui/Toast";
+import { ArrowLeft, FileText } from "lucide-react";
+
+type Detail = Awaited<ReturnType<typeof api.getMyPrimaryInvoice>>;
+
+function fmtMoney(minor: number) {
+  return `\u20AC${(minor / 100).toLocaleString("en-IE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+export function PrimaryInvoiceDetail() {
+  const { id } = useParams<{ id: string }>();
+  const toast = useToast();
+  const [data, setData] = useState<Detail | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+    (async () => {
+      try {
+        const r = await api.getMyPrimaryInvoice(id);
+        setData(r);
+      } catch (e) {
+        toast.error(e instanceof ApiError ? e.message : "Failed to load");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [id, toast]);
+
+  if (loading) return <div className="skeleton h-64" />;
+  if (!data) return <Empty icon={ArrowLeft} title="Not found" description="Invoice not found." />;
+
+  const inv = data.invoice;
+  const tone: "neutral" | "info" | "success" | "warn" =
+    inv.status === "paid" ? "success" :
+    inv.status === "sent" ? "info" :
+    inv.status === "cancelled" ? "neutral" : "warn";
+
+  return (
+    <>
+      <PageHeader title={`Invoice ${inv.invoiceNumber}`} description={`From BC Construction · ${inv.periodStart} → ${inv.periodEnd}`} />
+      <Link to="/primary/invoices" className="inline-flex items-center gap-1 text-sm text-ink-600 hover:text-ink-900 mb-6">
+        <ArrowLeft className="h-4 w-4" /> Back to invoices
+      </Link>
+
+      <div className="grid md:grid-cols-4 gap-4 mb-8">
+        <div className="card-padded"><div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-2">Status</div><Badge tone={tone}>{inv.status}</Badge></div>
+        <div className="card-padded"><div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-2">Issued</div><div className="text-lg">{inv.issuedAt}</div></div>
+        <div className="card-padded"><div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-2">Gross</div><div className="text-lg font-bold tabular-nums">{fmtMoney(inv.grossMinor)}</div></div>
+        <div className="card-padded bg-ink-50">
+          <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-2">Total to pay</div>
+          <div className="text-2xl font-bold text-ink-900 tabular-nums">{fmtMoney(inv.netMinor)}</div>
+          {inv.markupMinor > 0 && <div className="text-xs text-ink-500 mt-1">incl. {fmtMoney(inv.markupMinor)} BC fee</div>}
+        </div>
+      </div>
+
+      {inv.notes && (
+        <div className="card-padded mb-8">
+          <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-2">Notes</div>
+          <p className="text-sm text-ink-700">{inv.notes}</p>
+        </div>
+      )}
+
+      <h2 className="text-lg font-semibold text-ink-900 mb-3">Line items</h2>
+      {data.lines.length === 0 ? (
+        <Empty icon={FileText} title="No lines" description="This invoice has no underlying sub payments in the period." />
+      ) : (
+        <div className="card overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-ink-50 border-b border-ink-100">
+              <tr className="text-left text-xs uppercase tracking-wider text-ink-500 font-semibold">
+                <th className="px-5 py-3">Date</th>
+                <th className="px-5 py-3">Subcontractor</th>
+                <th className="px-5 py-3">Period</th>
+                <th className="px-5 py-3">Hours</th>
+                <th className="px-5 py-3">Sub invoice #</th>
+                <th className="px-5 py-3 text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.lines.map((l: Record<string, unknown>) => (
+                <tr key={String(l.id)} className="border-b border-ink-100 last:border-b-0">
+                  <td className="px-5 py-3 text-ink-900">{String(l.payment_date)}</td>
+                  <td className="px-5 py-3 text-ink-700">{String(l.sub_full_name)}</td>
+                  <td className="px-5 py-3 text-ink-600">{l.period_start && l.period_end ? `${l.period_start} → ${l.period_end}` : "—"}</td>
+                  <td className="px-5 py-3 text-ink-700 tabular-nums">{l.hours != null ? String(l.hours) : "—"}</td>
+                  <td className="px-5 py-3 font-mono text-xs">{l.invoice_number ? String(l.invoice_number) : <span className="text-ink-400">—</span>}</td>
+                  <td className="px-5 py-3 text-right tabular-nums font-medium">{fmtMoney(Number(l.amount_minor) || 0)}</td>
+                </tr>
+              ))}
+              {inv.markupMinor > 0 && (
+                <tr className="bg-ink-50/50">
+                  <td className="px-5 py-3 text-ink-900 italic" colSpan={5}>BC Construction admin fee</td>
+                  <td className="px-5 py-3 text-right tabular-nums font-medium">{fmtMoney(inv.markupMinor)}</td>
+                </tr>
+              )}
+              <tr className="bg-ink-100 font-bold">
+                <td className="px-5 py-3 text-ink-900" colSpan={5}>Total</td>
+                <td className="px-5 py-3 text-right tabular-nums">{fmtMoney(inv.netMinor)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <p className="text-xs text-ink-400 mt-6">
+        To settle this invoice, please pay BC Construction at the bank details on the invoice and notify them by email.
+      </p>
+    </>
+  );
+}

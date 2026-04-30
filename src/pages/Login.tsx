@@ -23,6 +23,7 @@ export function Login() {
       const me = await login(email, password);
       if (me.mustChangePassword) nav("/change-password");
       else if (me.role === "admin") nav("/admin");
+      else if (me.role === "primary") nav("/primary");
       else nav("/app");
     } catch (e) {
       if (e instanceof ApiError) {

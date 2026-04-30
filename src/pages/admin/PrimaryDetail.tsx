@@ -9,7 +9,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Badge } from "@/components/ui/Badge";
 import { Empty } from "@/components/ui/Empty";
 import { useToast } from "@/components/ui/Toast";
-import { ArrowLeft, FileText, Mail, CheckCircle2, Plus, Users, ArrowUpRight } from "lucide-react";
+import { ArrowLeft, FileText, Mail, CheckCircle2, Plus, Users, ArrowUpRight, UserPlus } from "lucide-react";
 
 function fmtMoney(minor: number) {
   return `\u20AC${(minor / 100).toLocaleString("en-IE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -31,6 +31,7 @@ export function PrimaryDetail() {
   const [invoices, setInvoices] = useState<PrimaryInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [genOpen, setGenOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   const refresh = async () => {
     if (!id) return;
@@ -85,9 +86,14 @@ export function PrimaryDetail() {
         title={primary.name}
         description={`Primary contractor · linked sub count: ${stats?.subcontractorCount ?? "—"}`}
         right={
-          <Button variant="accent" onClick={() => setGenOpen(true)} leftIcon={<Plus className="h-4 w-4" />}>
-            Generate invoice
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setInviteOpen(true)} leftIcon={<UserPlus className="h-4 w-4" />}>
+              Invite contact
+            </Button>
+            <Button variant="accent" onClick={() => setGenOpen(true)} leftIcon={<Plus className="h-4 w-4" />}>
+              Generate invoice
+            </Button>
+          </div>
         }
       />
 
@@ -262,7 +268,95 @@ export function PrimaryDetail() {
         onClose={() => setGenOpen(false)}
         onSaved={async () => { setGenOpen(false); await refresh(); }}
       />
+      <InviteContactModal
+        open={inviteOpen}
+        primaryId={primary.id}
+        primaryName={primary.name}
+        onClose={() => setInviteOpen(false)}
+      />
     </>
+  );
+}
+
+// Invite a primary user — creates a user with role='primary' linked to this
+// primary. Returns a one-time temp password (must_change_password=1 on the
+// new user). Modal stays open after creation so the admin can copy + share.
+function InviteContactModal({
+  open,
+  primaryId,
+  primaryName,
+  onClose,
+}: {
+  open: boolean;
+  primaryId: string;
+  primaryName: string;
+  onClose: () => void;
+}) {
+  const toast = useToast();
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
+
+  const reset = () => { setEmail(""); setTempPassword(null); };
+
+  const submit = async () => {
+    if (!email.trim()) { toast.error("Email is required"); return; }
+    setLoading(true);
+    try {
+      const r = await api.adminInvitePrimaryUser(primaryId, email.trim());
+      setTempPassword(r.tempPassword);
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={() => { reset(); onClose(); }}
+      title={`Invite contact for ${primaryName}`}
+      description={tempPassword ? "Account created. Share the password securely — it won't be shown again." : "Creates a primary-portal account that can read this primary's subs and invoices (read-only)."}
+      footer={
+        tempPassword ? (
+          <Button onClick={() => { reset(); onClose(); }}>Done</Button>
+        ) : (
+          <>
+            <Button variant="ghost" onClick={() => { reset(); onClose(); }}>Cancel</Button>
+            <Button variant="accent" onClick={submit} loading={loading}>Send invite</Button>
+          </>
+        )
+      }
+    >
+      {tempPassword ? (
+        <div className="space-y-4">
+          <div className="rounded-lg bg-amber-50 border border-amber-200 p-4 text-sm text-amber-900">
+            <div className="font-semibold mb-1">One-time display</div>
+            This password will not be shown again. Copy it now and share via a secure channel.
+          </div>
+          <div className="text-sm text-ink-600">
+            <span className="text-ink-500">Email:</span> <span className="font-medium">{email}</span>
+          </div>
+          <div className="rounded-lg bg-ink-950 text-white p-4 font-mono text-sm break-all select-all">
+            {tempPassword}
+          </div>
+          <Button variant="outline" onClick={() => navigator.clipboard.writeText(tempPassword)}>
+            Copy to clipboard
+          </Button>
+        </div>
+      ) : (
+        <Input
+          label="Contact email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="contact@developer.ie"
+          required
+          autoFocus
+        />
+      )}
+    </Modal>
   );
 }
 

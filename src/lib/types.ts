@@ -1,6 +1,6 @@
 // Shared type definitions matching the Worker API shapes.
 
-export type Role = "subcontractor" | "admin";
+export type Role = "subcontractor" | "admin" | "primary";
 export type OnboardingStatus =
   | "invited"
   | "in_progress"
@@ -140,6 +140,7 @@ export interface Me {
   email: string;
   role: Role;
   subcontractorId: string | null;
+  primaryId: string | null;
   mustChangePassword: boolean;
   privacyAccepted: boolean;
   privacyVersion: string;

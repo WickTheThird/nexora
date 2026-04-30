@@ -10,6 +10,7 @@ import { PrivacyPolicy } from "./pages/Privacy";
 import { Terms } from "./pages/Terms";
 import { SubcontractorApp } from "./pages/subcontractor/SubcontractorApp";
 import { AdminApp } from "./pages/admin/AdminApp";
+import { PrimaryApp } from "./pages/primary/PrimaryApp";
 import { Logo } from "./components/ui/Logo";
 
 function BootSplash() {
@@ -30,6 +31,7 @@ function Gate() {
   if (me.mustChangePassword) return <Navigate to="/change-password" replace />;
   if (!me.privacyAccepted) return <Navigate to="/consent" replace />;
   if (me.role === "admin") return <Navigate to="/admin" replace />;
+  if (me.role === "primary") return <Navigate to="/primary" replace />;
   return <Navigate to="/app" replace />;
 }
 
@@ -38,7 +40,7 @@ function RequireAuth({
   role,
 }: {
   children: JSX.Element;
-  role?: "admin" | "subcontractor";
+  role?: "admin" | "subcontractor" | "primary";
 }) {
   const { me, loading } = useAuth();
   if (loading) return <BootSplash />;
@@ -81,6 +83,14 @@ export default function App() {
           element={
             <RequireAuth role="admin">
               <AdminApp />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/primary/*"
+          element={
+            <RequireAuth role="primary">
+              <PrimaryApp />
             </RequireAuth>
           }
         />

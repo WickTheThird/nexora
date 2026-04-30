@@ -586,6 +586,66 @@ export const api = {
     request<Primary>("PATCH", `/admin/primaries/${id}`, { body: data as Json }),
   adminArchivePrimary: (id: string) =>
     request<{ archived: true }>("DELETE", `/admin/primaries/${id}`),
+  // Invite a primary user (creates a user with role='primary' linked to the
+  // given primary). Returns a one-time temp password to share securely.
+  adminInvitePrimaryUser: (primaryId: string, email: string) =>
+    request<{ userId: string; email: string; primaryId: string; tempPassword: string; note: string }>(
+      "POST",
+      `/admin/primaries/${primaryId}/invite`,
+      { body: { email } },
+    ),
+
+  // -------- primary portal (read-only) --------
+  getMyPrimary: () =>
+    request<{
+      user: { id: string; email: string; role: string };
+      primary: Primary;
+      stats: { subcontractorCount: number };
+    }>("GET", "/me/primary"),
+  getMyPrimaryDashboard: () =>
+    request<{
+      subcontractorCount: number;
+      openInvoicesCount: number;
+      openInvoicesNetMinor: number;
+      moneyByStatus: Record<string, { count: number; grossMinor: number }>;
+    }>("GET", "/me/primary/dashboard"),
+  listMyPrimarySubs: () =>
+    request<{
+      items: Array<{
+        id: string;
+        fullName: string | null;
+        email: string | null;
+        tel: string | null;
+        mob: string | null;
+        natureOfServices: string | null;
+        workType: string | null;
+        onboardingStatus: string;
+        rctRate: string | null;
+        vatReverseCharge: boolean;
+      }>;
+    }>("GET", "/me/primary/subcontractors"),
+  getMyPrimarySubDetail: (subId: string) =>
+    request<{
+      subcontractor: {
+        id: string;
+        fullName: string | null;
+        email: string | null;
+        natureOfServices: string | null;
+        onboardingStatus: string;
+        rctRate: string | null;
+        vatReverseCharge: boolean;
+      };
+      payments: Array<Record<string, unknown>>;
+      timesheets: Array<Record<string, unknown>>;
+    }>("GET", `/me/primary/subcontractors/${subId}`),
+  listMyPrimaryInvoices: () =>
+    request<{ items: PrimaryInvoice[] }>("GET", "/me/primary/invoices"),
+  getMyPrimaryInvoice: (invId: string) =>
+    request<{
+      invoice: PrimaryInvoice;
+      primary: Primary;
+      lines: Array<Record<string, unknown>>;
+    }>("GET", `/me/primary/invoices/${invId}`),
 
   // -------- primary invoices (admin) --------
   adminListPrimaryInvoices: (primaryId: string) =>
