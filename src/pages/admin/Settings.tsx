@@ -15,6 +15,13 @@ const empty: AppSettings = {
   accountant_email: null,
   admin_fee_amount_minor: null,
   admin_fee_percent: null,
+  invoice_header_tagline: null,
+  invoice_payment_terms: null,
+  invoice_footer_note: null,
+  invoice_show_vat: null,
+  invoice_show_bank: null,
+  invoice_show_contact: null,
+  invoice_show_principal_ref: null,
 };
 
 export function Settings() {
@@ -145,6 +152,67 @@ export function Settings() {
               placeholder="e.g. 2.5"
               hint="A percentage of the consolidated gross."
             />
+          </div>
+        </section>
+
+        {/* Invoice template — admin controls every visible part of the PDF.
+            Toggles default to ON when blank; freeform fields blank \u2192 hidden. */}
+        <section className="card-padded">
+          <h2 className="text-base font-semibold text-ink-900 mb-1">Invoice template</h2>
+          <p className="text-sm text-ink-500 mb-5">
+            What appears on every generated invoice PDF. Toggle sections off
+            to hide them, or leave the freeform fields blank to use defaults.
+          </p>
+          <div className="space-y-4">
+            <Input
+              label="Header tagline (optional)"
+              value={data.invoice_header_tagline || ""}
+              onChange={(e) => set("invoice_header_tagline", e.target.value || null)}
+              placeholder='e.g. "Subcontractor Services Invoice"'
+              hint="Shown under the main 'Invoice' / 'Payment Advice' title."
+            />
+            <Textarea
+              label="Payment terms (optional)"
+              rows={2}
+              value={data.invoice_payment_terms || ""}
+              onChange={(e) => set("invoice_payment_terms", e.target.value || null)}
+              placeholder="e.g. Payment due within 14 days of invoice date. Bank transfer only."
+              hint="Appears just above the bank details / footer."
+            />
+            <Textarea
+              label="Footer note (optional)"
+              rows={3}
+              value={data.invoice_footer_note || ""}
+              onChange={(e) => set("invoice_footer_note", e.target.value || null)}
+              placeholder="Thank-you message, dispute window, contact info, etc."
+              hint="Centered at the bottom of the page above the legal banner."
+            />
+            <div className="border-t border-ink-100 pt-4">
+              <div className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-3">
+                Visible sections
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                {([
+                  ["invoice_show_vat",            "VAT row in totals"],
+                  ["invoice_show_bank",           "Bank / PAY TO block"],
+                  ["invoice_show_contact",        "Issuer contact (phone / email)"],
+                  ["invoice_show_principal_ref",  "Principal / job reference line"],
+                ] as const).map(([key, label]) => {
+                  // null/undefined treated as ON; explicit "0" hides.
+                  const checked = data[key] !== "0";
+                  return (
+                    <label key={key} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => set(key, e.target.checked ? "1" : "0")}
+                      />
+                      <span className="text-ink-700">{label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </section>
 

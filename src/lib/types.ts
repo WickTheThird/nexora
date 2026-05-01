@@ -86,6 +86,27 @@ export interface AppSettings {
   // Stored as strings (worker stores all settings as strings).
   admin_fee_amount_minor: string | null;
   admin_fee_percent: string | null;
+  // Invoice template — admin controls what appears on every generated PDF.
+  // All optional; PDF generator falls back to sensible defaults if blank.
+  invoice_header_tagline: string | null;
+  invoice_payment_terms: string | null;
+  invoice_footer_note: string | null;
+  invoice_show_vat: string | null;             // "1" | "0"
+  invoice_show_bank: string | null;            // "1" | "0"
+  invoice_show_contact: string | null;         // "1" | "0"
+  invoice_show_principal_ref: string | null;   // "1" | "0"
+}
+
+// Invoice template options surfaced in the InvoicePayload (parsed from
+// app_settings server-side). Used by the PDF generator.
+export interface InvoiceTemplate {
+  headerTagline: string | null;
+  paymentTerms: string | null;
+  footerNote: string | null;
+  showVat: boolean;
+  showBank: boolean;
+  showContact: boolean;
+  showPrincipalRef: boolean;
 }
 
 export interface InvoicePayload {
@@ -133,6 +154,9 @@ export interface InvoicePayload {
     note: string | null;
   };
   accountantEmail: string | null;
+  // Admin-controlled template options. Optional for back-compat; PDF
+  // generator falls back to defaults when undefined.
+  template?: InvoiceTemplate;
 }
 
 export interface Me {
@@ -319,6 +343,14 @@ export interface PrimaryInvoice {
   paidAt: number | null;
   createdAt: number;
   createdBy: string | null;
+  // Optional issuer + template overlays — populated by the worker on the
+  // detail endpoint so the PDF generator can pull them without an extra
+  // settings call. Absent on list endpoints; never required.
+  issuerName?: string | null;
+  issuerAddress?: string | null;
+  issuerVat?: string | null;
+  issuerEmail?: string | null;
+  template?: InvoiceTemplate;
 }
 
 // Top of the 3-tier hierarchy: Primary (developer/main contractor) →

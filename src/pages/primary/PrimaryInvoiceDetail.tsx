@@ -73,7 +73,16 @@ export function PrimaryInvoiceDetail() {
       issuedAt: new Date().toISOString(),
       period: { from: inv.periodStart, to: inv.periodEnd },
       invoiceNumber: inv.invoiceNumber,
-      principal: { name: "BC Construction Ltd", address: null, vat: null, email: null },
+      // Issuer block (BILL TO on the principal-side invoice download). Uses
+      // the live brand name from runtime config so renames don't get stuck
+      // in code. Address/VAT/email are populated by the worker into the
+      // invoice payload when we hand it back \u2014 see worker side below.
+      principal: {
+        name: data.invoice.issuerName || "Samwise Building Contractors Ltd",
+        address: data.invoice.issuerAddress || null,
+        vat: data.invoice.issuerVat || null,
+        email: data.invoice.issuerEmail || null,
+      },
       // We treat the primary as the "subcontractor" recipient slot since the
       // PDF generator is structured around two parties; mode='primaryInvoice'
       // makes the wording reflect "Bill To" rather than "Subcontractor".

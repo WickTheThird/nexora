@@ -416,16 +416,34 @@ function generateSubInvoicePdf(inv: InvoicePayload, brandName: string): jsPDF {
   const totals = inv.totals;
   const currency = totals.currency || "EUR";
 
-  // Header
+  // Admin-controlled template (header tagline, payment terms, footer note,
+  // visible-section toggles). Worker pre-populates this on the invoice
+  // payload; absence falls back to sensible defaults.
+  const tpl = inv.template;
+  const tplShowVat = tpl?.showVat ?? true;
+  const tplShowBank = tpl?.showBank ?? true;
+  const tplShowContact = tpl?.showContact ?? true;
+  const tplShowPrincipalRef = tpl?.showPrincipalRef ?? true;
+
+  // Header — heading + optional tagline beneath
+  const headerHeight = tpl?.headerTagline ? 86 : 70;
   doc.setFillColor(15, 23, 34);
-  doc.rect(0, 0, pageWidth, 70, "F");
+  doc.rect(0, 0, pageWidth, headerHeight, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
   doc.setTextColor(255, 255, 255);
   doc.text("Invoice", margin, 42);
+  if (tpl?.headerTagline) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(220, 220, 220);
+    doc.text(tpl.headerTagline, margin, 64);
+  }
 
   const headerNumber =
     inv.lines[0]?.invoiceNumber || inv.invoiceNumber;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
   doc.setTextColor(245, 158, 11);
   doc.text(headerNumber, pageWidth - margin, 42, { align: "right" });
   doc.setFont("helvetica", "normal");
@@ -438,8 +456,9 @@ function generateSubInvoicePdf(inv: InvoicePayload, brandName: string): jsPDF {
 
   // Parties — neutral labels so the same layout works for both
   // sub→principal and BC→primary directions. The actual company name
-  // identifies who is who.
-  let y = 110;
+  // identifies who is who. Start position shifts down when there's a
+  // tagline above (taller header bar).
+  let y = headerHeight + 40;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
   doc.setTextColor(80, 80, 80);
@@ -450,19 +469,22 @@ function generateSubInvoicePdf(inv: InvoicePayload, brandName: string): jsPDF {
   doc.setTextColor(20, 20, 20);
   doc.setFontSize(10);
 
+  // Conditional sections come from the admin template. showContact hides
+  // phone/email; showVat hides VAT lines (rare, but useful for non-VAT
+  // contractors who don't want a "VAT: —" line on every invoice).
   const subBlock = [
     sub.fullName || "—",
     [sub.address1, sub.address2].filter(Boolean).join(", "),
     [sub.town, sub.postcode].filter(Boolean).join(" "),
-    sub.email || "",
+    tplShowContact ? (sub.email || "") : "",
     sub.ppsNumber ? `PPS: ${sub.ppsNumber}` : "",
-    sub.vatNumber ? `VAT: ${sub.vatNumber}` : "",
+    tplShowVat && sub.vatNumber ? `VAT: ${sub.vatNumber}` : "",
   ].filter(Boolean);
   const principalBlock = [
     inv.principal.name || "[Principal]",
     inv.principal.address || "",
-    inv.principal.vat ? `VAT: ${inv.principal.vat}` : "",
-    inv.principal.email || "",
+    tplShowVat && inv.principal.vat ? `VAT: ${inv.principal.vat}` : "",
+    tplShowContact ? (inv.principal.email || "") : "",
   ].filter(Boolean);
 
   const colW = pageWidth / 2 - margin - 10;
@@ -569,10 +591,30 @@ function generateSubInvoicePdf(inv: InvoicePayload, brandName: string): jsPDF {
     );
   }
 
+  // Payment terms (admin-controlled freeform). Sits above the PAY TO block
+  // since it usually says "Payment due within X days" — the recipient should
+  // see the deadline before the bank details.
+  if (tpl?.paymentTerms) {
+    afterY += 22;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 80);
+    doc.text("PAYMENT TERMS", margin, afterY);
+    afterY += 13;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(20, 20, 20);
+    const lines = doc.splitTextToSize(tpl.paymentTerms, pageWidth - margin * 2);
+    for (const line of lines) {
+      doc.text(line, margin, afterY);
+      afterY += 13;
+    }
+  }
+
   // Bank — tightened to one line where possible. IBAN + BIC together is the
   // minimum a payer needs in the SEPA zone; the account holder name on the
   // same row confirms identity. Bank name is shown only if present.
-  if (inv.bank?.iban || inv.bank?.accountNumber) {
+  if (tplShowBank && (inv.bank?.iban || inv.bank?.accountNumber)) {
     afterY += 26;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
@@ -601,8 +643,23 @@ function generateSubInvoicePdf(inv: InvoicePayload, brandName: string): jsPDF {
     }
   }
 
-  // Footer
+  // Admin-controlled footer note (centered, 60pt above the legal banner so
+  // it has breathing room and doesn't clash with the wordmark line).
   const pageHeight = doc.internal.pageSize.getHeight();
+  if (tpl?.footerNote) {
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 80);
+    const noteLines = doc.splitTextToSize(tpl.footerNote, pageWidth - margin * 2);
+    let footerNoteY = pageHeight - 50 - (noteLines.length * 11);
+    for (const line of noteLines) {
+      doc.text(line, pageWidth / 2, footerNoteY, { align: "center" });
+      footerNoteY += 11;
+    }
+  }
+
+  // Page footer (legal banner)
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(140, 140, 140);
   doc.text(
