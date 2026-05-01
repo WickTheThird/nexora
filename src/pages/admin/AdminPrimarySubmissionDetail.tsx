@@ -68,7 +68,7 @@ export function AdminPrimarySubmissionDetail() {
 
   const reject = async () => {
     if (!submission) return;
-    const reason = prompt("Reason for rejecting this submission? (Sent to the primary)");
+    const reason = prompt("Reason for rejecting this submission? (Sent to the principal)");
     if (reason == null) return;
     if (!reason.trim()) { toast.error("Reason required"); return; }
     setBusy(true);
@@ -116,7 +116,7 @@ export function AdminPrimarySubmissionDetail() {
           {statusBadge(submission.status)}
         </div>
         <Link to={`/admin/primaries/${primary.id}`} className="card-padded block hover:shadow-md transition relative group">
-          <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-2">Primary</div>
+          <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-2">Principal</div>
           <div className="font-medium text-ink-900 inline-flex items-center gap-1">
             <Building2 className="h-4 w-4" /> {primary.name}
           </div>
@@ -154,7 +154,7 @@ export function AdminPrimarySubmissionDetail() {
       )}
       {submission.notes && (
         <div className="card-padded mb-6">
-          <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-2">Primary's notes</div>
+          <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-2">Principal's notes</div>
           <p className="text-sm text-ink-700">{submission.notes}</p>
         </div>
       )}

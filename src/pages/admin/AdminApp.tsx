@@ -24,7 +24,7 @@ import { Settings } from "./Settings";
 
 const nav = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/admin/primaries", label: "Primaries", icon: Building2 },
+  { to: "/admin/primaries", label: "Principals", icon: Building2 },
   { to: "/admin/subcontractors", label: "Subcontractors", icon: Users },
   { to: "/admin/primary-submissions", label: "Submissions", icon: Inbox },
   { to: "/admin/bulk-advice", label: "Bulk Advice", icon: Send },

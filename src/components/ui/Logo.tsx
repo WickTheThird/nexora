@@ -1,24 +1,31 @@
-import { brandName } from "@/lib/api";
-
-// Logo treatment:
-//   Mark   = "SW" monogram in a navy rounded square with a small accent dot.
-//   Wordmark = the brand name + a subtle "·bc" subscript (the team).
-// To switch to "^bc" or ".bc", change the SUBSCRIPT constant below.
-const SUBSCRIPT = "·bc";
+// Logo treatment for Samwise Building Contractors Ltd.
+//   Mark   = the circular construction emblem (icon-only PNG from /public)
+//   Wordmark = "Samwise" in display font + "Building Contractors" subtitle
+// `mark` prop renders just the badge for tight spaces (sidebar collapsed
+// state, mobile, favicons, etc.).
+//
+// The icon is in /public so it's served at the site root. We reference it
+// by URL string rather than ES-importing — Vite leaves public assets alone
+// (no hashing) so the path is stable across deploys.
+const ICON_URL = "/samwise-icon.png";
 
 export function Logo({ className = "", mark = false }: { className?: string; mark?: boolean }) {
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
-      <div className="relative h-8 w-8 rounded-lg bg-ink-900 text-white grid place-items-center shadow-sm">
-        <span className="text-[11px] font-display font-bold tracking-tight leading-none">SW</span>
-        <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-accent-500 ring-2 ring-white" />
-      </div>
+    <div className={`flex items-center gap-3 ${className}`}>
+      <img
+        src={ICON_URL}
+        alt="Samwise"
+        className="h-9 w-9 rounded-md object-contain shrink-0"
+        loading="eager"
+      />
       {!mark && (
-        <span className="flex items-baseline gap-1">
-          <span className="font-display font-bold tracking-tight text-ink-900 text-[17px]">
-            {brandName().toLowerCase()}
+        <span className="flex flex-col leading-tight">
+          <span className="font-display font-bold tracking-tight text-ink-900 text-[18px]">
+            Samwise
           </span>
-          <span className="text-[11px] font-medium text-ink-400 tracking-wider">{SUBSCRIPT}</span>
+          <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-ink-500">
+            Building Contractors
+          </span>
         </span>
       )}
     </div>

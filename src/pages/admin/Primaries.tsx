@@ -29,7 +29,7 @@ export function Primaries() {
       const r = await api.adminListPrimaries(showArchived);
       setItems(r.items);
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : "Failed to load primaries");
+      toast.error(e instanceof ApiError ? e.message : "Failed to load principals");
     } finally {
       setLoading(false);
     }
@@ -42,7 +42,7 @@ export function Primaries() {
   }, [showArchived]);
 
   const archive = async (p: Primary) => {
-    if (!confirm(`Archive "${p.name}"? Linked subcontractors keep their reference; the primary is hidden from active lists.`)) return;
+    if (!confirm(`Archive "${p.name}"? Linked subcontractors keep their reference; the principal is hidden from active lists.`)) return;
     try {
       await api.adminArchivePrimary(p.id);
       toast.info("Archived");
@@ -55,8 +55,8 @@ export function Primaries() {
   return (
     <>
       <PageHeader
-        title="Primaries"
-        description="Developers and main contractors who hire BC Construction. Subcontractors are linked to a primary; consolidated invoices flow up to them."
+        title="Principals"
+        description="Developers and main contractors who hire BC Construction. Subcontractors are linked to a principal; consolidated invoices flow up to them."
         right={
           <div className="flex items-center gap-2">
             <label className="text-sm text-ink-600 flex items-center gap-2 mr-2">
@@ -68,7 +68,7 @@ export function Primaries() {
               Show archived
             </label>
             <Button variant="accent" onClick={() => setCreateOpen(true)} leftIcon={<Plus className="h-4 w-4" />}>
-              Add primary
+              Add principal
             </Button>
           </div>
         }
@@ -79,8 +79,8 @@ export function Primaries() {
       ) : items.length === 0 ? (
         <Empty
           icon={Building2}
-          title="No primaries yet"
-          description="Add the developers or main contractors that hire BC. You can link each subcontractor to a default primary so consolidated billing knows who to invoice."
+          title="No principals yet"
+          description="Add the developers or main contractors that hire BC. You can link each subcontractor to a default principal so consolidated billing knows who to invoice."
         />
       ) : (
         <div className="card overflow-hidden">
@@ -196,10 +196,10 @@ function PrimaryModal({
       };
       if (primary) {
         await api.adminPatchPrimary(primary.id, payload);
-        toast.success("Primary updated");
+        toast.success("Principal updated");
       } else {
         await api.adminCreatePrimary(payload);
-        toast.success("Primary created");
+        toast.success("Principal created");
       }
       await onSaved();
     } catch (e) {
@@ -214,13 +214,13 @@ function PrimaryModal({
       open={open}
       onClose={onClose}
       width="lg"
-      title={primary ? `Edit ${primary.name}` : "Add primary"}
-      description="A primary is a developer or main contractor who hires BC Construction. Subcontractors can be linked to a default primary."
+      title={primary ? `Edit ${primary.name}` : "Add principal"}
+      description="A principal is a developer or main contractor who hires BC Construction. Subcontractors can be linked to a default principal."
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button variant="accent" onClick={save} loading={saving}>
-            {primary ? "Save changes" : "Create primary"}
+            {primary ? "Save changes" : "Create principal"}
           </Button>
         </>
       }
@@ -271,7 +271,7 @@ function PrimaryModal({
           label="Notes (internal)"
           value={form.notes || ""}
           onChange={(e) => set("notes", e.target.value)}
-          placeholder="Anything you want to remember about this primary"
+          placeholder="Anything you want to remember about this principal"
         />
       </form>
     </Modal>

@@ -130,10 +130,10 @@ export function Subcontractors() {
           </div>
           <div className="md:w-56">
             <Select
-              label="Primary"
+              label="Principal"
               value={primaryId}
               options={[
-                { value: "", label: "All primaries" },
+                { value: "", label: "All principals" },
                 { value: "none", label: "Unlinked only" },
                 ...primaries.map((p) => ({ value: p.id, label: p.name })),
               ]}
@@ -158,7 +158,7 @@ export function Subcontractors() {
                 <tr className="text-left text-xs font-semibold uppercase tracking-wider text-ink-500">
                   <th className="px-5 py-3">Name</th>
                   <th className="px-5 py-3">Email</th>
-                  <th className="px-5 py-3">Primary</th>
+                  <th className="px-5 py-3">Principal</th>
                   <th className="px-5 py-3">Client ref</th>
                   <th className="px-5 py-3">Status</th>
                   <th className="px-5 py-3">Created</th>

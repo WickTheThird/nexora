@@ -66,7 +66,7 @@ export function Settings() {
     <>
       <PageHeader
         title="Settings"
-        description="Operational settings used by the portal. The principal company details appear on every generated invoice."
+        description="Operational settings used by the portal. Your company details appear on every generated invoice."
         right={
           <Button variant="accent" onClick={() => save()} loading={saving} leftIcon={<Save className="h-4 w-4" />}>
             Save
@@ -76,10 +76,9 @@ export function Settings() {
 
       <form onSubmit={save} className="space-y-8 max-w-2xl">
         <section className="card-padded">
-          <h2 className="text-base font-semibold text-ink-900 mb-1">Principal contractor</h2>
+          <h2 className="text-base font-semibold text-ink-900 mb-1">Your company</h2>
           <p className="text-sm text-ink-500 mb-5">
-            Your business details. Shown as the issuing party on self-billing
-            invoices generated for each subcontractor.
+            Your business details. Shown as the issuing party on payment advices to your subcontractors.
           </p>
           <div className="space-y-4">
             <Input
@@ -114,9 +113,9 @@ export function Settings() {
         </section>
 
         <section className="card-padded">
-          <h2 className="text-base font-semibold text-ink-900 mb-1">Primary invoice fee</h2>
+          <h2 className="text-base font-semibold text-ink-900 mb-1">Principal invoice fee</h2>
           <p className="text-sm text-ink-500 mb-5">
-            BC's default fee charged on consolidated invoices issued <em>to primaries</em>.
+            BC's default fee charged on consolidated invoices issued <em>to principals</em>.
             Fixed amount and percentage are added together. The
             "Generate invoice" modal pre-fills the markup with this calculation
             so you can override per-invoice if needed.
@@ -133,7 +132,7 @@ export function Settings() {
                 set("admin_fee_amount_minor", Number.isFinite(v) && v > 0 ? String(Math.round(v * 100)) : null);
               }}
               placeholder="e.g. 50.00"
-              hint="A flat fee applied to every primary invoice."
+              hint="A flat fee applied to every principal invoice."
             />
             <Input
               label="Percentage fee (%)"

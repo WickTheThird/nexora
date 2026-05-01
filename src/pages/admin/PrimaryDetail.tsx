@@ -78,13 +78,13 @@ export function PrimaryDetail() {
   };
 
   if (loading) return <div className="skeleton h-64" />;
-  if (!primary) return <Empty title="Not found" description="That primary doesn't exist." icon={ArrowLeft} />;
+  if (!primary) return <Empty title="Not found" description="That principal doesn't exist." icon={ArrowLeft} />;
 
   return (
     <>
       <PageHeader
         title={primary.name}
-        description={`Primary contractor · linked sub count: ${stats?.subcontractorCount ?? "—"}`}
+        description={`Principal · linked sub count: ${stats?.subcontractorCount ?? "—"}`}
         right={
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setInviteOpen(true)} leftIcon={<UserPlus className="h-4 w-4" />}>
@@ -98,7 +98,7 @@ export function PrimaryDetail() {
       />
 
       <Link to="/admin/primaries" className="inline-flex items-center gap-1 text-sm text-ink-600 hover:text-ink-900 mb-4">
-        <ArrowLeft className="h-4 w-4" /> Back to primaries
+        <ArrowLeft className="h-4 w-4" /> Back to principals
       </Link>
 
       <div className="grid md:grid-cols-3 gap-4 mb-6">
@@ -161,7 +161,7 @@ export function PrimaryDetail() {
       {subs.length === 0 ? (
         <div className="card-padded text-sm text-ink-500 mb-8 flex items-center gap-3">
           <Users className="h-5 w-5 text-ink-400" />
-          No subcontractors linked yet. Open any sub and set their Primary, or use the Subcontractors list filter.
+          No subcontractors linked yet. Open any sub and set their Principal, or use the Subcontractors list filter.
         </div>
       ) : (
         <div className="card overflow-hidden mb-8">
@@ -202,12 +202,12 @@ export function PrimaryDetail() {
         </div>
       )}
 
-      <h2 className="text-lg font-semibold text-ink-900 mb-4">Invoices issued to this primary</h2>
+      <h2 className="text-lg font-semibold text-ink-900 mb-4">Invoices issued to this principal</h2>
       {invoices.length === 0 ? (
         <Empty
           icon={FileText}
           title="No invoices yet"
-          description="Generate an invoice to consolidate sub work for a date range and bill this primary."
+          description="Generate an invoice to consolidate sub work for a date range and bill this principal."
         />
       ) : (
         <div className="card overflow-hidden">
@@ -317,7 +317,7 @@ function InviteContactModal({
       open={open}
       onClose={() => { reset(); onClose(); }}
       title={`Invite contact for ${primaryName}`}
-      description={tempPassword ? "Account created. Share the password securely — it won't be shown again." : "Creates a primary-portal account that can read this primary's subs and invoices (read-only)."}
+      description={tempPassword ? "Account created. Share the password securely — it won't be shown again." : "Creates a principal-portal account that can read this principal's subs and invoices (read-only)."}
       footer={
         tempPassword ? (
           <Button onClick={() => { reset(); onClose(); }}>Done</Button>

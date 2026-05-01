@@ -22,7 +22,7 @@ const nav = [
 
 export function PrimaryApp() {
   return (
-    <PortalShell title="Primary portal" nav={nav}>
+    <PortalShell title="Principal portal" nav={nav}>
       <Routes>
         <Route index element={<PrimaryDashboard />} />
         <Route path="subcontractors" element={<PrimarySubcontractors />} />

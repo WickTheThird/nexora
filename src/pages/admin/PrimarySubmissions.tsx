@@ -52,8 +52,8 @@ export function AdminPrimarySubmissions() {
   return (
     <>
       <PageHeader
-        title="Primary submissions"
-        description="Payment data sent in by your primaries. Process to spawn payment advices for the matched subcontractors."
+        title="Principal submissions"
+        description="Payment data sent in by your principals. Process to spawn payment advices for the matched subcontractors."
         right={
           <div className="md:w-56">
             <Select
@@ -72,7 +72,7 @@ export function AdminPrimarySubmissions() {
         <Empty
           icon={Inbox}
           title="Nothing to process"
-          description="When a primary submits payment data, it'll appear here for you to review."
+          description="When a principal submits payment data, it'll appear here for you to review."
         />
       ) : (
         <div className="card overflow-hidden">

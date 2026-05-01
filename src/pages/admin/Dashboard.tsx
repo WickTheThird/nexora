@@ -86,14 +86,14 @@ export function Dashboard() {
     <>
       <PageHeader
         title="Dashboard"
-        description="At-a-glance overview of the whole 3-tier flow: primaries, subcontractors, and payments."
+        description="At-a-glance overview of the whole 3-tier flow: principals, subcontractors, and payments."
       />
 
       {/* Top row: 3-tier counts. Each card links to its natural drill-down. */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatCard
           icon={Building2}
-          label="Primaries"
+          label="Principals"
           value={loading ? "·" : (stats?.primaries ?? 0)}
           tone="info"
           to="/admin/primaries"
@@ -131,7 +131,7 @@ export function Dashboard() {
         />
         <StatCard
           icon={FileText}
-          label="Open primary invoices"
+          label="Open principal invoices"
           value={loading ? "·" : (stats?.primaryInvoicesOpen ?? 0)}
           tone="warn"
           to="/admin/primaries"
