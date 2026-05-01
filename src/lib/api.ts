@@ -608,6 +608,50 @@ export const api = {
   patchMyPrimary: (data: { accountantEmail?: string | null }) =>
     request<Primary>("PATCH", "/me/primary", { body: data as Json }),
 
+  // -------- primary sites (aggregated view) --------
+  // Lets the principal see what work is happening on each site across ALL
+  // their subs. Server scopes by primary_id, so other principals' sites
+  // never appear.
+  listMyPrincipalSites: () =>
+    request<{
+      items: Array<{
+        siteRef: string;
+        subCount: number;
+        sheetCount: number;
+        totalHours: number;
+        lastWorked: string | null;
+        paymentCount: number;
+        totalGrossMinor: number;
+        totalNetMinor: number;
+        paidNetMinor: number;
+      }>;
+    }>("GET", "/me/primary/sites"),
+  getMyPrincipalSiteDetail: (siteRef: string) =>
+    request<{
+      siteRef: string;
+      totals: {
+        subCount: number;
+        totalHours: number;
+        sheetCount: number;
+        totalGrossMinor: number;
+        totalNetMinor: number;
+        paidNetMinor: number;
+      };
+      subs: Array<{
+        subcontractorId: string;
+        fullName: string | null;
+        email: string | null;
+        sheetCount: number;
+        totalHours: number;
+        firstDate: string | null;
+        lastDate: string | null;
+        paymentCount: number;
+        totalGrossMinor: number;
+        totalNetMinor: number;
+        paidNetMinor: number;
+      }>;
+    }>("GET", `/me/primary/sites/${encodeURIComponent(siteRef)}`),
+
   // -------- primary submissions (primary-side) --------
   // Primary user submits payment data to BC. Each item references one of
   // their linked subs by reference code. Server resolves and stores. Admin

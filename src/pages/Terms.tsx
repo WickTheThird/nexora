@@ -22,7 +22,7 @@ export function Terms() {
           Terms of Service
         </h1>
         <p className="text-sm text-ink-500">
-          Version {TERMS_VERSION}. Last updated 21 April 2026.
+          Version {TERMS_VERSION}. Last updated 30 April 2026.
         </p>
 
         <p className="rounded-lg bg-accent-50 border border-accent-200 p-3 text-sm not-prose">
@@ -34,9 +34,13 @@ export function Terms() {
         <h2>1. Definitions</h2>
         <p>
           "Service" means the Samwise portal accessible via a web browser.
-          "Operator" means the contractor business that operates the Service.
-          "User" means any person granted access to the Service, including the
-          Operator's administrators and the subcontractors they engage.
+          "Operator" means <strong>Samwise Building Contractors Ltd</strong>,
+          the company operating the Service. "Principal" means a developer or
+          main contractor who hires the Operator and is granted access to
+          their own scoped portal. "Subcontractor" means a sole trader engaged
+          by the Operator who is granted access to manage their own record.
+          "User" means any person granted access to the Service in any of
+          these roles.
         </p>
 
         <h2>2. Acceptance of these Terms</h2>

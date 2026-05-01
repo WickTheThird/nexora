@@ -24,31 +24,39 @@ export function PrivacyPolicy({ showHeader = true }: { showHeader?: boolean }) {
           Privacy Notice
         </h1>
         <p className="text-sm text-ink-500">
-          Version {PRIVACY_VERSION}. Last updated 21 April 2026. Issued under
+          Version {PRIVACY_VERSION}. Last updated 30 April 2026. Issued under
           the Irish Data Protection Act 2018 and Regulation (EU) 2016/679 (GDPR).
         </p>
 
         <h2>1. Who we are</h2>
         <p>
-          This portal ("Samwise") is operated by the contractor business that
-          engages you as a subcontractor (the "Controller" / "Principal Contractor").
-          Any reference to "we", "us", or "our" means the Controller. For
-          questions relating to the processing of your personal data, you may
-          contact the Controller at the email address provided to you on
-          onboarding.
+          This portal ("the Service" or "Samwise") is operated by{" "}
+          <strong>Samwise Building Contractors Ltd</strong> (the "Operator" /
+          "Controller" / "Principal Contractor"). Any reference to "we", "us",
+          or "our" means the Operator. For questions relating to the processing
+          of your personal data, contact us at{" "}
+          <a href="mailto:hello@bc-construction.ie">hello@bc-construction.ie</a>.
         </p>
+        <p>
+          The Service supports a three-tier construction model:
+        </p>
+        <ul>
+          <li><strong>Principals</strong> (developers / main contractors who hire the Operator) — given a read-mostly portal showing their linked subcontractors and the invoices the Operator has issued to them, plus the ability to submit payment data to the Operator for processing.</li>
+          <li><strong>The Operator</strong> (Samwise Building Contractors Ltd) — administers the platform, onboards subcontractors, processes payments, and issues consolidated invoices to Principals.</li>
+          <li><strong>Subcontractors</strong> — sole traders engaged by the Operator; given a self-service portal to manage their profile, contract, timesheets and payments.</li>
+        </ul>
         <p className="rounded-lg bg-ink-100 border border-ink-200 p-3 text-sm not-prose">
           <strong>Disclaimer.</strong> Samwise is not affiliated with, endorsed by,
           or operated on behalf of the Revenue Commissioners or any other
-          government agency. Samwise is a record-keeping and onboarding tool used
-          by the Principal Contractor; the Principal Contractor remains solely
-          responsible for compliance with the Relevant Contracts Tax (RCT)
-          regime, VAT obligations and any other tax filings, and the
-          subcontractor remains solely responsible for their own personal tax
-          affairs.
+          government agency. The Operator is a Principal Contractor in its own
+          right and remains solely responsible for its compliance with the
+          Relevant Contracts Tax (RCT) regime, VAT obligations and any other
+          tax filings. Subcontractors remain solely responsible for their own
+          personal tax affairs.
         </p>
 
         <h2>2. What personal data we collect</h2>
+        <p><strong>From subcontractors:</strong></p>
         <ul>
           <li><strong>Identity &amp; contact</strong>: full name, date of birth, place of birth, address, email, mobile and landline phone numbers.</li>
           <li><strong>Employment status</strong>: trade, nature of services, VAT registration, self-employment declarations.</li>
@@ -56,8 +64,16 @@ export function PrivacyPolicy({ showHeader = true }: { showHeader?: boolean }) {
           <li><strong>Bank details</strong>: account holder name, account number, sort code, IBAN, BIC, currency and bank reference.</li>
           <li><strong>Compliance documents</strong>: photographic ID, Safe Pass / Construction Skills Certification Scheme (CSCS) card, insurance certificates and other uploads you provide.</li>
           <li><strong>Contract records</strong>: rendered agreement text, your typed signature name, your drawn signature image, IP address and timestamp at signing, and a tamper-evidence hash.</li>
+          <li><strong>Timesheets</strong>: work date, hours, site reference, clock-in / clock-out times, notes.</li>
           <li><strong>Payment ledger</strong>: gross amounts, RCT deductions, net amounts, authorisation numbers, hours worked, pay periods, remittance PDFs and references.</li>
           <li><strong>Account &amp; security</strong>: email, hashed password, session identifiers, IP address and user agent of each login, and an audit trail of actions taken on your record.</li>
+        </ul>
+        <p><strong>From principal contacts:</strong></p>
+        <ul>
+          <li><strong>Company info</strong>: trading name, registered address, VAT number, contact name + email + phone.</li>
+          <li><strong>Accountant email</strong>: optional, used only for the "Send to my accountant" action on invoices.</li>
+          <li><strong>Account &amp; security</strong>: same as above (hashed password, session, login IP/UA, audit trail).</li>
+          <li><strong>Submitted payment data</strong>: timesheet/payment rows the principal sends to the Operator for processing into payment advices.</li>
         </ul>
 
         <h2>3. Why we process it and our lawful basis</h2>
@@ -100,8 +116,10 @@ export function PrivacyPolicy({ showHeader = true }: { showHeader?: boolean }) {
         <p>We only share your personal data with:</p>
         <ul>
           <li>The Revenue Commissioners, where legally required — in particular to notify contracts and payments via the eRCT system and to make VAT and payroll returns.</li>
-          <li>Our processors: Cloudflare Inc. (hosting, storage and network protection for this portal). Cloudflare processes personal data on our instructions under a data processing agreement.</li>
+          <li><strong>Cloudflare Inc.</strong> — hosting, storage (D1 database, R2 object storage) and network protection for this portal. Cloudflare processes personal data on our instructions under a data processing agreement and EU Standard Contractual Clauses where applicable.</li>
+          <li><strong>Sendinblue SAS (trading as Brevo)</strong> — transactional email delivery (login resets, payment notifications, change-request alerts). Brevo only receives the recipient email address and the message body; no other personal data.</li>
           <li>Professional advisors (accountants, auditors, legal counsel) where necessary and under confidentiality.</li>
+          <li><strong>Limited cross-tier visibility within the Service</strong>: the Operator (administrators) sees all data; a Principal sees only the subcontractors linked to them and the invoices issued to them, with sensitive identifiers (PPS number, full bank account, contracted rate amount) redacted; a Subcontractor sees only their own data.</li>
         </ul>
         <p>
           We do not sell your personal data and we do not use it for profiling
