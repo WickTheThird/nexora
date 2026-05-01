@@ -213,6 +213,11 @@ export function Subcontractors() {
 
       <CreateSubcontractorModal
         open={createOpen}
+        primaries={primaries}
+        // If the list is currently filtered by a primary, pre-select that
+        // primary in the create modal so the admin's flow ("looking at
+        // Glenveagh's subs, want to add another") just works.
+        defaultPrimaryId={primaryId && primaryId !== "none" ? primaryId : ""}
         onClose={() => setCreateOpen(false)}
         onCreated={async () => {
           setCreateOpen(false);
@@ -226,10 +231,14 @@ export function Subcontractors() {
 
 function CreateSubcontractorModal({
   open,
+  primaries,
+  defaultPrimaryId,
   onClose,
   onCreated,
 }: {
   open: boolean;
+  primaries: Primary[];
+  defaultPrimaryId: string;
   onClose: () => void;
   onCreated: () => void;
 }) {
@@ -237,8 +246,15 @@ function CreateSubcontractorModal({
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [clientRef, setClientRef] = useState("");
+  const [primaryId, setPrimaryId] = useState(defaultPrimaryId);
   const [loading, setLoading] = useState(false);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
+
+  // Re-sync the selected principal when the parent's filter changes between
+  // opens (e.g. admin filters list by Glenveagh, then opens the modal).
+  useEffect(() => {
+    if (open) setPrimaryId(defaultPrimaryId);
+  }, [open, defaultPrimaryId]);
 
   const submit = async () => {
     setLoading(true);
@@ -247,6 +263,7 @@ function CreateSubcontractorModal({
         email: email.trim(),
         fullName: fullName.trim() || undefined,
         clientRef: clientRef.trim() || undefined,
+        primaryId: primaryId || undefined,
       });
       setTempPassword(r.tempPassword);
       onCreated();
@@ -261,6 +278,7 @@ function CreateSubcontractorModal({
     setEmail("");
     setFullName("");
     setClientRef("");
+    setPrimaryId(defaultPrimaryId);
     setTempPassword(null);
   };
 
@@ -299,6 +317,18 @@ function CreateSubcontractorModal({
           <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="john@example.com" required />
           <Input label="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="John Subcontractor" />
           <Input label="Client reference" value={clientRef} onChange={(e) => setClientRef(e.target.value)} placeholder="Optional internal ID" />
+          <Select
+            label="Principal (optional)"
+            value={primaryId}
+            options={[
+              { value: "", label: "— No principal yet —" },
+              ...primaries
+                .filter((p) => !p.archivedAt)
+                .map((p) => ({ value: p.id, label: p.name })),
+            ]}
+            onChange={(e) => setPrimaryId(e.target.value)}
+            hint="Link the new subcontractor to a developer / main contractor. You can change this later."
+          />
         </div>
       )}
     </Modal>

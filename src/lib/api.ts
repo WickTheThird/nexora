@@ -277,11 +277,15 @@ export const api = {
     email: string;
     fullName?: string;
     clientRef?: string;
+    // Optional — link the sub to a Principal from the creation modal.
+    // Server validates the principal exists + isn't archived.
+    primaryId?: string;
   }) =>
     request<{
       subcontractorId: string;
       userId: string;
       email: string;
+      primaryId: string | null;
       tempPassword: string;
       note: string;
     }>("POST", "/admin/subcontractors", { body: data }),
