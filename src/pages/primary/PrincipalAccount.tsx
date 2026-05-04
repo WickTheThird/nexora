@@ -54,7 +54,7 @@ export function PrincipalAccount() {
     <>
       <PageHeader
         title="Account"
-        description="Your company details on file with BC Construction. Some fields you can edit yourself; others are managed by BC \u2014 use 'Request changes' to update those."
+        description="Your company details on file with BC Construction. Some fields you can edit yourself; others are managed by BC — use 'Request changes' to update those."
       />
 
       <form onSubmit={save} className="space-y-6 max-w-3xl">

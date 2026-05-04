@@ -134,13 +134,13 @@ export function PrimarySubcontractors() {
                 <div className="font-medium text-ink-900">{s.fullName || "\u2014"}</div>
                 {s.email && <div className="text-xs text-ink-500 mt-0.5">{s.email}</div>}
               </td>
-              <td className="px-5 py-3 text-ink-700">{s.natureOfServices || <span className="text-ink-400">\u2014</span>}</td>
+              <td className="px-5 py-3 text-ink-700">{s.natureOfServices || <span className="text-ink-400">{"\u2014"}</span>}</td>
               <td className="px-5 py-3"><Badge tone="info">{s.onboardingStatus.replace(/_/g, " ")}</Badge></td>
-              <td className="px-5 py-3 text-ink-700">{s.rctRate ? `${s.rctRate}%` : <span className="text-ink-400">\u2014</span>}</td>
+              <td className="px-5 py-3 text-ink-700">{s.rctRate ? `${s.rctRate}%` : <span className="text-ink-400">{"\u2014"}</span>}</td>
               <td className="px-5 py-3 text-ink-700 tabular-nums">
                 {allowRateEdit && editingRate === s.id ? (
                   <div className="flex items-center gap-1">
-                    <span className="text-ink-500">\u20AC</span>
+                    <span className="text-ink-500">{"\u20AC"}</span>
                     <input
                       type="number"
                       step="0.01"

@@ -9,7 +9,11 @@
 // The icon lives in /public so it's served at the site root. We reference it
 // by URL string rather than ES-importing — Vite leaves public assets alone
 // (no hashing) so the path is stable across deploys.
-const ICON_URL = "/samwise-icon.png";
+// Prefix with the Vite base URL so the path resolves correctly when the app
+// is mounted under a sub-path (e.g. GitHub Pages serves us from /nexora/).
+// Cast via `unknown` because the project lacks /// <reference vite/client>.
+const BASE = ((import.meta as unknown) as { env: { BASE_URL: string } }).env.BASE_URL;
+const ICON_URL = `${BASE}samwise-icon.png`;
 
 export function Logo({
   className = "",

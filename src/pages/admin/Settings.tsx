@@ -163,7 +163,7 @@ export function Settings() {
           <h2 className="text-base font-semibold text-ink-900 mb-1">Job Card calculator</h2>
           <p className="text-sm text-ink-500 mb-5">
             Drives the live totals card under every principal&apos;s Job Card form
-            (Total Gross \u2192 + VAT \u2192 \u2212 Less Subs \u2192 Total to Pay BC).
+            (Total Gross → + VAT → − Less Subs → Total to Pay BC).
           </p>
           <div className="grid grid-cols-2 gap-4">
             <Input
@@ -178,7 +178,7 @@ export function Settings() {
               hint="Irish construction-services standard is 13.5%."
             />
             <Input
-              label="Default Less Subs (\u20AC)"
+              label="Default Less Subs (€)"
               type="number"
               step="0.01"
               min="0"

@@ -477,7 +477,7 @@ export function PrimarySubmitPayment() {
                 <div className="flex justify-between items-center">
                   <span className="text-ink-600">Less Subs</span>
                   <div className="flex items-center gap-1">
-                    <span className="text-ink-500">\u20AC</span>
+                    <span className="text-ink-500">{"\u20AC"}</span>
                     <input
                       type="number"
                       step="0.01"

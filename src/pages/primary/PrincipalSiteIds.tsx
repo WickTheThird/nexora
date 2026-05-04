@@ -116,7 +116,7 @@ export function PrincipalSiteIds() {
         <Empty
           icon={MapPinned}
           title="No site IDs yet"
-          description="Add your first Revenue SIN above. You can add more any time \u2014 they appear as a dropdown when subs or your office submit payment data."
+          description="Add your first Revenue SIN above. You can add more any time — they appear as a dropdown when subs or your office submit payment data."
         />
       ) : (
         <div className="card overflow-hidden">
@@ -133,8 +133,8 @@ export function PrincipalSiteIds() {
               {items.map((row) => (
                 <tr key={row.id} className="border-b border-ink-100 last:border-b-0 hover:bg-ink-50/50">
                   <td className="px-5 py-3 font-mono text-sm text-ink-900 font-semibold">{row.siteId}</td>
-                  <td className="px-5 py-3 text-ink-700">{row.projectName || <span className="text-ink-400">\u2014</span>}</td>
-                  <td className="px-5 py-3 text-ink-600 text-xs">{row.address || <span className="text-ink-400">\u2014</span>}</td>
+                  <td className="px-5 py-3 text-ink-700">{row.projectName || <span className="text-ink-400">{"\u2014"}</span>}</td>
+                  <td className="px-5 py-3 text-ink-600 text-xs">{row.address || <span className="text-ink-400">{"\u2014"}</span>}</td>
                   <td className="px-5 py-3 text-right">
                     <button
                       type="button"
