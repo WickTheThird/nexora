@@ -612,6 +612,38 @@ export const api = {
   patchMyPrimary: (data: { accountantEmail?: string | null }) =>
     request<Primary>("PATCH", "/me/primary", { body: data as Json }),
 
+  // -------- primary site IDs (managed registry) --------
+  // Per-principal list of registered Revenue SIN numbers (DUB48662N etc.).
+  // Mirrors Enagh's "Site IDs" page \u2014 add once, reuse on every Job Card.
+  listMyPrincipalSiteIds: (includeArchived = false) =>
+    request<{
+      items: Array<{
+        id: string;
+        primaryId: string;
+        siteId: string;
+        projectName: string | null;
+        address: string | null;
+        notes: string | null;
+        archivedAt: number | null;
+        createdAt: number;
+        updatedAt: number;
+      }>;
+    }>("GET", "/me/primary/site-ids" + (includeArchived ? "?includeArchived=true" : "")),
+  createMyPrincipalSiteId: (data: {
+    siteId: string;
+    projectName?: string | null;
+    address?: string | null;
+    notes?: string | null;
+  }) => request<{
+    id: string;
+    primaryId: string;
+    siteId: string;
+    projectName: string | null;
+    address: string | null;
+  }>("POST", "/me/primary/site-ids", { body: data as Json }),
+  archiveMyPrincipalSiteId: (id: string) =>
+    request<{ archived: true }>("DELETE", `/me/primary/site-ids/${id}`),
+
   // -------- primary sites (aggregated view) --------
   // Lets the principal see what work is happening on each site across ALL
   // their subs. Server scopes by primary_id, so other principals' sites

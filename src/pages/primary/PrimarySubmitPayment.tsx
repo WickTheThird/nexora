@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
-import { Plus, Trash2, Upload, Send, FileSpreadsheet, Edit3 } from "lucide-react";
+import { Plus, Trash2, Send, FileSpreadsheet, Edit3, MapPinned } from "lucide-react";
+
+type SiteIdRow = Awaited<ReturnType<typeof api.listMyPrincipalSiteIds>>["items"][number];
 
 // Primary user submits payment data to BC. Two entry modes:
 //  1. Manual table — enter rows by hand (good for a handful of subs)
@@ -86,8 +88,23 @@ export function PrimarySubmitPayment() {
   const [notes, setNotes] = useState("");
   const [rows, setRows] = useState<Row[]>([{ ...blankRow }]);
   const [submitting, setSubmitting] = useState(false);
-
   const [hint, setHint] = useState<string | null>(null);
+
+  // Load the principal's managed Site IDs once, then bind a dropdown to
+  // the per-row site field so the value submitted is always a real
+  // registered SIN. Falls back to free text if no site IDs exist yet.
+  const [sites, setSites] = useState<SiteIdRow[]>([]);
+  const [sitesLoaded, setSitesLoaded] = useState(false);
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await api.listMyPrincipalSiteIds();
+        setSites(r.items);
+      } finally {
+        setSitesLoaded(true);
+      }
+    })();
+  }, []);
 
   useEffect(() => { setHint(null); }, [tab]);
 
@@ -211,6 +228,18 @@ export function PrimarySubmitPayment() {
         </button>
       </div>
 
+      {/* Nudge to manage Site IDs first \u2014 Enagh-style hard requirement */}
+      {sitesLoaded && sites.length === 0 && (
+        <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 mb-4 text-sm text-amber-900 flex items-start gap-2">
+          <MapPinned className="h-4 w-4 mt-0.5 shrink-0" />
+          <div>
+            You haven&apos;t added any Site IDs yet. Each row below will accept a free-text site reference, but{" "}
+            <Link to="/primary/site-ids" className="underline font-medium">add your Revenue SIN codes here</Link>{" "}
+            so the Site column becomes a clean dropdown for everyone using this form.
+          </div>
+        </div>
+      )}
+
       {/* Period + notes (always visible) */}
       <div className="card-padded mb-5">
         <div className="grid sm:grid-cols-3 gap-3">
@@ -273,7 +302,24 @@ export function PrimarySubmitPayment() {
                   <td className="px-2 py-2"><input className="w-full px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none font-mono" value={row.subcontractorRef} onChange={(e) => updateRow(i, "subcontractorRef", e.target.value)} placeholder="SUB-1004" /></td>
                   <td className="px-2 py-2"><input className="w-full px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none" value={row.subcontractorName} onChange={(e) => updateRow(i, "subcontractorName", e.target.value)} placeholder="Filip Bumbu" /></td>
                   <td className="px-2 py-2"><input className="w-full px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none" value={row.jobNumber} onChange={(e) => updateRow(i, "jobNumber", e.target.value)} placeholder="IE1136" /></td>
-                  <td className="px-2 py-2"><input className="w-full px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none" value={row.siteAddress} onChange={(e) => updateRow(i, "siteAddress", e.target.value)} placeholder="Park West" /></td>
+                  <td className="px-2 py-2">
+                    {sites.length > 0 ? (
+                      <select
+                        className="w-full px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none bg-white"
+                        value={row.siteAddress}
+                        onChange={(e) => updateRow(i, "siteAddress", e.target.value)}
+                      >
+                        <option value="">— Site ID —</option>
+                        {sites.map((s) => (
+                          <option key={s.id} value={s.siteId}>
+                            {s.siteId}{s.projectName ? ` \u2014 ${s.projectName}` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input className="w-full px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none" value={row.siteAddress} onChange={(e) => updateRow(i, "siteAddress", e.target.value)} placeholder="Park West" />
+                    )}
+                  </td>
                   <td className="px-2 py-2"><input className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.quantity} onChange={(e) => updateRow(i, "quantity", e.target.value)} placeholder="0" /></td>
                   <td className="px-2 py-2"><input className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.rate} onChange={(e) => updateRow(i, "rate", e.target.value)} placeholder="0" /></td>
                   <td className="px-2 py-2"><input className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.materialValue} onChange={(e) => updateRow(i, "materialValue", e.target.value)} placeholder="0" /></td>
