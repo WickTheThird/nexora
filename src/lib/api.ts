@@ -615,10 +615,31 @@ export const api = {
         vatRatePercent: number;
         lessSubsDefaultMinor: number;
       };
+      // Latest News panel content (admin-controlled in Settings)
+      latestNews?: string | null;
+      // Email used by the principal's "Changes Request" button
+      changesRequestEmail?: string | null;
+      // True once any operative under this principal has signed their
+      // contract — drives the "Contract Signed and Complete" banner.
+      contractSigned?: boolean;
+      contractSignedAt?: number | null;
+      // Enagh's "Friday 2:30pm – Wednesday 2pm" operative-add cutoff.
+      operativeRequestWindow?: {
+        open: boolean;
+        humanWindow: string;
+      };
     }>("GET", "/me/primary"),
   // Primary user updates their own scoped fields (only accountantEmail today).
   patchMyPrimary: (data: { accountantEmail?: string | null }) =>
     request<Primary>("PATCH", "/me/primary", { body: data as Json }),
+  // Principal "View/Print Contract" — returns either the most recent
+  // signed contract among any of their operatives ("kind: signed") or
+  // the active template as a preview ("kind: template_preview").
+  getMyPrimaryContract: () =>
+    request<
+      | { kind: "signed"; contract: { id: string; renderedHtml: string; signedAt: number | null; signedName: string | null }; signedBy: string | null; signedAt: number }
+      | { kind: "template_preview"; template: { id: string; name: string; version: number; bodyHtml: string } }
+    >("GET", "/me/primary/contract"),
 
   // -------- primary site IDs (managed registry) --------
   // Per-principal list of registered Revenue SIN numbers (DUB48662N etc.).
@@ -648,6 +669,10 @@ export const api = {
     siteId: string;
     projectName: string | null;
     address: string | null;
+    notes: string | null;
+    archivedAt: number | null;
+    createdAt: number;
+    updatedAt: number;
   }>("POST", "/me/primary/site-ids", { body: data as Json }),
   archiveMyPrincipalSiteId: (id: string) =>
     request<{ archived: true }>("DELETE", `/me/primary/site-ids/${id}`),
@@ -711,6 +736,9 @@ export const api = {
     // and periodStart/End aren't, the worker derives the window.
     jobCardType?: "weekly" | "fortnightly" | "monthly";
     dateEnding?: string | null;
+    // Enagh's Save → Calculate → Submit flow. 'draft' is editable, no admin
+    // notification, no invoice. 'submitted' (default) is the locked state.
+    status?: "draft" | "submitted";
     items: Array<{
       subcontractorRef?: string;
       subcontractorName?: string;
@@ -723,6 +751,31 @@ export const api = {
       notes?: string;
     }>;
   }) => request<PrimarySubmission>("POST", "/me/primary/submissions", { body: data as Json }),
+  // Update a draft submission (replaces items wholesale).
+  updateMyDraftSubmission: (id: string, data: {
+    periodStart?: string | null;
+    periodEnd?: string | null;
+    notes?: string | null;
+    jobCardType?: "weekly" | "fortnightly" | "monthly";
+    dateEnding?: string | null;
+    items: Array<{
+      subcontractorRef?: string;
+      subcontractorName?: string;
+      jobNumber?: string;
+      siteAddress?: string;
+      quantity?: number | string;
+      rate?: number | string;
+      materialValue?: number | string;
+      extras?: number | string;
+      notes?: string;
+    }>;
+  }) => request<PrimarySubmission>("PATCH", `/me/primary/submissions/${id}`, { body: data as Json }),
+  // Submit a draft (status: draft → submitted). Locks the card.
+  submitMyDraftSubmission: (id: string) =>
+    request<PrimarySubmission>("POST", `/me/primary/submissions/${id}/submit`),
+  // Delete a draft.
+  deleteMyDraftSubmission: (id: string) =>
+    request<{ deleted: true }>("DELETE", `/me/primary/submissions/${id}`),
   getMySubmission: (id: string) =>
     request<{ submission: PrimarySubmission; items: PrimarySubmissionItem[] }>(
       "GET",
@@ -774,6 +827,8 @@ export const api = {
         vatReverseCharge: boolean;
         rateAmountMinor: number | null;
         rateUnit: string | null;
+        // Enagh "Closed" bucket — null = active, non-null timestamp = closed.
+        closedAt: number | null;
       }>;
     }>("GET", "/me/primary/subcontractors"),
   // Principal-set Standard Rate per operative (Enagh-style). Server scopes
@@ -786,6 +841,20 @@ export const api = {
     `/me/primary/operatives/${subId}/standard-rate`,
     { body: data as Json },
   ),
+  // Mark an operative Closed (Enagh "Mark In-Active"). Drops them from
+  // the Job Card auto-list. Idempotent.
+  closeMyPrincipalOperative: (subId: string) =>
+    request<{ id: string; closedAt: number | null }>(
+      "POST",
+      `/me/primary/operatives/${subId}/close`,
+    ),
+  // Bring a Closed operative back ("Mark Active" reactivation). Triggers
+  // an admin re-confirmation notification.
+  reactivateMyPrincipalOperative: (subId: string) =>
+    request<{ id: string; closedAt: number | null }>(
+      "POST",
+      `/me/primary/operatives/${subId}/reactivate`,
+    ),
 
   // Operative Request flow (Enagh-style): principal asks BC to add a new
   // operative; admin reviews + approves (creating the actual sub) or rejects.

@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/layout/PortalShell";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
-import { Users, FileText, Wallet, ArrowUpRight, Save, Pencil } from "lucide-react";
+import { Users, FileText, Wallet, ArrowUpRight, Save, Pencil, BookUser, HardHat, ClipboardList, MessagesSquare, CheckCircle2, Megaphone } from "lucide-react";
 
 // Primary's home: who they are, headline counts, and money owed to them
 // (advised + invoiced + paid totals across linked subs). All numbers are
@@ -70,6 +70,10 @@ export function PrimaryDashboard() {
   const [editingAcc, setEditingAcc] = useState(false);
   const [accInput, setAccInput] = useState("");
   const [savingAcc, setSavingAcc] = useState(false);
+  // Enagh-style additions: latest news, contract-signed badge, changes-request CTA
+  const [latestNews, setLatestNews] = useState<string | null>(null);
+  const [contractSigned, setContractSigned] = useState(false);
+  const [changesRequestEmail, setChangesRequestEmail] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -78,11 +82,33 @@ export function PrimaryDashboard() {
         setPrimary(p.primary);
         setAccInput(p.primary.accountantEmail || "");
         setStats(s);
+        setLatestNews(p.latestNews || null);
+        setContractSigned(!!p.contractSigned);
+        setChangesRequestEmail(p.changesRequestEmail || null);
       } finally {
         setLoading(false);
       }
     })();
   }, []);
+
+  // "Changes Request" — opens a mailto: targeted at the BC-configured
+  // address (or principal_email fallback) with a sensible subject.
+  const openChangesRequest = () => {
+    if (!primary) return;
+    const to = changesRequestEmail || "hello@bc-construction.ie";
+    const subject = `Changes request \u2014 ${primary.name}`;
+    const body = [
+      `Hi BC team,`,
+      ``,
+      `${primary.name} would like to request the following changes to our account:`,
+      ``,
+      `[describe what needs to change \u2014 e.g. update contact email, change address, replace VAT number, etc.]`,
+      ``,
+      `Thanks,`,
+      primary.contactName || "",
+    ].join("\n");
+    window.location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
 
   const saveAccountant = async () => {
     setSavingAcc(true);
@@ -103,12 +129,66 @@ export function PrimaryDashboard() {
       <PageHeader
         title={primary ? primary.name : "Welcome"}
         description="Your portal — read-only view of subcontractors working under your contract and invoices BC Construction has issued to you."
+        right={primary ? (
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={openChangesRequest} leftIcon={<MessagesSquare className="h-4 w-4" />}>
+              Changes request
+            </Button>
+            <Link to="/primary/submissions/new">
+              <Button variant="accent" leftIcon={<ClipboardList className="h-4 w-4" />}>
+                New Job Card
+              </Button>
+            </Link>
+          </div>
+        ) : undefined}
       />
 
       {loading ? (
         <div className="skeleton h-64" />
       ) : (
         <>
+          {/* "Contract Signed and Complete" banner — Enagh's red-text marker */}
+          {contractSigned && (
+            <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 mb-5 inline-flex items-center gap-2 text-sm font-semibold text-emerald-900">
+              <CheckCircle2 className="h-4 w-4" />
+              Contract Signed and Complete
+            </div>
+          )}
+
+          {/* Latest News — admin-controlled message panel */}
+          {latestNews && (
+            <div className="card-padded mb-6 border-l-4 border-l-accent-500">
+              <div className="flex items-start gap-3">
+                <div className="h-9 w-9 rounded-lg bg-accent-100 text-accent-700 grid place-items-center shrink-0">
+                  <Megaphone className="h-5 w-5" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-1">Latest News</div>
+                  <p className="text-sm text-ink-800 whitespace-pre-line">{latestNews}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Enagh's three big shortcut tiles */}
+          <div className="grid sm:grid-cols-3 gap-4 mb-8">
+            {[
+              { to: "/primary/account",         label: "Manage Account",  desc: "Company details, accountant, contract", Icon: BookUser },
+              { to: "/primary/subcontractors",  label: "Operatives",      desc: "Active, incomplete, request new",       Icon: HardHat },
+              { to: "/primary/submissions/new", label: "New Job Card",    desc: "Submit hours for this period",          Icon: ClipboardList },
+            ].map(({ to, label, desc, Icon }) => (
+              <Link
+                key={to}
+                to={to}
+                className="card p-6 group transition hover:shadow-md hover:-translate-y-0.5 hover:border-ink-300 bg-gradient-to-br from-ink-900 to-ink-800 text-white"
+              >
+                <Icon className="h-10 w-10 mb-3 text-white/90" />
+                <div className="text-lg font-semibold">{label}</div>
+                <div className="text-xs text-white/70 mt-1">{desc}</div>
+              </Link>
+            ))}
+          </div>
+
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
             <StatCard
               icon={Users}

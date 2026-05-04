@@ -43,6 +43,7 @@ export function PrimaryApp() {
         <Route path="sites/:ref" element={<PrincipalSiteDetail />} />
         <Route path="submissions" element={<PrimarySubmissions />} />
         <Route path="submissions/new" element={<PrimarySubmitPayment />} />
+        <Route path="submissions/:id/edit" element={<PrimarySubmitPayment />} />
         <Route path="submissions/:id" element={<PrimarySubmissionDetail />} />
         <Route path="invoices" element={<PrimaryInvoices />} />
         <Route path="invoices/:id" element={<PrimaryInvoiceDetail />} />

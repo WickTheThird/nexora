@@ -7,22 +7,21 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Empty } from "@/components/ui/Empty";
 import { useToast } from "@/components/ui/Toast";
-import { Users, ArrowUpRight, Pencil, Save, X, UserPlus, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Users, ArrowUpRight, Pencil, Save, X, UserPlus, Clock, AlertTriangle, CheckCircle2, PauseCircle, PlayCircle } from "lucide-react";
 
 type RequestRow = Awaited<ReturnType<typeof api.listMyOperativeRequests>>["items"][number];
 
 type SubItem = Awaited<ReturnType<typeof api.listMyPrimarySubs>>["items"][number];
 
 // Group operatives Enagh-style: Active vs Incomplete vs Closed.
-// Onboarding status mapping:
-//   approved/active           → Active (eligible for job cards)
-//   submitted/under_review    → Incomplete (in progress, not yet active)
-//   in_progress/invited       → Incomplete (early stage)
-//   changes_requested         → Incomplete (needs sub action)
-//   rejected                  → Closed
-function bucket(status: string): "active" | "incomplete" | "closed" {
-  if (status === "approved" || status === "active") return "active";
-  if (status === "rejected") return "closed";
+//   closed_at non-null              → Closed (principal closed them)
+//   onboarding_status approved/active → Active (eligible for job cards)
+//   rejected                          → Closed
+//   anything else                     → Incomplete
+function bucket(s: SubItem): "active" | "incomplete" | "closed" {
+  if (s.closedAt) return "closed";
+  if (s.onboardingStatus === "rejected") return "closed";
+  if (s.onboardingStatus === "approved" || s.onboardingStatus === "active") return "active";
   return "incomplete";
 }
 
@@ -47,14 +46,22 @@ export function PrimarySubcontractors() {
   const [reqSending, setReqSending] = useState(false);
   const [requests, setRequests] = useState<RequestRow[]>([]);
 
+  const [windowOpen, setWindowOpen] = useState<boolean>(true);
+  const [windowText, setWindowText] = useState<string>("Friday 2:30pm – Wednesday 2pm");
+
   const refresh = async () => {
     try {
-      const [s, r] = await Promise.all([
+      const [s, r, p] = await Promise.all([
         api.listMyPrimarySubs(),
         api.listMyOperativeRequests(),
+        api.getMyPrimary(),
       ]);
       setItems(s.items);
       setRequests(r.items);
+      if (p.operativeRequestWindow) {
+        setWindowOpen(p.operativeRequestWindow.open);
+        setWindowText(p.operativeRequestWindow.humanWindow);
+      }
     } finally {
       setLoading(false);
     }
@@ -107,12 +114,34 @@ export function PrimarySubcontractors() {
   };
 
   const grouped = {
-    active: items.filter(s => bucket(s.onboardingStatus) === "active"),
-    incomplete: items.filter(s => bucket(s.onboardingStatus) === "incomplete"),
-    closed: items.filter(s => bucket(s.onboardingStatus) === "closed"),
+    active: items.filter(s => bucket(s) === "active"),
+    incomplete: items.filter(s => bucket(s) === "incomplete"),
+    closed: items.filter(s => bucket(s) === "closed"),
   };
 
-  const renderTable = (rows: SubItem[], allowRateEdit: boolean) => (
+  const closeOperative = async (s: SubItem) => {
+    if (!window.confirm(`Mark ${s.fullName || s.subcontractorRef || "this operative"} as no longer active under your contract?\n\nThey will be removed from your Job Card auto-list. You can reactivate them later.`)) return;
+    try {
+      await api.closeMyPrincipalOperative(s.id);
+      toast.success(`${s.fullName || "Operative"} marked Closed`);
+      await refresh();
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed");
+    }
+  };
+
+  const reactivateOperative = async (s: SubItem) => {
+    if (!window.confirm(`Mark ${s.fullName || s.subcontractorRef || "this operative"} as Active again?\n\nBC will re-confirm their bank, RCT rate, and certs are still current before they appear on Job Cards.`)) return;
+    try {
+      await api.reactivateMyPrincipalOperative(s.id);
+      toast.success(`${s.fullName || "Operative"} reactivated. BC will re-confirm details.`);
+      await refresh();
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed");
+    }
+  };
+
+  const renderTable = (rows: SubItem[], allowRateEdit: boolean, bucketKey: "active" | "incomplete" | "closed" = "active") => (
     <div className="card overflow-hidden">
       <table className="w-full text-sm">
         <thead className="bg-ink-50 border-b border-ink-100">
@@ -168,9 +197,21 @@ export function PrimarySubcontractors() {
                 )}
               </td>
               <td className="px-5 py-3 text-right">
-                <Link to={`/primary/subcontractors/${s.id}`} className="btn-ghost !py-1.5 inline-flex">
-                  View <ArrowUpRight className="h-4 w-4" />
-                </Link>
+                <div className="inline-flex gap-1 items-center">
+                  {bucketKey === "active" && (
+                    <button type="button" onClick={() => closeOperative(s)} className="text-ink-400 hover:text-amber-700 inline-flex items-center gap-1 text-xs px-2 py-1 rounded hover:bg-amber-50" title="Mark In-Active (remove from Job Card auto-list)">
+                      <PauseCircle className="h-3.5 w-3.5" /> Mark In-Active
+                    </button>
+                  )}
+                  {bucketKey === "closed" && s.closedAt && (
+                    <button type="button" onClick={() => reactivateOperative(s)} className="text-ink-400 hover:text-emerald-700 inline-flex items-center gap-1 text-xs px-2 py-1 rounded hover:bg-emerald-50" title="Mark Active again (BC re-confirmation)">
+                      <PlayCircle className="h-3.5 w-3.5" /> Mark Active
+                    </button>
+                  )}
+                  <Link to={`/primary/subcontractors/${s.id}`} className="btn-ghost !py-1.5 inline-flex">
+                    View <ArrowUpRight className="h-4 w-4" />
+                  </Link>
+                </div>
               </td>
             </tr>
           ))}
@@ -195,9 +236,15 @@ export function PrimarySubcontractors() {
       {reqOpen && (
         <form onSubmit={submitRequest} className="card-padded mb-6 bg-accent-50/40 border-accent-200">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-700 mb-3">Request a new operative</h2>
+          {!windowOpen && (
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 mb-4 text-sm text-amber-900">
+              <strong>Heads up:</strong> outside the standard add window ({windowText}). BC can still pick up your request, but it may not be processed until the next window opens.
+            </div>
+          )}
           <p className="text-xs text-ink-600 mb-4">
             BC will review and add the operative once available. They&apos;ll receive an invite to onboard,
-            and once active they&apos;ll appear in the Active list and on Job Card dropdowns.
+            and once active they&apos;ll appear in the Active list and on Job Card dropdowns.{" "}
+            <span className="text-ink-500">Standard add window: {windowText}.</span>
           </p>
           <div className="grid sm:grid-cols-2 gap-3">
             <Input label="Full name" value={reqName} onChange={(e) => setReqName(e.target.value)} required autoFocus placeholder="John Doe" />
@@ -259,7 +306,7 @@ export function PrimarySubcontractors() {
             </h2>
             {grouped.active.length === 0 ? (
               <div className="card-padded text-sm text-ink-500">No active operatives.</div>
-            ) : renderTable(grouped.active, true)}
+            ) : renderTable(grouped.active, true, "active")}
           </section>
 
           {grouped.incomplete.length > 0 && (
@@ -267,7 +314,7 @@ export function PrimarySubcontractors() {
               <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-500 mb-3">
                 Incomplete <span className="text-ink-400 font-normal">({grouped.incomplete.length})</span>
               </h2>
-              {renderTable(grouped.incomplete, false)}
+              {renderTable(grouped.incomplete, false, "incomplete")}
             </section>
           )}
 
@@ -276,7 +323,7 @@ export function PrimarySubcontractors() {
               <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-500 mb-3">
                 Closed <span className="text-ink-400 font-normal">({grouped.closed.length})</span>
               </h2>
-              {renderTable(grouped.closed, false)}
+              {renderTable(grouped.closed, false, "closed")}
             </section>
           )}
         </div>

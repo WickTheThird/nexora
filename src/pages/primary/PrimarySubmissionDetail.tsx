@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "@/lib/api";
 import type { PrimarySubmission, PrimarySubmissionItem } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Empty } from "@/components/ui/Empty";
 import { useToast } from "@/components/ui/Toast";
-import { ArrowLeft, AlertTriangle } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Edit3, Send, Trash2, Lock } from "lucide-react";
 
 function fmtMoney(minor: number) {
   return `\u20AC${(minor / 100).toLocaleString("en-IE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -14,10 +15,12 @@ function fmtMoney(minor: number) {
 
 export function PrimarySubmissionDetail() {
   const { id } = useParams<{ id: string }>();
+  const nav = useNavigate();
   const toast = useToast();
   const [submission, setSubmission] = useState<PrimarySubmission | null>(null);
   const [items, setItems] = useState<PrimarySubmissionItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [acting, setActing] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -39,12 +42,62 @@ export function PrimarySubmissionDetail() {
 
   const matchedCount = items.filter(i => i.matched).length;
   const status = submission.status;
+  const isDraft = status === "draft";
+  const isLocked = status !== "draft";
+
+  const submitNow = async () => {
+    if (!id) return;
+    if (!window.confirm("Submit this draft to BC? This will LOCK the Job Card — no further edits.")) return;
+    setActing(true);
+    try {
+      await api.submitMyDraftSubmission(id);
+      toast.success("Job Card submitted and locked.");
+      const r = await api.getMySubmission(id);
+      setSubmission(r.submission);
+      setItems(r.items);
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Submit failed");
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const deleteDraft = async () => {
+    if (!id) return;
+    if (!window.confirm("Discard this draft? This cannot be undone.")) return;
+    setActing(true);
+    try {
+      await api.deleteMyDraftSubmission(id);
+      toast.success("Draft discarded.");
+      nav("/primary/submissions");
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Delete failed");
+      setActing(false);
+    }
+  };
 
   return (
     <>
       <PageHeader
         title={`Submission ${submission.id.slice(0, 8)}`}
-        description={`Submitted ${new Date(submission.submittedAt).toLocaleString("en-IE")}`}
+        description={isDraft
+          ? `Draft \u2014 not yet sent to BC. Last saved ${new Date(submission.submittedAt).toLocaleString("en-IE")}`
+          : `Submitted ${new Date(submission.submittedAt).toLocaleString("en-IE")}`}
+        right={isDraft ? (
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={deleteDraft} loading={acting} leftIcon={<Trash2 className="h-4 w-4" />}>
+              Delete draft
+            </Button>
+            <Button variant="outline" onClick={() => nav(`/primary/submissions/${submission.id}/edit`)} leftIcon={<Edit3 className="h-4 w-4" />}>
+              Edit
+            </Button>
+            <Button variant="accent" onClick={submitNow} loading={acting} leftIcon={<Send className="h-4 w-4" />}>
+              Submit to BC
+            </Button>
+          </div>
+        ) : isLocked && status === "submitted" ? (
+          <Badge tone="warn"><Lock className="h-3 w-3 inline mr-1" />Locked — awaiting BC</Badge>
+        ) : undefined}
       />
       <Link to="/primary/submissions" className="inline-flex items-center gap-1 text-sm text-ink-600 hover:text-ink-900 mb-6">
         <ArrowLeft className="h-4 w-4" /> Back to submissions

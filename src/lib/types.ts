@@ -98,6 +98,10 @@ export interface AppSettings {
   // Job Card calculator settings (Enagh-style live totals on submission form)
   vat_rate_percent: string | null;             // e.g. "13.5"
   less_subs_default_minor: string | null;      // flat deduction in cents
+  // Enagh-style "Latest News" panel on the principal home (admin freeform)
+  latest_news: string | null;
+  // Email used by the principal's "Changes Request" button on the home
+  changes_request_email: string | null;
 }
 
 // Invoice template options surfaced in the InvoicePayload (parsed from
@@ -331,6 +335,10 @@ export interface PrimarySubmission {
   jobCardType: JobCardType | null;
   dateEnding: string | null;
   createdAt: number;
+  // Enagh-parity: surface the auto-generated principal invoice number on
+  // the list view. Populated only after admin Process step completes;
+  // null while the submission is still draft / submitted / rejected.
+  invoiceNumber?: string | null;
 }
 
 export interface PrimarySubmissionItem {

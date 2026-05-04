@@ -24,6 +24,9 @@ const empty: AppSettings = {
   invoice_show_principal_ref: null,
   vat_rate_percent: null,
   less_subs_default_minor: null,
+  // Enagh-style "Latest News" panel + "Changes Request" target email
+  latest_news: null,
+  changes_request_email: null,
 };
 
 export function Settings() {
@@ -193,8 +196,34 @@ export function Settings() {
           </div>
         </section>
 
+        {/* Principal portal — Latest News + Changes Request email */}
+        <section className="card-padded">
+          <h2 className="text-base font-semibold text-ink-900 mb-1">Principal portal</h2>
+          <p className="text-sm text-ink-500 mb-5">
+            Content shown on every principal&apos;s home dashboard.
+          </p>
+          <div className="space-y-4">
+            <Textarea
+              label="Latest News (optional)"
+              rows={3}
+              value={data.latest_news || ""}
+              onChange={(e) => set("latest_news", e.target.value || null)}
+              placeholder={'e.g. "PLEASE ENSURE ALL JOB CARDS AND PAYMENTS HAVE BEEN SUBMITTED TO BC BEFORE 2PM WEDNESDAY."'}
+              hint="Plain text. Line breaks preserved. Leave blank to hide the panel."
+            />
+            <Input
+              label="Changes Request email"
+              type="email"
+              value={data.changes_request_email || ""}
+              onChange={(e) => set("changes_request_email", e.target.value || null)}
+              placeholder="hello@bc-construction.ie"
+              hint="Mail-to target for the principal's red 'Changes Request' button. Defaults to your principal contact email if blank."
+            />
+          </div>
+        </section>
+
         {/* Invoice template — admin controls every visible part of the PDF.
-            Toggles default to ON when blank; freeform fields blank \u2192 hidden. */}
+            Toggles default to ON when blank; freeform fields blank → hidden. */}
         <section className="card-padded">
           <h2 className="text-base font-semibold text-ink-900 mb-1">Invoice template</h2>
           <p className="text-sm text-ink-500 mb-5">
