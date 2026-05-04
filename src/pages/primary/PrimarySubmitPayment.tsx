@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/layout/PortalShell";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
-import { Plus, Trash2, Send, FileSpreadsheet, Edit3, MapPinned } from "lucide-react";
+import { Plus, Trash2, Send, FileSpreadsheet, Edit3, MapPinned, Printer } from "lucide-react";
 
 type SiteIdRow = Awaited<ReturnType<typeof api.listMyPrincipalSiteIds>>["items"][number];
 type OperativeRow = Awaited<ReturnType<typeof api.listMyPrimarySubs>>["items"][number];
@@ -128,6 +128,9 @@ export function PrimarySubmitPayment() {
   const [vatRatePercent, setVatRatePercent] = useState(13.5);
   const [lessSubsMinor, setLessSubsMinor] = useState(0);
   const [lessSubsOverride, setLessSubsOverride] = useState<string>("");
+  // Principal trading name — printed in the blank Job Card header so the
+  // sheet reads "<Principal name> — Job Card (weekly) — Period: …".
+  const [principalName, setPrincipalName] = useState<string>("");
   useEffect(() => {
     (async () => {
       try {
@@ -152,6 +155,7 @@ export function PrimarySubmitPayment() {
           setVatRatePercent(r.jobCardCalc.vatRatePercent ?? 13.5);
           setLessSubsMinor(r.jobCardCalc.lessSubsDefaultMinor ?? 0);
         }
+        if (r.primary?.name) setPrincipalName(r.primary.name);
       } catch { /* non-fatal — keep defaults */ }
     })();
   }, []);
@@ -238,6 +242,16 @@ export function PrimarySubmitPayment() {
     const e = parseFloat(r.extras) || 0;
     return s + Math.round((q * rt + m + e) * 100);
   }, 0);
+
+  // Print Blank Job Card — opens the browser print dialog with the hidden
+  // .print-blank section visible. The pre-printed Operatives + Site IDs
+  // reference tables let the user fill in rows by hand on-site without
+  // having to remember any codes.
+  const handlePrintBlank = () => {
+    // Tiny delay lets React flush any pending state (date/type changes)
+    // into the printable header before the dialog opens.
+    setTimeout(() => window.print(), 50);
+  };
 
   const submit = async () => {
     const cleaned = rows.filter(r => (r.subcontractorRef || "").trim().length > 0);
@@ -492,12 +506,147 @@ export function PrimarySubmitPayment() {
       })()}
 
       <div className="flex justify-between items-center">
-        <Button variant="outline" onClick={addRow} leftIcon={<Plus className="h-4 w-4" />}>
-          Add row
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={addRow} leftIcon={<Plus className="h-4 w-4" />}>
+            Add row
+          </Button>
+          <Button variant="ghost" onClick={handlePrintBlank} leftIcon={<Printer className="h-4 w-4" />}>
+            Print blank Job Card
+          </Button>
+        </div>
         <Button variant="accent" onClick={submit} loading={submitting} leftIcon={<Send className="h-4 w-4" />}>
           Submit to BC
         </Button>
+      </div>
+
+      {/* Hidden printable Job Card. Off-screen normally; @media print
+          hides the rest of the page and renders only this section. */}
+      <style>{`
+        .print-blank { position: absolute; left: -10000px; top: 0; width: 1px; height: 1px; overflow: hidden; }
+        @media print {
+          body * { visibility: hidden !important; }
+          .print-blank, .print-blank * { visibility: visible !important; }
+          .print-blank {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
+            padding: 16mm 14mm;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: #111;
+          }
+          .print-blank h1 { font-size: 18pt; margin: 0 0 4pt 0; }
+          .print-blank .pb-meta { font-size: 10pt; color: #444; margin-bottom: 12pt; }
+          .print-blank table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+          .print-blank th, .print-blank td {
+            border: 1px solid #888; padding: 5pt 6pt; text-align: left; vertical-align: top;
+          }
+          .print-blank th { background: #f0f0f0; font-weight: 600; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.04em; }
+          .print-blank td.num { text-align: right; font-variant-numeric: tabular-nums; }
+          .print-blank .pb-section-title { font-size: 11pt; font-weight: 600; margin: 16pt 0 4pt 0; }
+          .print-blank .pb-sig { margin-top: 24pt; display: flex; justify-content: space-between; font-size: 10pt; gap: 24pt; }
+          .print-blank .pb-sig div { flex: 1; border-top: 1px solid #888; padding-top: 4pt; }
+          @page { size: A4 landscape; margin: 0; }
+        }
+      `}</style>
+
+      <div className="print-blank">
+        <h1>{principalName || "Principal"} — Job Card</h1>
+        <div className="pb-meta">
+          Type: <strong>{jobCardType.charAt(0).toUpperCase() + jobCardType.slice(1)}</strong>
+          {" \u00B7 "}Period: <strong>{periodStart || "—"}</strong> to <strong>{periodEnd || dateEnding || "—"}</strong>
+          {" \u00B7 "}Date ending: <strong>{dateEnding || "—"}</strong>
+        </div>
+
+        {/* Blank entry grid — 15 rows for hand-fill on-site. */}
+        <table>
+          <thead>
+            <tr>
+              <th style={{ width: "11%" }}>Sub code</th>
+              <th style={{ width: "16%" }}>Name</th>
+              <th style={{ width: "9%" }}>Job #</th>
+              <th style={{ width: "16%" }}>Site</th>
+              <th style={{ width: "7%" }}>Qty</th>
+              <th style={{ width: "8%" }}>Rate</th>
+              <th style={{ width: "8%" }}>Material</th>
+              <th style={{ width: "8%" }}>Extras</th>
+              <th style={{ width: "9%" }}>Gross</th>
+              <th style={{ width: "8%" }}>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: 15 }).map((_, i) => (
+              <tr key={i} style={{ height: "22pt" }}>
+                <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+                <td className="num">&nbsp;</td><td className="num">&nbsp;</td>
+                <td className="num">&nbsp;</td><td className="num">&nbsp;</td>
+                <td className="num">&nbsp;</td><td>&nbsp;</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* Pre-printed Operatives reference */}
+        {operatives.length > 0 && (
+          <>
+            <div className="pb-section-title">Operatives reference (your active subs)</div>
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: "20%" }}>Sub code</th>
+                  <th style={{ width: "55%" }}>Name</th>
+                  <th style={{ width: "25%" }}>Standard rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {operatives.map((o) => (
+                  <tr key={o.id}>
+                    <td style={{ fontFamily: "monospace" }}>{o.subcontractorRef || "—"}</td>
+                    <td>{o.fullName || "—"}</td>
+                    <td className="num">
+                      {o.rateAmountMinor != null
+                        ? `\u20AC${(o.rateAmountMinor / 100).toFixed(2)}${o.rateUnit ? `/${o.rateUnit}` : ""}`
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+
+        {/* Pre-printed Site IDs reference */}
+        {sites.length > 0 && (
+          <>
+            <div className="pb-section-title">Site IDs reference</div>
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: "18%" }}>SIN</th>
+                  <th style={{ width: "32%" }}>Project</th>
+                  <th style={{ width: "50%" }}>Address</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sites.map((s) => (
+                  <tr key={s.id}>
+                    <td style={{ fontFamily: "monospace" }}>{s.siteId}</td>
+                    <td>{s.projectName || "—"}</td>
+                    <td>{s.address || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+
+        <div className="pb-sig">
+          <div>Prepared by (name & signature)</div>
+          <div>Date</div>
+          <div>BC Construction stamp</div>
+        </div>
       </div>
     </>
   );
