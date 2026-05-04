@@ -17,6 +17,7 @@ import { Primaries } from "./Primaries";
 import { PrimaryDetail } from "./PrimaryDetail";
 import { AdminPrimarySubmissions } from "./PrimarySubmissions";
 import { AdminPrimarySubmissionDetail } from "./AdminPrimarySubmissionDetail";
+import { AdminOperativeRequests } from "./OperativeRequests";
 import { BulkAdvice } from "./BulkAdvice";
 import { Templates } from "./Templates";
 import { ChangeRequests } from "./ChangeRequests";
@@ -27,6 +28,7 @@ const nav = [
   { to: "/admin/primaries", label: "Principals", icon: Building2 },
   { to: "/admin/subcontractors", label: "Subcontractors", icon: Users },
   { to: "/admin/primary-submissions", label: "Submissions", icon: Inbox },
+  { to: "/admin/operative-requests", label: "Operative Requests", icon: Inbox },
   { to: "/admin/bulk-advice", label: "Bulk Advice", icon: Send },
   { to: "/admin/templates", label: "Contract Templates", icon: FileText },
   { to: "/admin/change-requests", label: "Change Requests", icon: MessagesSquare },
@@ -42,6 +44,7 @@ export function AdminApp() {
         <Route path="primaries/:id" element={<PrimaryDetail />} />
         <Route path="primary-submissions" element={<AdminPrimarySubmissions />} />
         <Route path="primary-submissions/:id" element={<AdminPrimarySubmissionDetail />} />
+        <Route path="operative-requests" element={<AdminOperativeRequests />} />
         <Route path="subcontractors" element={<Subcontractors />} />
         <Route path="subcontractors/:id" element={<SubcontractorDetail />} />
         <Route path="bulk-advice" element={<BulkAdvice />} />

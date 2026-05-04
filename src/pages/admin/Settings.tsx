@@ -22,6 +22,8 @@ const empty: AppSettings = {
   invoice_show_bank: null,
   invoice_show_contact: null,
   invoice_show_principal_ref: null,
+  vat_rate_percent: null,
+  less_subs_default_minor: null,
 };
 
 export function Settings() {
@@ -151,6 +153,42 @@ export function Settings() {
               onChange={(e) => set("admin_fee_percent", e.target.value || null)}
               placeholder="e.g. 2.5"
               hint="A percentage of the consolidated gross."
+            />
+          </div>
+        </section>
+
+        {/* Job Card calculator — VAT rate + default Less Subs. These appear
+            as the live "Calculate" card on every Principal Job Card form. */}
+        <section className="card-padded">
+          <h2 className="text-base font-semibold text-ink-900 mb-1">Job Card calculator</h2>
+          <p className="text-sm text-ink-500 mb-5">
+            Drives the live totals card under every principal&apos;s Job Card form
+            (Total Gross \u2192 + VAT \u2192 \u2212 Less Subs \u2192 Total to Pay BC).
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="VAT rate (%)"
+              type="number"
+              step="0.1"
+              min="0"
+              max="100"
+              value={data.vat_rate_percent || ""}
+              onChange={(e) => set("vat_rate_percent", e.target.value || null)}
+              placeholder="e.g. 13.5"
+              hint="Irish construction-services standard is 13.5%."
+            />
+            <Input
+              label="Default Less Subs (\u20AC)"
+              type="number"
+              step="0.01"
+              min="0"
+              value={data.less_subs_default_minor ? (parseInt(data.less_subs_default_minor, 10) / 100).toFixed(2) : ""}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                set("less_subs_default_minor", Number.isFinite(v) && v > 0 ? String(Math.round(v * 100)) : null);
+              }}
+              placeholder="0.00"
+              hint="Default per-job-card deduction. Principal can override per submission."
             />
           </div>
         </section>

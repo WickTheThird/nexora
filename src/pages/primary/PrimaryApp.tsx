@@ -1,6 +1,6 @@
 import { Route, Routes } from "react-router-dom";
 import { PortalShell } from "@/components/layout/PortalShell";
-import { LayoutDashboard, Users, FileText, Send, MapPin, MapPinned } from "lucide-react";
+import { LayoutDashboard, Users, FileText, Send, MapPin, MapPinned, User } from "lucide-react";
 import { PrimaryDashboard } from "./PrimaryDashboard";
 import { PrimarySubcontractors } from "./PrimarySubcontractors";
 import { PrimarySubDetail } from "./PrimarySubDetail";
@@ -12,6 +12,7 @@ import { PrimarySubmitPayment } from "./PrimarySubmitPayment";
 import { PrincipalSites } from "./PrincipalSites";
 import { PrincipalSiteDetail } from "./PrincipalSiteDetail";
 import { PrincipalSiteIds } from "./PrincipalSiteIds";
+import { PrincipalAccount } from "./PrincipalAccount";
 
 // Portal for the upper-tier Principal (developer / main contractor).
 // Scope: every endpoint is filtered server-side by their primary_id, so they
@@ -21,6 +22,7 @@ import { PrincipalSiteIds } from "./PrincipalSiteIds";
 // rename done earlier.
 const nav = [
   { to: "/primary", label: "Overview", icon: LayoutDashboard, end: true },
+  { to: "/primary/account", label: "Account", icon: User },
   { to: "/primary/subcontractors", label: "Subcontractors", icon: Users },
   { to: "/primary/site-ids", label: "Site IDs", icon: MapPinned },
   { to: "/primary/sites", label: "Site activity", icon: MapPin },
@@ -33,6 +35,7 @@ export function PrimaryApp() {
     <PortalShell title="Principal portal" nav={nav}>
       <Routes>
         <Route index element={<PrimaryDashboard />} />
+        <Route path="account" element={<PrincipalAccount />} />
         <Route path="subcontractors" element={<PrimarySubcontractors />} />
         <Route path="subcontractors/:id" element={<PrimarySubDetail />} />
         <Route path="site-ids" element={<PrincipalSiteIds />} />

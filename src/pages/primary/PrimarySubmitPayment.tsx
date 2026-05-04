@@ -8,6 +8,19 @@ import { useToast } from "@/components/ui/Toast";
 import { Plus, Trash2, Send, FileSpreadsheet, Edit3, MapPinned } from "lucide-react";
 
 type SiteIdRow = Awaited<ReturnType<typeof api.listMyPrincipalSiteIds>>["items"][number];
+type OperativeRow = Awaited<ReturnType<typeof api.listMyPrimarySubs>>["items"][number];
+
+type JobCardType = "weekly" | "fortnightly" | "monthly";
+
+// Derive periodStart from a job card type + date_ending. Mirrors the
+// worker-side helper so the user sees the live window before submitting.
+function deriveWindow(type: JobCardType, dateEnding: string): { from: string; to: string } | null {
+  if (!dateEnding || !/^\d{4}-\d{2}-\d{2}$/.test(dateEnding)) return null;
+  const days = type === "monthly" ? 27 : type === "fortnightly" ? 13 : 6;
+  const end = new Date(dateEnding + "T00:00:00Z");
+  const start = new Date(end.getTime() - days * 24 * 60 * 60 * 1000);
+  return { from: start.toISOString().slice(0, 10), to: dateEnding };
+}
 
 // Primary user submits payment data to BC. Two entry modes:
 //  1. Manual table — enter rows by hand (good for a handful of subs)
@@ -83,9 +96,20 @@ export function PrimarySubmitPayment() {
   const monday = new Date(today); monday.setDate(today.getDate() - (day - 1));
   const iso = (d: Date) => d.toISOString().slice(0, 10);
 
+  // Enagh Job Card model: type + date_ending drive the window. We keep the
+  // explicit period inputs around as advanced/override but auto-fill from
+  // the type+ending combo so the common case is one click.
+  const [jobCardType, setJobCardType] = useState<JobCardType>("weekly");
+  const [dateEnding, setDateEnding] = useState(iso(today));
   const [periodStart, setPeriodStart] = useState(iso(monday));
   const [periodEnd, setPeriodEnd] = useState(iso(today));
   const [notes, setNotes] = useState("");
+
+  // Re-derive the window whenever type or dateEnding changes.
+  useEffect(() => {
+    const w = deriveWindow(jobCardType, dateEnding);
+    if (w) { setPeriodStart(w.from); setPeriodEnd(w.to); }
+  }, [jobCardType, dateEnding]);
   const [rows, setRows] = useState<Row[]>([{ ...blankRow }]);
   const [submitting, setSubmitting] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
@@ -95,6 +119,15 @@ export function PrimarySubmitPayment() {
   // registered SIN. Falls back to free text if no site IDs exist yet.
   const [sites, setSites] = useState<SiteIdRow[]>([]);
   const [sitesLoaded, setSitesLoaded] = useState(false);
+  // Operatives — used for the Sub code dropdown and to auto-fill rate from
+  // operative.standardRate when an operative is picked.
+  const [operatives, setOperatives] = useState<OperativeRow[]>([]);
+  // Job Card calculator config (VAT + Less Subs default) loaded from
+  // /me/primary so we can render the live "Total to Pay BC" card without
+  // hitting an admin-only endpoint.
+  const [vatRatePercent, setVatRatePercent] = useState(13.5);
+  const [lessSubsMinor, setLessSubsMinor] = useState(0);
+  const [lessSubsOverride, setLessSubsOverride] = useState<string>("");
   useEffect(() => {
     (async () => {
       try {
@@ -104,7 +137,42 @@ export function PrimarySubmitPayment() {
         setSitesLoaded(true);
       }
     })();
+    (async () => {
+      try {
+        const r = await api.listMyPrimarySubs();
+        // Only show operatives that are 'approved' (Active in Enagh terms)
+        // \u2014 inactive/incomplete ones shouldn't appear on a new job card.
+        setOperatives(r.items.filter(o => o.onboardingStatus === "approved" || o.onboardingStatus === "active"));
+      } catch { /* non-fatal — falls back to free-text sub code */ }
+    })();
+    (async () => {
+      try {
+        const r = await api.getMyPrimary();
+        if (r.jobCardCalc) {
+          setVatRatePercent(r.jobCardCalc.vatRatePercent ?? 13.5);
+          setLessSubsMinor(r.jobCardCalc.lessSubsDefaultMinor ?? 0);
+        }
+      } catch { /* non-fatal — keep defaults */ }
+    })();
   }, []);
+
+  // When an operative is chosen by code, auto-fill name + default rate
+  // from the operative's standard rate. Existing rate value is overwritten
+  // to match Enagh's behaviour (rate auto-populates from operative record).
+  const onOperativePick = (i: number, code: string) => {
+    setRows((prev) => prev.map((r, idx) => {
+      if (idx !== i) return r;
+      const op = operatives.find(o => o.subcontractorRef === code);
+      if (!op) return { ...r, subcontractorRef: code };
+      const standardEur = op.rateAmountMinor != null ? (op.rateAmountMinor / 100).toFixed(2) : r.rate;
+      return {
+        ...r,
+        subcontractorRef: op.subcontractorRef || "",
+        subcontractorName: op.fullName || "",
+        rate: standardEur,
+      };
+    }));
+  };
 
   useEffect(() => { setHint(null); }, [tab]);
 
@@ -178,6 +246,8 @@ export function PrimarySubmitPayment() {
     setSubmitting(true);
     try {
       const r = await api.createMySubmission({
+        jobCardType,
+        dateEnding: dateEnding || null,
         periodStart: periodStart || null,
         periodEnd: periodEnd || null,
         notes: notes || null,
@@ -240,11 +310,24 @@ export function PrimarySubmitPayment() {
         </div>
       )}
 
-      {/* Period + notes (always visible) */}
+      {/* Job Card type + Date Ending (Enagh model). Period start/end are
+          auto-derived but still editable as an override. */}
       <div className="card-padded mb-5">
-        <div className="grid sm:grid-cols-3 gap-3">
-          <Input label="Period start" type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
-          <Input label="Period end" type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} />
+        <div className="grid sm:grid-cols-4 gap-3">
+          <div>
+            <label className="text-xs uppercase tracking-wider text-ink-500 font-semibold">Job Card Type</label>
+            <select
+              className="mt-2 w-full px-3 py-2 text-sm rounded-md border border-ink-200 focus:border-ink-900 outline-none bg-white"
+              value={jobCardType}
+              onChange={(e) => setJobCardType(e.target.value as JobCardType)}
+            >
+              <option value="weekly">Weekly (1 week)</option>
+              <option value="fortnightly">Fortnightly (2 weeks)</option>
+              <option value="monthly">Monthly (4 weeks)</option>
+            </select>
+          </div>
+          <Input label="Date Ending" type="date" value={dateEnding} onChange={(e) => setDateEnding(e.target.value)} hint="End date of this job card's period." />
+          <Input label="Period start (auto)" type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
           <Input label="Notes (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Park West phase 2" />
         </div>
       </div>
@@ -299,7 +382,24 @@ export function PrimarySubmitPayment() {
               const grossMinor = Math.round((q * rt + m + e) * 100);
               return (
                 <tr key={i} className="border-b border-ink-100 last:border-b-0">
-                  <td className="px-2 py-2"><input className="w-full px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none font-mono" value={row.subcontractorRef} onChange={(e) => updateRow(i, "subcontractorRef", e.target.value)} placeholder="SUB-1004" /></td>
+                  <td className="px-2 py-2">
+                    {operatives.length > 0 ? (
+                      <select
+                        className="w-full px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none font-mono bg-white"
+                        value={row.subcontractorRef}
+                        onChange={(e) => onOperativePick(i, e.target.value)}
+                      >
+                        <option value="">— Operative —</option>
+                        {operatives.map((o) => (
+                          <option key={o.id} value={o.subcontractorRef || ""}>
+                            {o.subcontractorRef || "(no ref)"} {o.fullName ? `\u2014 ${o.fullName}` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input className="w-full px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none font-mono" value={row.subcontractorRef} onChange={(e) => updateRow(i, "subcontractorRef", e.target.value)} placeholder="SUB-1004" />
+                    )}
+                  </td>
                   <td className="px-2 py-2"><input className="w-full px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none" value={row.subcontractorName} onChange={(e) => updateRow(i, "subcontractorName", e.target.value)} placeholder="Filip Bumbu" /></td>
                   <td className="px-2 py-2"><input className="w-full px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none" value={row.jobNumber} onChange={(e) => updateRow(i, "jobNumber", e.target.value)} placeholder="IE1136" /></td>
                   <td className="px-2 py-2">
@@ -336,15 +436,60 @@ export function PrimarySubmitPayment() {
               );
             })}
           </tbody>
-          <tfoot>
-            <tr className="bg-ink-50 font-semibold">
-              <td colSpan={8} className="px-3 py-2 text-right">Total gross</td>
-              <td className="px-3 py-2 text-right tabular-nums">{fmtMoneyEur(totalGrossMinor)}</td>
-              <td></td>
-            </tr>
-          </tfoot>
         </table>
       </div>
+
+      {/* Calculate block (Enagh-style live totals). Reactive to every keystroke. */}
+      {(() => {
+        const overrideMinor = lessSubsOverride.trim()
+          ? Math.round((parseFloat(lessSubsOverride) || 0) * 100)
+          : null;
+        const lessSubs = overrideMinor != null ? overrideMinor : lessSubsMinor;
+        const vatMinor = Math.round(totalGrossMinor * vatRatePercent) / 100;
+        // VAT% is a percent of gross; round to nearest cent.
+        const vatAmt = Math.round((totalGrossMinor * vatRatePercent) / 100);
+        const totalToPay = totalGrossMinor + vatAmt - lessSubs;
+        return (
+          <div className="card-padded mb-5 bg-ink-50/40">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-500 mb-4">Calculate</h2>
+            <div className="grid sm:grid-cols-2 gap-6">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-ink-600">Total Gross</span><span className="tabular-nums font-medium">{fmtMoneyEur(totalGrossMinor)}</span></div>
+                <div className="flex justify-between"><span className="text-ink-600">Total to Certify to Revenue</span><span className="tabular-nums">{fmtMoneyEur(totalGrossMinor)}</span></div>
+                <div className="flex justify-between">
+                  <span className="text-ink-600">VAT @ {vatRatePercent}% on {fmtMoneyEur(totalGrossMinor)}</span>
+                  <span className="tabular-nums">{fmtMoneyEur(vatAmt)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-ink-600">Less Subs</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-ink-500">\u20AC</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={lessSubsOverride}
+                      onChange={(e) => setLessSubsOverride(e.target.value)}
+                      placeholder={(lessSubsMinor / 100).toFixed(2)}
+                      className="w-24 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums"
+                      title="Override the default Less Subs"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-lg bg-ink-900 text-white p-5 flex flex-col justify-center">
+                <div className="text-[11px] uppercase tracking-wider text-ink-300 font-semibold mb-1">
+                  Total to Pay BC
+                </div>
+                <div className="text-3xl font-bold tabular-nums">{fmtMoneyEur(totalToPay)}</div>
+                <div className="text-xs text-ink-400 mt-2">
+                  Recalculates as you type. This is what BC receives once you submit this Job Card.
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="flex justify-between items-center">
         <Button variant="outline" onClick={addRow} leftIcon={<Plus className="h-4 w-4" />}>

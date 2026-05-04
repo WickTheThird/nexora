@@ -95,6 +95,9 @@ export interface AppSettings {
   invoice_show_bank: string | null;            // "1" | "0"
   invoice_show_contact: string | null;         // "1" | "0"
   invoice_show_principal_ref: string | null;   // "1" | "0"
+  // Job Card calculator settings (Enagh-style live totals on submission form)
+  vat_rate_percent: string | null;             // e.g. "13.5"
+  less_subs_default_minor: string | null;      // flat deduction in cents
 }
 
 // Invoice template options surfaced in the InvoicePayload (parsed from
@@ -286,6 +289,27 @@ export type PrimarySubmissionStatus =
   | "completed"
   | "rejected";
 
+export type JobCardType = "weekly" | "fortnightly" | "monthly";
+
+export type OperativeRequestStatus = "requested" | "approved" | "rejected" | "cancelled";
+
+export interface OperativeRequest {
+  id: string;
+  primaryId: string;
+  requestedBy: string | null;
+  name: string;
+  mobile: string | null;
+  email: string | null;
+  notes: string | null;
+  status: OperativeRequestStatus;
+  reviewedAt: number | null;
+  reviewedBy: string | null;
+  rejectionReason: string | null;
+  resultingSubcontractorId: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface PrimarySubmission {
   id: string;
   primaryId: string;
@@ -301,6 +325,11 @@ export interface PrimarySubmission {
   processedAt: number | null;
   processedBy: string | null;
   rejectionReason: string | null;
+  // Enagh-style Job Card metadata. jobCardType ∈ weekly/fortnightly/monthly;
+  // dateEnding is YYYY-MM-DD end of the reporting window. Both nullable on
+  // older rows; new submissions always set them.
+  jobCardType: JobCardType | null;
+  dateEnding: string | null;
   createdAt: number;
 }
 

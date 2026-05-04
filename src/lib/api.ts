@@ -607,6 +607,10 @@ export const api = {
       user: { id: string; email: string; role: string };
       primary: Primary;
       stats: { subcontractorCount: number };
+      jobCardCalc?: {
+        vatRatePercent: number;
+        lessSubsDefaultMinor: number;
+      };
     }>("GET", "/me/primary"),
   // Primary user updates their own scoped fields (only accountantEmail today).
   patchMyPrimary: (data: { accountantEmail?: string | null }) =>
@@ -699,6 +703,10 @@ export const api = {
     periodEnd?: string | null;
     notes?: string | null;
     source?: "manual" | "csv";
+    // Job Card metadata (Enagh-style). If dateEnding + jobCardType are set
+    // and periodStart/End aren't, the worker derives the window.
+    jobCardType?: "weekly" | "fortnightly" | "monthly";
+    dateEnding?: string | null;
     items: Array<{
       subcontractorRef?: string;
       subcontractorName?: string;
@@ -750,6 +758,7 @@ export const api = {
     request<{
       items: Array<{
         id: string;
+        subcontractorRef: string | null;
         fullName: string | null;
         email: string | null;
         tel: string | null;
@@ -759,8 +768,78 @@ export const api = {
         onboardingStatus: string;
         rctRate: string | null;
         vatReverseCharge: boolean;
+        rateAmountMinor: number | null;
+        rateUnit: string | null;
       }>;
     }>("GET", "/me/primary/subcontractors"),
+  // Principal-set Standard Rate per operative (Enagh-style). Server scopes
+  // by primary_id so a principal can only edit their own linked subs.
+  setMyPrincipalOperativeRate: (
+    subId: string,
+    data: { rateAmountMinor: number; rateUnit?: "hour" | "day" | "week" | "fixed" },
+  ) => request<{ id: string; rateAmountMinor: number | null; rateUnit: string | null }>(
+    "PATCH",
+    `/me/primary/operatives/${subId}/standard-rate`,
+    { body: data as Json },
+  ),
+
+  // Operative Request flow (Enagh-style): principal asks BC to add a new
+  // operative; admin reviews + approves (creating the actual sub) or rejects.
+  createMyOperativeRequest: (data: {
+    name: string;
+    mobile?: string;
+    email?: string;
+    notes?: string;
+  }) => request<{
+    id: string;
+    name: string;
+    mobile: string | null;
+    email: string | null;
+    status: string;
+  }>("POST", "/me/primary/operative-requests", { body: data as Json }),
+  listMyOperativeRequests: () =>
+    request<{
+      items: Array<{
+        id: string;
+        name: string;
+        mobile: string | null;
+        email: string | null;
+        status: string;
+        rejectionReason: string | null;
+        createdAt: number;
+        reviewedAt: number | null;
+      }>;
+    }>("GET", "/me/primary/operative-requests"),
+
+  // Admin inbox for operative requests
+  adminListOperativeRequests: (status?: string) =>
+    request<{
+      items: Array<{
+        id: string;
+        primaryId: string;
+        primaryName: string | null;
+        name: string;
+        mobile: string | null;
+        email: string | null;
+        notes: string | null;
+        status: string;
+        rejectionReason: string | null;
+        createdAt: number;
+        reviewedAt: number | null;
+      }>;
+    }>("GET", "/admin/operative-requests" + (status ? `?status=${status}` : "")),
+  adminApproveOperativeRequest: (id: string, data: { email?: string; fullName?: string }) =>
+    request<{
+      requestId: string;
+      subcontractorId: string;
+      userId: string;
+      email: string;
+      tempPassword: string;
+      primaryName: string | null;
+      note: string;
+    }>("POST", `/admin/operative-requests/${id}/approve`, { body: data as Json }),
+  adminRejectOperativeRequest: (id: string, reason: string) =>
+    request<{ rejected: true }>("POST", `/admin/operative-requests/${id}/reject`, { body: { reason } }),
   getMyPrimarySubDetail: (subId: string) =>
     request<{
       subcontractor: {
