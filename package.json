@@ -7,7 +7,12 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc -b --noEmit",
+    "deploy:worker": "wrangler deploy",
+    "worker:tail": "wrangler tail",
+    "worker:secret": "wrangler secret",
+    "d1:exec": "wrangler d1 execute nexora --remote --command",
+    "d1:file": "wrangler d1 execute nexora --remote --file"
   },
   "dependencies": {
     "jspdf": "^2.5.2",
@@ -25,6 +30,7 @@
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
     "typescript": "^5.6.3",
-    "vite": "^5.4.11"
+    "vite": "^5.4.11",
+    "wrangler": "^4.87.0"
   }
 }

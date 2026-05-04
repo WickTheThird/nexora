@@ -1,0 +1,35 @@
+# Cloudflare Worker config for the Samwise API.
+#
+# Setup checklist (one-time):
+#   1. npm install -D wrangler
+#   2. npx wrangler login   (browser OAuth)
+#   3. npx wrangler d1 list   → copy the UUID for the 'nexora' database
+#   4. Replace `database_id = "TODO"` below with that UUID
+#   5. Commit wrangler.toml (the UUID is not a secret)
+#
+# Deploy:
+#   npm run deploy:worker        # deploys worker.js to nexora-api
+#   npm run worker:tail          # live-tail logs
+#   npm run worker:secret -- put BREVO_API_KEY     # set/rotate a secret
+#
+# Why we don't declare secrets in this file:
+#   AUTH_SECRET, BREVO_API_KEY, etc. are managed via `wrangler secret put`
+#   so they never land in git. EMAIL_FROM, APP_URL, ALLOWED_ORIGINS are
+#   already set as Plaintext vars in the dashboard — leaving them out of
+#   this file means wrangler won't overwrite them on deploy.
+
+name = "nexora-api"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+# D1 binding — env.DB in worker.js. Database itself was created via the
+# dashboard ("nexora"). Get its UUID from `npx wrangler d1 list`.
+[[d1_databases]]
+binding = "DB"
+database_name = "nexora"
+database_id = "TODO"  # ← replace with UUID from `npx wrangler d1 list`
+
+# R2 binding — env.BUCKET in worker.js. Bucket already exists.
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "nexora-projects"
