@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { api, ApiError } from "@/lib/api";
 import type {
   BankDetails,
+  ContractRecord,
   DocumentRecord,
   PaymentRecord,
   QuestionnaireRecord,
@@ -505,52 +506,110 @@ function DocumentsTab({ subId }: { subId: string }) {
 }
 
 function ContractTab({ subId, canGenerate, generating, onGenerate }: { subId: string; canGenerate: boolean; generating: boolean; onGenerate: () => void }) {
-  const [html, setHtml] = useState<string | null>(null);
-  const [meta, setMeta] = useState<{ status: string; signedName: string | null; signedAt: number | null; signedIp: string | null } | null>(null);
+  const [contract, setContract] = useState<ContractRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
+  const refresh = async () => {
+    try {
+      const c = await api.adminGetContract(subId);
+      setContract(c);
+      setNotFound(false);
+    } catch (e) {
+      if (e instanceof ApiError && e.code === "NOT_FOUND") setNotFound(true);
+    }
+  };
+
   useEffect(() => {
-    (async () => {
-      try {
-        const c = await api.adminGetSubcontractor(subId); // just to ensure
-        void c;
-        // There's no dedicated admin endpoint to fetch a contract; the generated row belongs to the sub.
-        // We read it via the subcontractor's sub-endpoint by impersonation — not available. Instead, we show info if just generated.
-      } catch {
-        setNotFound(true);
-      } finally {
-        setLoading(false);
-      }
-    })();
+    (async () => { try { await refresh(); } finally { setLoading(false); } })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subId]);
 
-  // Since the API intentionally exposes contract reads only to the subcontractor,
-  // the admin's view focuses on generation control + status summary.
+  // After admin generates a fresh contract, re-fetch automatically.
+  useEffect(() => {
+    if (!generating) { refresh(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [generating]);
+
+  // Print the contract — opens the browser print dialog with only the
+  // rendered contract HTML visible. Mirrors Enagh's print_contract.asp.
+  const printContract = () => {
+    if (!contract?.renderedHtml) return;
+    const w = window.open("", "_blank", "noopener,noreferrer,width=900,height=1100");
+    if (!w) { window.alert("Pop-up blocker prevented opening the print preview."); return; }
+    w.document.open();
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Contract</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color:#111; max-width: 800px; margin: 24mm auto; padding: 0 16mm; line-height: 1.55; font-size: 11pt; }
+        h1, h2, h3 { color:#000; }
+        h1 { font-size: 18pt; margin-top: 0; }
+        h2 { font-size: 13pt; margin-top: 18pt; }
+        ul, ol { padding-left: 22pt; }
+        .signed { margin-top: 24pt; padding: 10pt 14pt; background: #f3f6fa; border-left: 4px solid #1f4396; font-size: 10pt; }
+        @page { size: A4; margin: 16mm; }
+        @media print { .no-print { display: none !important; } }
+      </style></head><body>
+      <div class="no-print" style="margin-bottom:18px;text-align:right">
+        <button onclick="window.print()" style="padding:8px 16px;font:600 13px sans-serif;border:1px solid #1f4396;background:#1f4396;color:#fff;border-radius:6px;cursor:pointer">Print / Save as PDF</button>
+      </div>
+      ${contract.renderedHtml}
+      ${contract.signedAt ? `<div class="signed">
+        <strong>Signed</strong> on ${new Date(contract.signedAt).toLocaleString("en-IE")} by ${contract.signedName || "—"}.
+        ${contract.signedIp ? `<br>IP at signing: <code>${contract.signedIp}</code>` : ""}
+        ${contract.signedToken ? `<br>Token: <code style="font-family:monospace;font-size:9pt">${contract.signedToken.slice(0, 32)}…</code>` : ""}
+      </div>` : ""}
+      </body></html>`);
+    w.document.close();
+    setTimeout(() => { try { w.focus(); w.print(); } catch {} }, 350);
+  };
+
+  if (loading) return <div className="skeleton h-64" />;
 
   return (
     <div className="space-y-6">
       <div className="card-padded">
-        <h3 className="font-semibold text-ink-900 mb-2">Contract</h3>
-        <p className="text-sm text-ink-500 mb-4">
-          Generate a contract from the active template. This supersedes any previous contract.
-        </p>
-        <Button
-          variant="accent"
-          onClick={onGenerate}
-          disabled={!canGenerate}
-          loading={generating}
-          leftIcon={<FileText className="h-4 w-4" />}
-        >
-          {canGenerate ? "Generate new contract" : "Awaiting profile submission"}
-        </Button>
-        {!canGenerate && (
-          <p className="text-xs text-ink-400 mt-3">
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div>
+            <h3 className="font-semibold text-ink-900 mb-1">Contract</h3>
+            <p className="text-sm text-ink-500">
+              {contract
+                ? <>Status: <strong className="text-ink-700">{contract.status}</strong>{contract.signedAt ? <> · signed {new Date(contract.signedAt).toLocaleDateString("en-IE")} by {contract.signedName || "—"}</> : null}</>
+                : notFound ? "No contract on file yet." : "Generate a contract from the active template. This supersedes any previous contract."}
+            </p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            {contract && (
+              <Button variant="outline" onClick={printContract} leftIcon={<FileText className="h-4 w-4" />}>
+                Print contract
+              </Button>
+            )}
+            <Button
+              variant="accent"
+              onClick={onGenerate}
+              disabled={!canGenerate}
+              loading={generating}
+              leftIcon={<FileText className="h-4 w-4" />}
+            >
+              {canGenerate ? (contract ? "Regenerate" : "Generate contract") : "Awaiting profile submission"}
+            </Button>
+          </div>
+        </div>
+        {!canGenerate && !contract && (
+          <p className="text-xs text-ink-400">
             The subcontractor must submit their application before a contract can be generated.
           </p>
         )}
       </div>
+
+      {contract && (
+        <div className="card-padded">
+          <h3 className="font-semibold text-ink-900 mb-3">Preview</h3>
+          <div
+            className="prose prose-sm max-w-none border border-ink-100 rounded-lg p-4 bg-ink-50/30 max-h-[600px] overflow-y-auto"
+            dangerouslySetInnerHTML={{ __html: contract.renderedHtml || "<em class='text-ink-400'>No rendered HTML.</em>" }}
+          />
+        </div>
+      )}
     </div>
   );
 }

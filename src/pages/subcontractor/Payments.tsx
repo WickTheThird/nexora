@@ -8,7 +8,7 @@ import { useToast } from "@/components/ui/Toast";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { IncomeSummary } from "@/components/payments/IncomeSummary";
 import { fmtDate, fmtMoney } from "@/lib/format";
-import { Download, Wallet, ChevronDown, FileText, CheckCircle2 } from "lucide-react";
+import { Download, Wallet, ChevronDown, FileText, CheckCircle2, FileBarChart } from "lucide-react";
 
 // Lazy-load PDF code (jsPDF + html2canvas) only when the user clicks Download.
 const loadPdf = () => import("@/lib/pdf");
@@ -139,11 +139,60 @@ export function Payments() {
 
   const visible = items.slice(0, visibleCount);
 
+  // Year-end Form 11 helper. Years derived from the dates we actually have
+  // payment records for (descending), so the dropdown only ever shows years
+  // that will produce a non-empty PDF.
+  const taxYears = Array.from(new Set(
+    items.map(p => (p.paymentDate ? new Date(p.paymentDate).getUTCFullYear() : null)).filter((y): y is number => !!y)
+  )).sort((a, b) => b - a);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  useEffect(() => { if (selectedYear == null && taxYears.length) setSelectedYear(taxYears[0]); }, [taxYears, selectedYear]);
+
+  const downloadRctSummary = async () => {
+    if (!selectedYear || !sub) return;
+    try {
+      const { downloadRctSummaryPdf } = await loadPdf();
+      downloadRctSummaryPdf({
+        taxYear: selectedYear,
+        brandName: brandName(),
+        subcontractor: {
+          fullName: sub.fullName,
+          email: sub.email,
+          subcontractorRef: sub.subcontractorRef,
+          // PPSN not exposed via /me/profile yet — left null. The summary
+          // is still valid; the sub fills it in by hand on Form 11 anyway.
+          ppsn: null,
+          rctRate: sub.rctRate,
+        },
+        payments: items,
+        generatedAt: new Date().toLocaleDateString("en-IE"),
+      });
+      toast.success(`RCT summary for ${selectedYear} downloaded`);
+    } catch (e) {
+      toast.error("Failed to generate summary");
+    }
+  };
+
   return (
     <>
       <PageHeader
         title="Payments & Income"
         description="Payment advices from the principal appear here. Click ‘Generate invoice’ to issue your own invoice for any advice — that is the legal document."
+        right={taxYears.length > 0 ? (
+          <div className="flex items-center gap-2">
+            <select
+              className="text-sm rounded-md border border-ink-200 px-2 py-1.5 bg-white focus:border-ink-900 outline-none"
+              value={selectedYear ?? ""}
+              onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
+              title="Tax year for the RCT summary"
+            >
+              {taxYears.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+            <Button variant="outline" size="sm" onClick={downloadRctSummary} leftIcon={<FileBarChart className="h-4 w-4" />}>
+              RCT summary (Form 11)
+            </Button>
+          </div>
+        ) : undefined}
       />
 
       {loading ? (

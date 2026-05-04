@@ -142,12 +142,16 @@ export function AdminPrimarySubmissionDetail() {
         </div>
       )}
       {submission.status === "completed" && (
-        <div className="card-padded mb-6 bg-emerald-50 border-emerald-200">
+        <div className={`card-padded mb-6 ${matchedCount > 0 ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"}`}>
           <div className="flex items-center gap-3">
-            <CheckCircle2 className="h-5 w-5 text-emerald-700" />
+            <CheckCircle2 className={`h-5 w-5 ${matchedCount > 0 ? "text-emerald-700" : "text-amber-700"}`} />
             <div>
-              <div className="font-semibold text-emerald-900">Processed</div>
-              <p className="text-sm text-emerald-800">Payment advices were created and the matched subcontractors were emailed.</p>
+              <div className={`font-semibold ${matchedCount > 0 ? "text-emerald-900" : "text-amber-900"}`}>Processed</div>
+              <p className={`text-sm ${matchedCount > 0 ? "text-emerald-800" : "text-amber-800"}`}>
+                {matchedCount > 0
+                  ? <>Created <strong>{matchedCount}</strong> payment advice{matchedCount === 1 ? "" : "s"} and emailed the matched subcontractor{matchedCount === 1 ? "" : "s"}{unmatchedCount > 0 ? <> · skipped <strong>{unmatchedCount}</strong> unmatched row{unmatchedCount === 1 ? "" : "s"}</> : null}.</>
+                  : <>No payment advices were created — all <strong>{items.length}</strong> row{items.length === 1 ? "" : "s"} were unmatched (sub code didn't link to any active operative).</>}
+              </p>
             </div>
           </div>
         </div>

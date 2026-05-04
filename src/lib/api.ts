@@ -324,6 +324,10 @@ export const api = {
       `/admin/subcontractors/${id}/generate-contract`,
       { body: templateId ? { templateId } : {} },
     ),
+  // Admin-side fetch of an operative's most recent contract — used by the
+  // "Print contract" action on the Subcontractor detail Contract tab.
+  adminGetContract: (id: string) =>
+    request<ContractRecord>("GET", `/admin/subcontractors/${id}/contract`),
 
   // -------- admin: documents --------
   adminListSubDocuments: (subId: string) =>

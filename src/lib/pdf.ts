@@ -274,6 +274,28 @@ function generatePaymentAdvicePdf(inv: InvoicePayload, brandName: string): jsPDF
   doc.line(valueX - 90, afterY - 10, valueX, afterY - 10);
   doc.line(valueX - 90, afterY - 8,  valueX, afterY - 8);
 
+  // ---- VAT REVERSE-CHARGE NOTICE (Revenue-mandated wording) ----
+  // Required on every payment advice for construction services subject
+  // to RCT. Revenue's TDM Part 11 (Construction Services) prescribes
+  // exactly this wording. Sits above the legal block so it reads as a
+  // tax disclosure rather than a contract clause.
+  afterY += 22;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(20, 20, 20);
+  doc.text(
+    "VAT on this supply to be accounted for by the Principal Contractor.",
+    margin, afterY, { maxWidth: pageWidth - margin * 2 },
+  );
+  afterY += 11;
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(7.5);
+  doc.setTextColor(110, 110, 110);
+  doc.text(
+    "Reverse charge basis under Section 16(2) VATCA 2010 \u2014 construction services subject to RCT.",
+    margin, afterY, { maxWidth: pageWidth - margin * 2 },
+  );
+
   // ---- LEGAL TEXT (Enagh's exact 4 statements) ----
   const pageHeight = doc.internal.pageSize.getHeight();
   let legalY = pageHeight - 230;
@@ -580,13 +602,29 @@ function generateSubInvoicePdf(inv: InvoicePayload, brandName: string): jsPDF {
     doc.text(fmtMoneyWithSymbol(t.net, ccy), colNet, afterY, { align: "right" });
   }
 
-  if (sub.vatReverseCharge) {
+  // Revenue mandates this exact wording on every subcontractor invoice
+  // for relevant construction services (RCT) — see Revenue VAT TDM Part
+  // 11 (Construction Services). The principal self-accounts for VAT at
+  // 13.5% in their VAT3 return; the subcontractor invoices net of VAT.
+  // We always show this on any RCT-eligible invoice (construction
+  // services in Ireland), with the VATCA cite kept on a second line as
+  // the legal basis. The `vatReverseCharge` flag remains as a per-sub
+  // toggle for edge cases (e.g. a non-construction service line).
+  if (sub.vatReverseCharge !== false) {
     afterY += 28;
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(8);
-    doc.setTextColor(80, 80, 80);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(20, 20, 20);
     doc.text(
-      "VAT reverse charge applies. The recipient is liable for accounting for VAT (Section 16(2) VATCA 2010).",
+      "VAT on this supply to be accounted for by the Principal Contractor.",
+      margin, afterY, { maxWidth: pageWidth - margin * 2 },
+    );
+    afterY += 12;
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(7.5);
+    doc.setTextColor(110, 110, 110);
+    doc.text(
+      "Reverse charge basis under Section 16(2) VATCA 2010 \u2014 construction services subject to RCT.",
       margin, afterY, { maxWidth: pageWidth - margin * 2 },
     );
   }
@@ -684,6 +722,174 @@ export function downloadInvoicePdf(
   const prefix = mode === "invoice" ? "Invoice" : "PaymentAdvice";
   const filename = `${prefix}_${baseNumber}_${subName}.pdf`;
   doc.save(filename);
+}
+
+// =====================================================================
+//  Year-end RCT Summary (helper for the subcontractor's Form 11)
+// =====================================================================
+// Subcontractors filing their annual self-assessment (Form 11) need a
+// statement showing the total gross paid, total RCT withheld, and a
+// per-payment breakdown for the relevant tax year (calendar year in
+// Ireland). They paste the totals into Form 11's RCT credit section
+// to claim the withheld RCT against their final tax bill.
+//
+// This generator takes the sub's full payment history + tax year and
+// produces a single-page printable PDF. Pure client-side — no new
+// worker endpoint needed; the Payments page already has the data.
+
+export interface RctSummaryPayload {
+  taxYear: number;
+  brandName: string;
+  subcontractor: {
+    fullName: string | null;
+    email: string | null;
+    subcontractorRef: string | null;
+    ppsn?: string | null;
+    rctRate: string | null;
+  };
+  payments: Array<Pick<PaymentRecord,
+    "paymentDate" | "periodStart" | "periodEnd" | "grossMinor" | "rctDeductionMinor"
+    | "netMinor" | "currency" | "rctRate" | "rctAuthNumber" | "invoiceNumber">>;
+  generatedAt: string;
+}
+
+export function generateRctSummaryPdf(p: RctSummaryPayload): jsPDF {
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 40;
+  let y = margin + 10;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.setTextColor(20, 20, 20);
+  doc.text(`Annual RCT Summary \u2014 ${p.taxYear}`, margin, y);
+  y += 18;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(110, 110, 110);
+  doc.text(
+    `For inclusion with the subcontractor\u2019s Form 11 self-assessment return. Issued by ${p.brandName} on ${p.generatedAt}.`,
+    margin, y, { maxWidth: pageWidth - margin * 2 },
+  );
+  y += 24;
+
+  // Subcontractor block
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(20, 20, 20);
+  doc.text("Subcontractor", margin, y);
+  y += 13;
+  doc.setFont("helvetica", "normal");
+  const lines = [
+    `Name: ${p.subcontractor.fullName || "\u2014"}`,
+    p.subcontractor.subcontractorRef ? `Sub code: ${p.subcontractor.subcontractorRef}` : null,
+    p.subcontractor.ppsn ? `PPSN: ${p.subcontractor.ppsn}` : null,
+    p.subcontractor.email ? `Email: ${p.subcontractor.email}` : null,
+    p.subcontractor.rctRate ? `RCT rate on file: ${p.subcontractor.rctRate}%` : null,
+  ].filter(Boolean) as string[];
+  for (const line of lines) {
+    doc.text(line, margin, y);
+    y += 12;
+  }
+  y += 8;
+
+  // Filter payments to the tax year (calendar year for Ireland)
+  const yearStart = new Date(`${p.taxYear}-01-01T00:00:00Z`).getTime();
+  const yearEnd   = new Date(`${p.taxYear + 1}-01-01T00:00:00Z`).getTime();
+  const inYear = p.payments.filter(pay => {
+    const t = pay.paymentDate ? new Date(pay.paymentDate).getTime() : 0;
+    return t >= yearStart && t < yearEnd;
+  });
+
+  // Group totals by currency (almost always EUR but be safe)
+  const totals: Record<string, { gross: number; rct: number; net: number; n: number }> = {};
+  for (const pay of inYear) {
+    const c = pay.currency || "EUR";
+    if (!totals[c]) totals[c] = { gross: 0, rct: 0, net: 0, n: 0 };
+    totals[c].gross += pay.grossMinor || 0;
+    totals[c].rct   += pay.rctDeductionMinor || 0;
+    totals[c].net   += pay.netMinor || 0;
+    totals[c].n     += 1;
+  }
+
+  // Totals box (the numbers that go on Form 11)
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text(`Annual totals (${inYear.length} payment${inYear.length === 1 ? "" : "s"})`, margin, y);
+  y += 14;
+  for (const [ccy, t] of Object.entries(totals)) {
+    autoTable(doc, {
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [["Currency", "Gross paid", "RCT withheld", "Net paid"]],
+      body: [[
+        ccy,
+        fmtMoneyMinor(t.gross, ccy),
+        fmtMoneyMinor(t.rct, ccy),
+        fmtMoneyMinor(t.net, ccy),
+      ]],
+      headStyles: { fillColor: [240, 240, 240], textColor: [40, 40, 40], fontStyle: "bold", fontSize: 9 },
+      bodyStyles: { fontSize: 10, fontStyle: "bold" },
+      columnStyles: { 1: { halign: "right" }, 2: { halign: "right" }, 3: { halign: "right" } },
+      theme: "grid",
+    });
+    // @ts-expect-error jspdf-autotable adds .lastAutoTable
+    y = (doc.lastAutoTable?.finalY ?? y) + 14;
+  }
+
+  // Per-payment breakdown
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text("Per-payment breakdown", margin, y);
+  y += 12;
+
+  if (inYear.length === 0) {
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(9);
+    doc.setTextColor(110, 110, 110);
+    doc.text(`No payments recorded for ${p.taxYear}.`, margin, y + 6);
+  } else {
+    autoTable(doc, {
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [["Date", "Period", "Invoice #", "Rate", "Auth #", "Gross", "RCT", "Net"]],
+      body: inYear
+        .sort((a, b) => (a.paymentDate || "").localeCompare(b.paymentDate || ""))
+        .map(pay => [
+          fmtDate(pay.paymentDate),
+          pay.periodStart && pay.periodEnd ? `${fmtDate(pay.periodStart)}\u2192${fmtDate(pay.periodEnd)}` : "\u2014",
+          pay.invoiceNumber || "\u2014",
+          pay.rctRate ? `${pay.rctRate}%` : "\u2014",
+          pay.rctAuthNumber || "\u2014",
+          fmtMoneyMinor(pay.grossMinor || 0, pay.currency || "EUR"),
+          fmtMoneyMinor(pay.rctDeductionMinor || 0, pay.currency || "EUR"),
+          fmtMoneyMinor(pay.netMinor || 0, pay.currency || "EUR"),
+        ]),
+      headStyles: { fillColor: [240, 240, 240], textColor: [40, 40, 40], fontStyle: "bold", fontSize: 8 },
+      bodyStyles: { fontSize: 8 },
+      columnStyles: {
+        5: { halign: "right" }, 6: { halign: "right" }, 7: { halign: "right" },
+      },
+      theme: "grid",
+    });
+  }
+
+  // Footer note
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(8);
+  doc.setTextColor(120, 120, 120);
+  doc.text(
+    "RCT credits should be reclaimed via your Form 11 self-assessment. The RCT amounts above can also be cross-checked against your Revenue ROS \"My Documents\" RCT statements.",
+    margin, pageHeight - 36, { maxWidth: pageWidth - margin * 2 },
+  );
+  return doc;
+}
+
+export function downloadRctSummaryPdf(payload: RctSummaryPayload): void {
+  const doc = generateRctSummaryPdf(payload);
+  const subName = payload.subcontractor.fullName?.replace(/\s+/g, "_") || "subcontractor";
+  doc.save(`RCT_Summary_${payload.taxYear}_${subName}.pdf`);
 }
 
 export function invoiceMailto(
