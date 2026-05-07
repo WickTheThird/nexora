@@ -739,6 +739,11 @@ export const api = {
     // Enagh's Save → Calculate → Submit flow. 'draft' is editable, no admin
     // notification, no invoice. 'submitted' (default) is the locked state.
     status?: "draft" | "submitted";
+    // A3 hardening: client sends the totals it displayed; worker validates
+    // within ±€0.05 of its own per-line recompute and rejects on mismatch.
+    vatAmountMinor?: number;
+    lessSubsAppliedMinor?: number;
+    totalToPayBcMinor?: number;
     items: Array<{
       subcontractorRef?: string;
       subcontractorName?: string;
@@ -953,6 +958,31 @@ export const api = {
     request<PrimaryInvoice>("POST", `/admin/primary-invoices/${id}/mark-sent`),
   adminMarkPrimaryInvoicePaid: (id: string) =>
     request<PrimaryInvoice>("POST", `/admin/primary-invoices/${id}/mark-paid`),
+  // A5: Void / credit-note flow. Voiding flips status to 'cancelled'
+  // (number stays in sequence). Credit notes are sibling documents with
+  // their own number sequence (BC-{shortname}-CN-{year}-{NNN}).
+  adminVoidPrimaryInvoice: (id: string, reason: string) =>
+    request<{ invoice: PrimaryInvoice }>(
+      "POST", `/admin/primary-invoices/${id}/void`,
+      { body: { reason } as Json },
+    ),
+  adminCreatePrimaryCreditNote: (
+    invoiceId: string,
+    data: { grossMinor: number; vatMinor?: number; reason?: string },
+  ) =>
+    request<{ creditNote: {
+      id: string; primaryId: string; invoiceId: string; creditNoteNumber: string;
+      grossMinor: number; vatMinor: number; totalMinor: number; currency: string;
+      reason: string | null; status: string; issuedAt: string; createdAt: number;
+    } }>(
+      "POST", `/admin/primary-invoices/${invoiceId}/credit-note`,
+      { body: data as Json },
+    ),
+  adminListPrimaryCreditNotes: (invoiceId: string) =>
+    request<{ items: Array<{
+      id: string; creditNoteNumber: string; grossMinor: number; totalMinor: number;
+      reason: string | null; status: string; issuedAt: string; createdAt: number;
+    }> }>("GET", `/admin/primary-invoices/${invoiceId}/credit-notes`),
 
   // -------- dashboard --------
   adminDashboardStats: () =>

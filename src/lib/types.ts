@@ -24,7 +24,22 @@ export type StepStatus =
   | "completed"
   | "rejected";
 
-export type DocumentType = "photo_id" | "hs_card" | "insurance" | "cert" | "other";
+// Round B: Enagh's `/operatives/folder_certs.asp` model — categorise
+// uploads so the sub can find their certs by folder. Existing values
+// stay for back-compat; new values cover the Irish construction cert
+// canon (Safe Pass · CSCS · Manual Handling). Anything not on this
+// list falls into "other".
+export type DocumentType =
+  | "photo_id"
+  | "hs_card"
+  | "insurance"
+  | "cert"
+  | "safe_pass"
+  | "cscs"
+  | "manual_handling"
+  | "first_aid"
+  | "ppe"
+  | "other";
 export type ReviewStatus = "pending" | "approved" | "rejected";
 export type ContractStatus =
   | "draft"

@@ -326,6 +326,14 @@ export function PrimarySubmitPayment() {
       notes: row.notes || undefined,
     }));
 
+  // A3 hardening: send the user-seen totals so the server can validate
+  // that the user agreed to exactly THIS Total to Pay BC (within ±€0.05).
+  const totalsPayload = () => ({
+    vatAmountMinor: totals.vatAmt,
+    lessSubsAppliedMinor: totals.lessSubs,
+    totalToPayBcMinor: totals.totalToPay,
+  });
+
   // Save as draft. Creates if no draftId, updates existing draft otherwise.
   const saveDraft = async () => {
     setSavingDraft(true);
@@ -342,6 +350,7 @@ export function PrimarySubmitPayment() {
           notes: notes || null, status: "draft",
           source: tab === "csv" ? "csv" : "manual",
           items,
+          ...totalsPayload(),
         });
         setDraftId(r.id);
         nav(`/primary/submissions/${r.id}/edit`, { replace: true });
@@ -374,6 +383,7 @@ export function PrimarySubmitPayment() {
           notes: notes || null, status: "submitted",
           source: tab === "csv" ? "csv" : "manual",
           items: cleaned,
+          ...totalsPayload(),
         });
         submissionId = r.id;
       } else {

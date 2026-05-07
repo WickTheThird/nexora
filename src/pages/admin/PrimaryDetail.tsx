@@ -77,6 +77,47 @@ export function PrimaryDetail() {
     }
   };
 
+  // A5: Void an issued/draft invoice. The number stays in the sequence
+  // and the row's status flips to 'cancelled'. Required for Revenue:
+  // numbered invoices cannot be deleted; gaps are not allowed.
+  const voidInvoice = async (inv: PrimaryInvoice) => {
+    const reason = window.prompt(
+      `Void invoice ${inv.invoiceNumber}?\n\nThe invoice number will stay in the sequence (gap-free) and the PDF will render with a VOID watermark.\n\nReason for voiding (required):`,
+    );
+    if (!reason || !reason.trim()) return;
+    try {
+      await api.adminVoidPrimaryInvoice(inv.id, reason.trim());
+      toast.success(`${inv.invoiceNumber} voided`);
+      await refresh();
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed");
+    }
+  };
+
+  // A5: Issue a credit note. New numbered document (BC-{name}-CN-{year}-NNN)
+  // that credits all-or-part of the invoice. Original invoice stays
+  // issued; net residual = original - sum(credit notes).
+  const creditNote = async (inv: PrimaryInvoice) => {
+    const grossEur = window.prompt(
+      `Credit note for invoice ${inv.invoiceNumber}\n\nOriginal net: €${(inv.netMinor / 100).toFixed(2)}\n\nGross amount to credit (€):`,
+      (inv.netMinor / 100).toFixed(2),
+    );
+    if (!grossEur) return;
+    const grossMinor = Math.round((parseFloat(grossEur) || 0) * 100);
+    if (!Number.isFinite(grossMinor) || grossMinor <= 0) {
+      toast.error("Enter a positive amount");
+      return;
+    }
+    const reason = window.prompt("Reason for the credit note (optional):") || undefined;
+    try {
+      const r = await api.adminCreatePrimaryCreditNote(inv.id, { grossMinor, reason });
+      toast.success(`Credit note ${r.creditNote.creditNoteNumber} issued`);
+      await refresh();
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed");
+    }
+  };
+
   if (loading) return <div className="skeleton h-64" />;
   if (!primary) return <Empty title="Not found" description="That principal doesn't exist." icon={ArrowLeft} />;
 
@@ -240,7 +281,7 @@ export function PrimaryDetail() {
                     </td>
                     <td className="px-5 py-3 text-right tabular-nums font-bold">€{(inv.netMinor / 100).toFixed(2)}</td>
                     <td className="px-5 py-3 text-right">
-                      <div className="flex justify-end gap-1">
+                      <div className="flex justify-end gap-1 flex-wrap">
                         {inv.status === "draft" && (
                           <Button variant="outline" size="sm" onClick={() => markSent(inv)} leftIcon={<Mail className="h-4 w-4" />}>
                             Mark sent
@@ -250,6 +291,19 @@ export function PrimaryDetail() {
                           <Button variant="accent" size="sm" onClick={() => markPaid(inv)} leftIcon={<CheckCircle2 className="h-4 w-4" />}>
                             Mark paid
                           </Button>
+                        )}
+                        {/* A5: void + credit-note. Voiding only works on
+                            non-paid invoices; credit notes work on anything
+                            non-cancelled. */}
+                        {inv.status !== "cancelled" && inv.status !== "paid" && (
+                          <button type="button" onClick={() => voidInvoice(inv)} title="Void this invoice (number stays in sequence)" className="text-xs px-2 py-1 rounded text-red-700 hover:bg-red-50">
+                            Void
+                          </button>
+                        )}
+                        {inv.status !== "cancelled" && (
+                          <button type="button" onClick={() => creditNote(inv)} title="Issue a credit note against this invoice" className="text-xs px-2 py-1 rounded text-ink-700 hover:bg-ink-100">
+                            Credit note
+                          </button>
                         )}
                       </div>
                     </td>

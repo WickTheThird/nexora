@@ -17,14 +17,67 @@ import {
   IdCard,
   ShieldCheck,
   FilePlus,
+  HardHat,
+  HeartPulse,
+  Hammer,
+  Boxes,
+  FolderOpen,
 } from "lucide-react";
 
-const docTypes: { value: DocumentType; label: string; icon: React.ComponentType<{ className?: string }>; hint: string; required?: boolean }[] = [
-  { value: "photo_id", label: "Photographic ID", icon: IdCard, hint: "Passport or driving licence", required: true },
-  { value: "hs_card",  label: "H&S card",        icon: ShieldCheck, hint: "Current safety card", required: true },
-  { value: "insurance",label: "Insurance",       icon: FileText, hint: "Public liability etc." },
-  { value: "cert",     label: "Certifications",  icon: FileText, hint: "Trade certifications" },
-  { value: "other",    label: "Other",           icon: FileText, hint: "Anything else relevant" },
+// Round B: Enagh's `/operatives/folder_certs.asp` model — group document
+// types into named folders so the sub can find their certs at a glance.
+// Each folder is a panel of types; each type still uploads/reviews
+// independently. New types (safe_pass / cscs / manual_handling /
+// first_aid / ppe) cover the Irish construction-cert canon.
+type DocTypeDef = {
+  value: DocumentType;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  hint: string;
+  required?: boolean;
+};
+type DocFolder = {
+  key: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  description: string;
+  types: DocTypeDef[];
+};
+const folders: DocFolder[] = [
+  {
+    key: "identity",
+    label: "Identity",
+    icon: IdCard,
+    description: "Who you are. Required before BC can pay you.",
+    types: [
+      { value: "photo_id", label: "Photographic ID", icon: IdCard, hint: "Passport or driving licence", required: true },
+    ],
+  },
+  {
+    key: "cards-certs",
+    label: "Cards & Certs",
+    icon: ShieldCheck,
+    description: "Your training and safety credentials.",
+    types: [
+      { value: "hs_card",         label: "H&S card",          icon: ShieldCheck, hint: "Current safety card", required: true },
+      { value: "safe_pass",       label: "Safe Pass",         icon: HardHat,     hint: "Solas Safe Pass card (3-year cycle)" },
+      { value: "cscs",            label: "CSCS",              icon: Hammer,      hint: "Construction Skills Cert Scheme" },
+      { value: "manual_handling", label: "Manual Handling",   icon: Boxes,       hint: "Manual handling cert (typically annual)" },
+      { value: "first_aid",       label: "First Aid",         icon: HeartPulse,  hint: "Occupational first-aid cert (if applicable)" },
+      { value: "ppe",             label: "PPE",               icon: HardHat,     hint: "PPE training / sign-off" },
+    ],
+  },
+  {
+    key: "other",
+    label: "Other",
+    icon: FolderOpen,
+    description: "Insurance, trade certs, anything else.",
+    types: [
+      { value: "insurance", label: "Insurance",      icon: FileText, hint: "Public liability etc." },
+      { value: "cert",      label: "Trade certs",    icon: FileText, hint: "Trade-specific certifications" },
+      { value: "other",     label: "Other",          icon: FileText, hint: "Anything else relevant" },
+    ],
+  },
 ];
 
 function reviewBadge(s: DocumentRecord["reviewStatus"]) {
@@ -109,12 +162,20 @@ export function Documents() {
       {loading ? (
         <div className="skeleton h-64" />
       ) : (
-        <div className="space-y-5">
-          {docTypes.map((dt) => {
-            const mine = byType(dt.value);
-            const latest = mine[0];
-            return (
-              <div key={dt.value} className="card p-6">
+        <div className="space-y-8">
+          {folders.map((folder) => (
+            <section key={folder.key}>
+              <div className="flex items-center gap-2 mb-3">
+                <folder.icon className="h-4 w-4 text-ink-500" />
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-700">{folder.label}</h2>
+                <span className="text-xs text-ink-500">· {folder.description}</span>
+              </div>
+              <div className="space-y-4">
+                {folder.types.map((dt) => {
+                  const mine = byType(dt.value);
+                  const latest = mine[0];
+                  return (
+                    <div key={dt.value} className="card p-6">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="flex items-start gap-4 min-w-0">
                     <div className="h-10 w-10 rounded-lg bg-ink-100 text-ink-700 grid place-items-center flex-shrink-0">
@@ -186,9 +247,12 @@ export function Documents() {
                     ))}
                   </div>
                 )}
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
+            </section>
+          ))}
         </div>
       )}
       <p className="mt-6 text-xs text-ink-400">
