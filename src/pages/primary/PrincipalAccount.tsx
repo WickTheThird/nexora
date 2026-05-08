@@ -18,6 +18,10 @@ export function PrincipalAccount() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [accountantEmail, setAccountantEmail] = useState("");
+  // Self-edit fields. Mirror the worker's PRIMARY_SELF_EDIT_FIELDS.
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [phone, setPhone] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -25,6 +29,9 @@ export function PrincipalAccount() {
         const r = await api.getMyPrimary();
         setPrimary(r.primary);
         setAccountantEmail(r.primary.accountantEmail || "");
+        setContactName(r.primary.contactName || "");
+        setContactEmail(r.primary.contactEmail || "");
+        setPhone(r.primary.phone || "");
       } catch (e) {
         toast.error(e instanceof ApiError ? e.message : "Failed to load account");
       } finally {
@@ -37,7 +44,12 @@ export function PrincipalAccount() {
     e.preventDefault();
     setSaving(true);
     try {
-      const updated = await api.patchMyPrimary({ accountantEmail: accountantEmail.trim() || null });
+      const updated = await api.patchMyPrimary({
+        accountantEmail: accountantEmail.trim() || null,
+        contactName: contactName.trim() || null,
+        contactEmail: contactEmail.trim() || null,
+        phone: phone.trim() || null,
+      });
       setPrimary(updated);
       toast.success("Account saved");
     } catch (e) {
@@ -106,12 +118,50 @@ export function PrincipalAccount() {
             </div>
           </div>
           <div className="grid sm:grid-cols-2 gap-4 text-sm">
-            <div><div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-1">Trading name</div><div className="font-medium text-ink-900">{primary.name}</div></div>
-            {primary.contactName && (<div><div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-1">Contact name</div><div>{primary.contactName}</div></div>)}
-            {primary.contactEmail && (<div><div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-1">Contact email</div><div>{primary.contactEmail}</div></div>)}
-            {primary.phone && (<div><div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-1">Phone</div><div>{primary.phone}</div></div>)}
-            {primary.vat && (<div><div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-1">VAT number</div><div className="font-mono">{primary.vat}</div></div>)}
-            {primary.address && (<div className="sm:col-span-2"><div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-1">Address</div><div>{primary.address}</div></div>)}
+            <div>
+              <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-1">Trading name</div>
+              <div className="font-medium text-ink-900">{primary.name}</div>
+              <div className="text-[11px] text-ink-400 mt-0.5">Managed by BC — contact us to change.</div>
+            </div>
+            {primary.vat && (
+              <div>
+                <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-1">VAT number</div>
+                <div className="font-mono">{primary.vat}</div>
+                <div className="text-[11px] text-ink-400 mt-0.5">Managed by BC.</div>
+              </div>
+            )}
+            {primary.address && (
+              <div className="sm:col-span-2">
+                <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-1">Address</div>
+                <div>{primary.address}</div>
+                <div className="text-[11px] text-ink-400 mt-0.5">Managed by BC.</div>
+              </div>
+            )}
+          </div>
+          {/* Editable contact block — Title-cased server-side. */}
+          <div className="mt-5 pt-4 border-t border-ink-100">
+            <div className="text-xs uppercase tracking-wider text-emerald-700 font-semibold mb-3">You can edit these</div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Input
+                label="Contact name"
+                value={contactName}
+                onChange={(e) => setContactName(e.target.value)}
+                placeholder="Sarah Walsh"
+              />
+              <Input
+                label="Contact email"
+                type="email"
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+                placeholder="sarah@example.ie"
+              />
+              <Input
+                label="Phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+353 1 449 1700"
+              />
+            </div>
           </div>
           <div className="mt-5 pt-4 border-t border-ink-100">
             <Link

@@ -5,6 +5,7 @@ import { initials } from "@/lib/format";
 import { LogOut, ChevronRight, Search } from "lucide-react";
 import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import { CommandPalette, type PaletteItem } from "@/components/ui/CommandPalette";
+import { NotificationBell } from "@/components/ui/NotificationBell";
 
 export interface NavItem {
   to: string;
@@ -106,7 +107,7 @@ export function PortalShell({
           ))}
         </nav>
         <div className="p-3 border-t border-ink-100">
-          <div className="flex items-center gap-3 p-2">
+          <div className="flex items-center gap-2 p-2">
             <div className="h-9 w-9 rounded-full bg-ink-900 text-white text-xs font-bold grid place-items-center">
               {initials(me?.email || "?")}
             </div>
@@ -114,6 +115,7 @@ export function PortalShell({
               <div className="text-xs text-ink-500">{me?.role}</div>
               <div className="text-sm text-ink-800 truncate">{me?.email}</div>
             </div>
+            <NotificationBell />
             <button
               onClick={handleLogout}
               className="p-2 text-ink-400 hover:text-ink-800 hover:bg-ink-100 rounded-md transition"
@@ -129,6 +131,7 @@ export function PortalShell({
       <div className="lg:hidden fixed top-0 inset-x-0 z-40 h-14 bg-white border-b border-ink-100 flex items-center justify-between px-4">
         <Logo mark />
         <div className="flex items-center gap-1">
+          <NotificationBell />
           <button
             onClick={() => setPaletteOpen(true)}
             className="btn-ghost !p-2"

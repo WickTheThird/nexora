@@ -54,7 +54,9 @@ export function Subcontractors() {
   const [primaryId, setPrimaryId] = useState(initialPrimary);
   const [q, setQ] = useState("");
   const [primaries, setPrimaries] = useState<Primary[]>([]);
-  const [createOpen, setCreateOpen] = useState(false);
+  // Auto-open the create modal when navigated with ?new=1 (e.g. from
+  // the admin dashboard "New subcontractor" quick-add button).
+  const [createOpen, setCreateOpen] = useState(searchParams.get("new") === "1");
 
   const load = async (reset: boolean, nextCursor?: string | null) => {
     const r = await api.adminListSubcontractors({

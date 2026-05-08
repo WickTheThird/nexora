@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import type { ChangeRequest, Subcontractor } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { Badge } from "@/components/ui/Badge";
-import { Users, Building2, FileText, Wallet, MessagesSquare, ArrowUpRight, Send } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Users, Building2, FileText, Wallet, MessagesSquare, ArrowUpRight, Send, UserPlus, Plus } from "lucide-react";
 import { fmtDateTime } from "@/lib/format";
 
 type Stats = Awaited<ReturnType<typeof api.adminDashboardStats>>;
@@ -56,6 +57,7 @@ function StatCard({
 }
 
 export function Dashboard() {
+  const nav = useNavigate();
   const [subs, setSubs] = useState<Subcontractor[]>([]);
   const [requests, setRequests] = useState<ChangeRequest[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -87,6 +89,24 @@ export function Dashboard() {
       <PageHeader
         title="Dashboard"
         description="At-a-glance overview of the whole 3-tier flow: principals, subcontractors, and payments."
+        right={
+          <>
+            <Button
+              variant="outline"
+              onClick={() => nav("/admin/primaries?new=1")}
+              leftIcon={<Building2 className="h-4 w-4" />}
+            >
+              New principal
+            </Button>
+            <Button
+              variant="accent"
+              onClick={() => nav("/admin/subcontractors?new=1")}
+              leftIcon={<UserPlus className="h-4 w-4" />}
+            >
+              New subcontractor
+            </Button>
+          </>
+        }
       />
 
       {/* Top row: 3-tier counts. Each card links to its natural drill-down. */}

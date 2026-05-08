@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { api, ApiError } from "@/lib/api";
 import type { Primary } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
@@ -22,7 +22,10 @@ export function Primaries() {
   const [loading, setLoading] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
   const [editing, setEditing] = useState<Primary | null>(null);
-  const [createOpen, setCreateOpen] = useState(false);
+  // Auto-open the create modal when navigated with ?new=1 (from the
+  // admin dashboard "New principal" quick-add button).
+  const [searchParams] = useSearchParams();
+  const [createOpen, setCreateOpen] = useState(searchParams.get("new") === "1");
 
   const refresh = async () => {
     try {

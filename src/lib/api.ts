@@ -148,6 +148,25 @@ export const api = {
     request<Me>("POST", "/auth/login", { body: { email, password } }),
   logout: () => request<Record<string, never>>("POST", "/auth/logout"),
   me: () => request<Me>("GET", "/auth/me"),
+
+  // -------- notifications (any authed user) --------
+  listMyNotifications: (limit = 50, onlyUnread = false) =>
+    request<{
+      items: Array<{
+        id: string; kind: string; title: string; body: string | null;
+        link: string | null; entityType: string | null; entityId: string | null;
+        readAt: number | null; createdAt: number;
+      }>;
+      unreadCount: number;
+    }>("GET", `/me/notifications?limit=${limit}${onlyUnread ? "&unread=1" : ""}`),
+  markNotificationRead: (id: string) =>
+    request<{ ok: true }>("POST", `/me/notifications/${id}/read`),
+  markAllNotificationsRead: () =>
+    request<{ ok: true }>("POST", "/me/notifications/read-all"),
+  getMyNotificationPrefs: () =>
+    request<{ prefs: Record<string, "both" | "email" | "in_app" | "none"> }>("GET", "/me/notification-prefs"),
+  setMyNotificationPrefs: (prefs: Record<string, "both" | "email" | "in_app" | "none">) =>
+    request<{ prefs: Record<string, "both" | "email" | "in_app" | "none"> }>("PUT", "/me/notification-prefs", { body: { prefs } as Json }),
   changePassword: (currentPassword: string, newPassword: string) =>
     request<{ ok: true; sessionToken?: string }>("POST", "/me/change-password", {
       body: { currentPassword, newPassword },
@@ -629,9 +648,14 @@ export const api = {
         humanWindow: string;
       };
     }>("GET", "/me/primary"),
-  // Primary user updates their own scoped fields (only accountantEmail today).
-  patchMyPrimary: (data: { accountantEmail?: string | null }) =>
-    request<Primary>("PATCH", "/me/primary", { body: data as Json }),
+  // Primary user updates their own scoped fields. Company-level info
+  // (name, VAT, address) is still admin-managed.
+  patchMyPrimary: (data: {
+    accountantEmail?: string | null;
+    contactName?: string | null;
+    contactEmail?: string | null;
+    phone?: string | null;
+  }) => request<Primary>("PATCH", "/me/primary", { body: data as Json }),
   // Principal "View/Print Contract" — returns either the most recent
   // signed contract among any of their operatives ("kind: signed") or
   // the active template as a preview ("kind: template_preview").
