@@ -14,11 +14,17 @@ export function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Special case: account exists but not yet email-verified. We surface a
+  // resend-verification CTA inline so the user can recover without
+  // searching their inbox for the original email.
+  const [unverified, setUnverified] = useState(false);
+  const [resending, setResending] = useState(false);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setUnverified(false);
     try {
       const me = await login(email, password);
       if (me.mustChangePassword) nav("/change-password");
@@ -27,16 +33,39 @@ export function Login() {
       else nav("/app");
     } catch (e) {
       if (e instanceof ApiError) {
-        setError(
-          e.code === "RATE_LIMITED"
-            ? "Too many attempts. Try again in a minute."
-            : "Invalid email or password.",
-        );
+        if (e.code === "EMAIL_NOT_VERIFIED") {
+          setUnverified(true);
+          setError(null);
+        } else {
+          setError(
+            e.code === "RATE_LIMITED"
+              ? "Too many attempts. Try again in a minute."
+              : "Invalid email or password.",
+          );
+        }
       } else {
         setError("Unexpected error. Please try again.");
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const resendVerification = async () => {
+    if (!email) return;
+    setResending(true);
+    try {
+      const apiUrl = (window as { __SAMWISE_CONFIG__?: { apiUrl?: string } }).__SAMWISE_CONFIG__?.apiUrl
+        || "https://nexora-api.bumbufilip22.workers.dev";
+      await fetch(`${apiUrl}/auth/resend-verification`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      setError("Verification email sent. Check your inbox.");
+      setUnverified(false);
+    } finally {
+      setResending(false);
     }
   };
 
@@ -93,6 +122,22 @@ export function Login() {
             {error && (
               <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-800">
                 {error}
+              </div>
+            )}
+            {unverified && (
+              <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
+                <div className="font-medium mb-1">Verify your email first</div>
+                <div className="text-xs">
+                  We sent a verification link when you signed up. Click it, then come back here.
+                </div>
+                <button
+                  type="button"
+                  onClick={resendVerification}
+                  disabled={resending}
+                  className="mt-2 text-xs font-medium underline underline-offset-2 hover:no-underline disabled:opacity-50"
+                >
+                  {resending ? "Sending…" : "Resend verification email"}
+                </button>
               </div>
             )}
             <Button

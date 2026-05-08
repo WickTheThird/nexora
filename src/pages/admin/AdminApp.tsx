@@ -33,7 +33,7 @@ const nav = [
   { to: "/admin/subcontractors", label: "Subcontractors", icon: Users },
   { to: "/admin/primary-submissions", label: "Submissions", icon: Inbox },
   { to: "/admin/operative-requests", label: "Operative Requests", icon: Inbox },
-  { to: "/admin/signup-requests", label: "Signup Requests", icon: Inbox },
+  { to: "/admin/signup-requests", label: "Recent Signups", icon: Inbox },
   { to: "/admin/bulk-advice", label: "Bulk Advice", icon: Send },
   { to: "/admin/templates", label: "Contract Templates", icon: FileText },
   { to: "/admin/change-requests", label: "Change Requests", icon: MessagesSquare },

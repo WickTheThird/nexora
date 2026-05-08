@@ -3,6 +3,7 @@ import { useAuth } from "./lib/auth";
 import { ToastProvider } from "./components/ui/Toast";
 import { Login } from "./pages/Login";
 import { Signup } from "./pages/Signup";
+import { VerifyEmail } from "./pages/VerifyEmail";
 import { Help } from "./pages/Help";
 import { ForgotPassword } from "./pages/ForgotPassword";
 import { ResetPassword } from "./pages/ResetPassword";
@@ -61,6 +62,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/signup/:kind" element={<Signup />} />
+        <Route path="/auth/verify" element={<VerifyEmail />} />
         <Route path="/help" element={<Help />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
