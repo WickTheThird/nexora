@@ -183,6 +183,38 @@ export const api = {
     ),
   adminRejectSignupRequest: (id: string, reason: string) =>
     request<{ rejected: true }>("POST", `/admin/signup-requests/${id}/reject`, { body: { reason } as Json }),
+
+  // -------- bulk actions --------
+  adminBulkSubcontractors: (
+    action: "approve" | "set-rct-rate" | "anonymise",
+    ids: string[],
+    extra?: { rctRate?: string },
+  ) => request<{
+    results: Array<{ id: string; ok: boolean; error?: string; note?: string }>;
+    ok: number; failed: number;
+  }>("POST", "/admin/subcontractors/bulk", { body: { action, ids, ...extra } as Json }),
+
+  adminBulkRejectSignupRequests: (ids: string[], reason: string) =>
+    request<{ ok: number; failed: number }>(
+      "POST", "/admin/signup-requests/bulk",
+      { body: { action: "reject", ids, reason } as Json },
+    ),
+
+  adminBulkRejectOperativeRequests: (ids: string[], reason: string) =>
+    request<{ ok: number; failed: number }>(
+      "POST", "/admin/operative-requests/bulk",
+      { body: { action: "reject", ids, reason } as Json },
+    ),
+
+  // Principal-side bulk ops on their roster.
+  meBulkOperatives: (
+    action: "close" | "reactivate" | "accept-pairing" | "decline-pairing",
+    ids: string[],
+    reason?: string,
+  ) => request<{
+    results: Array<{ id: string; ok: boolean; error?: string; note?: string }>;
+    ok: number; failed: number;
+  }>("POST", "/me/primary/operatives/bulk", { body: { action, ids, reason } as Json }),
   changePassword: (currentPassword: string, newPassword: string) =>
     request<{ ok: true; sessionToken?: string }>("POST", "/me/change-password", {
       body: { currentPassword, newPassword },

@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/Input";
 import { Empty } from "@/components/ui/Empty";
 import { useToast } from "@/components/ui/Toast";
 import { Users, ArrowUpRight, Pencil, Save, X, UserPlus, Clock, AlertTriangle, CheckCircle2, PauseCircle, PlayCircle, Search } from "lucide-react";
+import { useSelection } from "@/lib/useSelection";
+import { BulkActionBar, SelectCheckbox } from "@/components/ui/BulkActionBar";
 
 type RequestRow = Awaited<ReturnType<typeof api.listMyOperativeRequests>>["items"][number];
 
@@ -163,6 +165,55 @@ export function PrimarySubcontractors() {
     }
   };
 
+  // Bulk selection (Excel-style). Re-syncs the visible-row order on
+  // every render so shift-click range-select knows what's between two
+  // anchors. Keeps a single Set<string> across all three buckets so
+  // users can mix and match (rare but supported).
+  const sel = useSelection();
+  // Esc clears the selection — Gmail/Linear/Excel pattern.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && sel.count > 0) {
+        sel.clear();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [sel]);
+
+  // Bulk action runners. Each shows a confirm with the count, runs the
+  // bulk endpoint, then refreshes + clears selection. The endpoint
+  // returns per-id results; we toast the aggregate.
+  const runBulk = async (action: "close" | "reactivate" | "accept-pairing" | "decline-pairing", reason?: string) => {
+    const ids = sel.selectedIds;
+    if (ids.length === 0) return;
+    try {
+      const r = await api.meBulkOperatives(action, ids, reason);
+      toast.success(`${r.ok} ${action === "close" ? "closed" : action === "reactivate" ? "reactivated" : action === "accept-pairing" ? "accepted" : "declined"}${r.failed ? ` · ${r.failed} skipped` : ""}`);
+      sel.clear();
+      await refresh();
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Bulk action failed");
+    }
+  };
+  const bulkClose = () => {
+    if (!window.confirm(`Mark ${sel.count} operative${sel.count === 1 ? "" : "s"} as in-active?`)) return;
+    void runBulk("close");
+  };
+  const bulkReactivate = () => {
+    if (!window.confirm(`Reactivate ${sel.count} operative${sel.count === 1 ? "" : "s"}? BC will re-confirm details.`)) return;
+    void runBulk("reactivate");
+  };
+  const bulkAcceptPairing = () => {
+    if (!window.confirm(`Accept ${sel.count} proposed pairing${sel.count === 1 ? "" : "s"}? They'll appear on your Active list.`)) return;
+    void runBulk("accept-pairing");
+  };
+  const bulkDeclinePairing = () => {
+    const reason = window.prompt(`Decline ${sel.count} proposed pairing${sel.count === 1 ? "" : "s"}? Reason (shared with BC):`);
+    if (reason == null) return;
+    void runBulk("decline-pairing", reason || "Bulk-declined");
+  };
+
   // Pairing governance: a sub can be in primaryLinkStatus='proposed'
   // when admin assigns them but the principal hasn't accepted yet.
   const proposed = items.filter(s => s.primaryLinkStatus === "proposed");
@@ -187,11 +238,26 @@ export function PrimarySubcontractors() {
     }
   };
 
-  const renderTable = (rows: SubItem[], allowRateEdit: boolean, bucketKey: "active" | "incomplete" | "closed" = "active") => (
+  const renderTable = (rows: SubItem[], allowRateEdit: boolean, bucketKey: "active" | "incomplete" | "closed" = "active") => {
+    // Snapshot row order for the selection hook so shift-click range
+    // works inside this table.
+    const rowIds = rows.map(r => r.id);
+    sel.setOrder(rowIds);
+    const allVisibleSelected = rowIds.length > 0 && rowIds.every(id => sel.isSelected(id));
+    const someSelected = !allVisibleSelected && rowIds.some(id => sel.isSelected(id));
+    return (
     <div className="card overflow-x-auto">
-      <table className="w-full text-sm min-w-[640px]">
+      <table className="w-full text-sm min-w-[680px]">
         <thead className="bg-ink-50 border-b border-ink-100">
           <tr className="text-left text-xs uppercase tracking-wider text-ink-500 font-semibold">
+            <th className="px-3 py-3 w-8">
+              <SelectCheckbox
+                checked={allVisibleSelected}
+                indeterminate={someSelected}
+                onToggle={() => sel.toggleAll(rowIds)}
+                label="Select all in this section"
+              />
+            </th>
             <th className="px-5 py-3">Sub ref</th>
             <th className="px-5 py-3">Name</th>
             <th className="px-5 py-3">Trade</th>
@@ -203,7 +269,14 @@ export function PrimarySubcontractors() {
         </thead>
         <tbody>
           {rows.map((s) => (
-            <tr key={s.id} className="border-b border-ink-100 last:border-b-0 hover:bg-ink-50/50">
+            <tr key={s.id} className={`border-b border-ink-100 last:border-b-0 hover:bg-ink-50/50 ${sel.isSelected(s.id) ? "bg-accent-50/30" : ""}`}>
+              <td className="px-3 py-3">
+                <SelectCheckbox
+                  checked={sel.isSelected(s.id)}
+                  onToggle={(e) => sel.toggle(s.id, { shift: e.shiftKey })}
+                  label={`Select ${s.fullName || s.subcontractorRef || "row"}`}
+                />
+              </td>
               <td className="px-5 py-3 font-mono text-xs">{s.subcontractorRef || "\u2014"}</td>
               <td className="px-5 py-3">
                 <div className="font-medium text-ink-900">{s.fullName || "\u2014"}</div>
@@ -264,7 +337,8 @@ export function PrimarySubcontractors() {
         </tbody>
       </table>
     </div>
-  );
+    );
+  };
 
   return (
     <>
@@ -444,6 +518,33 @@ export function PrimarySubcontractors() {
           )}
         </div>
       )}
+
+      {/* Floating bulk action bar — appears when ≥1 row is selected.
+          Buttons are scoped to what makes sense for the selected mix:
+          if any row is in 'proposed' state, show accept/decline; if any
+          row has closed_at, show reactivate; otherwise close. */}
+      {sel.count > 0 && (() => {
+        const selectedItems = items.filter(s => sel.isSelected(s.id));
+        const hasProposed   = selectedItems.some(s => s.primaryLinkStatus === "proposed");
+        const hasClosed     = selectedItems.some(s => !!s.closedAt);
+        const hasActive     = selectedItems.some(s => !s.closedAt && s.primaryLinkStatus !== "proposed" && (s.onboardingStatus === "approved" || s.onboardingStatus === "active"));
+        return (
+          <BulkActionBar count={sel.count} onClear={sel.clear} noun="operative">
+            {hasProposed && (
+              <>
+                <Button size="sm" variant="ghost" onClick={bulkDeclinePairing} className="text-white hover:bg-white/10">Decline pairing</Button>
+                <Button size="sm" variant="accent" onClick={bulkAcceptPairing}>Accept pairing</Button>
+              </>
+            )}
+            {hasClosed && !hasProposed && (
+              <Button size="sm" variant="accent" onClick={bulkReactivate}>Reactivate</Button>
+            )}
+            {hasActive && !hasProposed && (
+              <Button size="sm" variant="ghost" onClick={bulkClose} className="text-white hover:bg-white/10">Mark in-active</Button>
+            )}
+          </BulkActionBar>
+        );
+      })()}
     </>
   );
 }

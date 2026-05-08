@@ -34,6 +34,7 @@ export function Signup() {
   // Primary-only
   const [companyName, setCompanyName] = useState("");
   const [companyVat, setCompanyVat] = useState("");
+  const [companyAddress, setCompanyAddress] = useState("");
   // Free-text
   const [notes, setNotes] = useState("");
 
@@ -49,6 +50,7 @@ export function Signup() {
           trade: kind === "subcontractor" ? trade : undefined,
           companyName: kind === "primary" ? companyName : undefined,
           companyVat: kind === "primary" ? companyVat : undefined,
+          companyAddress: kind === "primary" ? companyAddress : undefined,
           notes,
         }),
       });
@@ -100,7 +102,7 @@ export function Signup() {
           <p className="text-ink-300 text-sm leading-relaxed">
             {isPrimary
               ? "We work with developers and main contractors across Ireland. Submit your details and our team will review and approve your account."
-              : "Join the operatives working under BC Construction. Submit your details and we'll review your request — once approved you'll get an email with sign-in details."}
+              : "Submit your details and we'll review your request — once approved you'll get an email with sign-in details."}
           </p>
         </div>
         <div className="relative text-xs text-ink-500">© {new Date().getFullYear()} Samwise · BC</div>
@@ -158,10 +160,19 @@ export function Signup() {
                 placeholder="e.g. Glenveagh Properties Ltd"
               />
               <Input
-                label="Company VAT (optional)"
+                label="Company VAT number"
                 value={companyVat}
                 onChange={(e) => setCompanyVat(e.target.value)}
+                required
                 placeholder="IE9655432T"
+              />
+              <Textarea
+                label="Company address"
+                rows={2}
+                value={companyAddress}
+                onChange={(e) => setCompanyAddress(e.target.value)}
+                required
+                placeholder="Street, town, county, postcode"
               />
             </>
           ) : (
