@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { Logo } from "@/components/ui/Logo";
 import { useAuth } from "@/lib/auth";
 import { initials } from "@/lib/format";
-import { LogOut, ChevronRight, Search } from "lucide-react";
+import { LogOut, ChevronRight, Search, HelpCircle } from "lucide-react";
 import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import { CommandPalette, type PaletteItem } from "@/components/ui/CommandPalette";
 import { NotificationBell } from "@/components/ui/NotificationBell";
@@ -87,7 +87,7 @@ export function PortalShell({
           <span className="flex-1 text-left">Quick search</span>
           <kbd className="font-mono text-[10px] bg-white border border-ink-200 px-1.5 py-0.5 rounded">⌘K</kbd>
         </button>
-        <nav className="flex-1 px-3 space-y-1">
+        <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
           {nav.map((item) => (
             <NavLink
               key={item.to}
@@ -106,6 +106,16 @@ export function PortalShell({
             </NavLink>
           ))}
         </nav>
+        <a
+          href="#/help"
+          target="_blank"
+          rel="noopener"
+          className="mx-3 mb-1 flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-ink-500 hover:bg-ink-100 hover:text-ink-800 transition"
+          title="How Samwise works"
+        >
+          <HelpCircle className="h-4 w-4" />
+          <span>How it works</span>
+        </a>
         <div className="p-3 border-t border-ink-100">
           <div className="flex items-center gap-2 p-2">
             <div className="h-9 w-9 rounded-full bg-ink-900 text-white text-xs font-bold grid place-items-center">

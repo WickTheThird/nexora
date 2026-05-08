@@ -14,13 +14,18 @@ type RequestRow = Awaited<ReturnType<typeof api.listMyOperativeRequests>>["items
 type SubItem = Awaited<ReturnType<typeof api.listMyPrimarySubs>>["items"][number];
 
 // Group operatives Enagh-style: Active vs Incomplete vs Closed.
-//   closed_at non-null              → Closed (principal closed them)
-//   onboarding_status approved/active → Active (eligible for job cards)
-//   rejected                          → Closed
-//   anything else                     → Incomplete
-function bucket(s: SubItem): "active" | "incomplete" | "closed" {
+//   closed_at non-null                 → Closed (principal closed them)
+//   primaryLinkStatus = 'proposed'     → handled separately (proposed
+//                                        section); excluded from buckets
+//   primaryLinkStatus = 'declined'     → Closed
+//   onboarding_status approved/active  → Active (eligible for job cards)
+//   rejected                           → Closed
+//   anything else                      → Incomplete
+function bucket(s: SubItem): "active" | "incomplete" | "closed" | "proposed" {
+  if (s.primaryLinkStatus === "proposed") return "proposed";
   if (s.closedAt) return "closed";
   if (s.onboardingStatus === "rejected") return "closed";
+  if (s.primaryLinkStatus === "declined") return "closed";
   if (s.onboardingStatus === "approved" || s.onboardingStatus === "active") return "active";
   return "incomplete";
 }
@@ -152,6 +157,30 @@ export function PrimarySubcontractors() {
     try {
       await api.reactivateMyPrincipalOperative(s.id);
       toast.success(`${s.fullName || "Operative"} reactivated. BC will re-confirm details.`);
+      await refresh();
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed");
+    }
+  };
+
+  // Pairing governance: a sub can be in primaryLinkStatus='proposed'
+  // when admin assigns them but the principal hasn't accepted yet.
+  const proposed = items.filter(s => s.primaryLinkStatus === "proposed");
+  const acceptPairing = async (s: SubItem) => {
+    try {
+      await api.acceptMyPrincipalPairing(s.id);
+      toast.success(`Accepted ${s.fullName || "operative"} \u2014 they're on your Active list now.`);
+      await refresh();
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed");
+    }
+  };
+  const declinePairing = async (s: SubItem) => {
+    const reason = window.prompt(`Decline pairing with ${s.fullName || s.subcontractorRef || "this operative"}? Reason (will be shared with BC):`);
+    if (reason == null) return;
+    try {
+      await api.declineMyPrincipalPairing(s.id, reason || "No reason given");
+      toast.success(`Declined. BC will reassign or remove the operative.`);
       await refresh();
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : "Failed");
@@ -358,6 +387,33 @@ export function PrimarySubcontractors() {
               title="No matches"
               description={`Nothing matches "${query}". Try a shorter search, or switch the filter chip.`}
             />
+          )}
+
+          {/* Pairing governance: BC has proposed these operatives. Accept
+              to add them to your Active list; decline to send back. */}
+          {proposed.length > 0 && (
+            <section className="rounded-lg border border-accent-200 bg-accent-50/40 p-4">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-accent-700 mb-3 inline-flex items-center gap-2">
+                BC proposed these operatives — your call
+                <Badge tone="warn">{proposed.length}</Badge>
+              </h2>
+              <div className="space-y-3">
+                {proposed.map((s) => (
+                  <div key={s.id} className="card-padded flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
+                    <div className="min-w-0">
+                      <div className="font-medium text-ink-900">{s.fullName || s.subcontractorRef || "Unnamed"}</div>
+                      <div className="text-xs text-ink-500 truncate">
+                        {s.subcontractorRef ? `${s.subcontractorRef} · ` : ""}{s.email}{s.natureOfServices ? ` · ${s.natureOfServices}` : ""}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <Button variant="outline" size="sm" onClick={() => declinePairing(s)} leftIcon={<X className="h-3.5 w-3.5" />}>Decline</Button>
+                      <Button variant="accent"  size="sm" onClick={() => acceptPairing(s)}  leftIcon={<CheckCircle2 className="h-3.5 w-3.5" />}>Accept</Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
           )}
 
           {showBucket("active") && grouped.active.length > 0 && (

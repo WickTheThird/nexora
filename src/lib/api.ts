@@ -167,6 +167,22 @@ export const api = {
     request<{ prefs: Record<string, "both" | "email" | "in_app" | "none"> }>("GET", "/me/notification-prefs"),
   setMyNotificationPrefs: (prefs: Record<string, "both" | "email" | "in_app" | "none">) =>
     request<{ prefs: Record<string, "both" | "email" | "in_app" | "none"> }>("PUT", "/me/notification-prefs", { body: { prefs } as Json }),
+
+  // -------- admin: signup requests inbox --------
+  adminListSignupRequests: (status: "pending" | "approved" | "rejected" = "pending") =>
+    request<{ items: Array<{
+      id: string; kind: "primary" | "subcontractor"; fullName: string; email: string;
+      mobile: string | null; trade: string | null; companyName: string | null; companyVat: string | null;
+      notes: string | null; status: string; reviewedAt: number | null;
+      rejectionReason: string | null; createdAt: number;
+    }> }>("GET", `/admin/signup-requests?status=${status}`),
+  adminApproveSignupRequest: (id: string, primaryId?: string) =>
+    request<{ approved: true; userId: string; tempPassword: string; kind: "primary" | "subcontractor" }>(
+      "POST", `/admin/signup-requests/${id}/approve`,
+      { body: (primaryId ? { primaryId } : {}) as Json },
+    ),
+  adminRejectSignupRequest: (id: string, reason: string) =>
+    request<{ rejected: true }>("POST", `/admin/signup-requests/${id}/reject`, { body: { reason } as Json }),
   changePassword: (currentPassword: string, newPassword: string) =>
     request<{ ok: true; sessionToken?: string }>("POST", "/me/change-password", {
       body: { currentPassword, newPassword },
@@ -856,10 +872,23 @@ export const api = {
         vatReverseCharge: boolean;
         rateAmountMinor: number | null;
         rateUnit: string | null;
-        // Enagh "Closed" bucket — null = active, non-null timestamp = closed.
         closedAt: number | null;
+        // Pairing governance: 'proposed' until principal accepts; 'active'
+        // after; 'declined' if they declined; null if no pairing yet.
+        primaryLinkStatus: "proposed" | "active" | "declined" | null;
+        primaryLinkProposedAt: number | null;
       }>;
     }>("GET", "/me/primary/subcontractors"),
+  // Pairing governance — principal accepts the assignment from admin.
+  acceptMyPrincipalPairing: (subId: string) =>
+    request<{ id: string; primaryLinkStatus: string | null }>(
+      "POST", `/me/primary/operatives/${subId}/accept-pairing`,
+    ),
+  declineMyPrincipalPairing: (subId: string, reason: string) =>
+    request<{ declined: true }>(
+      "POST", `/me/primary/operatives/${subId}/decline-pairing`,
+      { body: { reason } as Json },
+    ),
   // Principal-set Standard Rate per operative (Enagh-style). Server scopes
   // by primary_id so a principal can only edit their own linked subs.
   setMyPrincipalOperativeRate: (

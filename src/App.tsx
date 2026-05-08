@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./lib/auth";
 import { ToastProvider } from "./components/ui/Toast";
 import { Login } from "./pages/Login";
+import { Signup } from "./pages/Signup";
+import { Help } from "./pages/Help";
 import { ForgotPassword } from "./pages/ForgotPassword";
 import { ResetPassword } from "./pages/ResetPassword";
 import { ChangePassword } from "./pages/ChangePassword";
@@ -57,6 +59,9 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Gate />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/signup/:kind" element={<Signup />} />
+        <Route path="/help" element={<Help />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/legal/privacy" element={<PrivacyPolicy />} />

@@ -146,10 +146,12 @@ export function PrimarySubmitPayment() {
         setSites(s.items);
         setSitesLoaded(true);
         // Active operatives only (Enagh: only Active appear on Job Card).
-        // Closed ones (closedAt non-null) are excluded — principal must
-        // re-activate them first if they want them back on the Job Card.
+        //   - Closed ones (closedAt non-null) excluded.
+        //   - Proposed pairings excluded — principal must accept first.
         const active = ops.items.filter(o =>
-          (o.onboardingStatus === "approved" || o.onboardingStatus === "active") && !o.closedAt
+          (o.onboardingStatus === "approved" || o.onboardingStatus === "active") &&
+          !o.closedAt &&
+          o.primaryLinkStatus !== "proposed" && o.primaryLinkStatus !== "declined"
         );
         setOperatives(active);
         if (prim.jobCardCalc) {
