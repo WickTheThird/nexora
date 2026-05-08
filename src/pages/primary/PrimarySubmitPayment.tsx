@@ -507,6 +507,49 @@ export function PrimarySubmitPayment() {
         </div>
       )}
 
+      {/* Quick-fill bar — Excel-style "apply this once, fill many rows".
+          Pick a site, click Apply → every row with a non-zero Qty (or
+          every row with no site set, if no qty filter applies) gets
+          that site. Saves the typical "everyone worked Park West this
+          week" case from N clicks to 2. */}
+      {sites.length > 0 && (
+        <div className="card-padded mb-3 flex flex-col sm:flex-row sm:items-center gap-3 bg-ink-50/40">
+          <div className="text-xs font-semibold uppercase tracking-wider text-ink-500 shrink-0">
+            Quick-fill
+          </div>
+          <select
+            id="bulk-site"
+            className="px-3 py-1.5 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none bg-white"
+            defaultValue=""
+            onChange={(e) => {
+              const sin = e.target.value;
+              if (!sin) return;
+              setRows(prev => prev.map(r => r.siteAddress ? r : { ...r, siteAddress: sin }));
+              toast.success(`Site ${sin} applied to operatives without a site`);
+              e.target.value = "";
+            }}
+          >
+            <option value="">— Apply Site ID to all empty rows —</option>
+            {sites.map((s) => (
+              <option key={s.id} value={s.siteId}>
+                {s.siteId}{s.projectName ? ` \u2014 ${s.projectName}` : ""}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => {
+              if (!window.confirm("Clear hours + extras + materials on every row?")) return;
+              setRows(prev => prev.map(r => ({ ...r, quantity: "0", extras: "0", materialValue: "0" })));
+            }}
+            className="text-xs text-ink-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50"
+            title="Reset numeric fields to 0 across every row"
+          >
+            Clear all hours
+          </button>
+        </div>
+      )}
+
       {/* Operatives roster table — auto-listed from active operatives (Enagh parity) */}
       <div className="card overflow-x-auto mb-5">
         <table className="w-full text-sm">
@@ -544,10 +587,10 @@ export function PrimarySubmitPayment() {
                   <td className="px-3 py-2 font-mono text-xs text-ink-500">{row.operativeId ? row.operativeId.slice(0, 6) : "—"}</td>
                   <td className="px-3 py-2 font-mono text-xs text-ink-700">{row.subcontractorRef || "—"}</td>
                   <td className="px-3 py-2 text-ink-900">{row.subcontractorName || "—"}</td>
-                  <td className="px-2 py-2"><input className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.quantity} onChange={(ev) => updateRow(i, "quantity", ev.target.value)} placeholder="0" /></td>
-                  <td className="px-2 py-2"><input className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.rate} onChange={(ev) => updateRow(i, "rate", ev.target.value)} placeholder="0" /></td>
-                  <td className="px-2 py-2"><input className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.extras} onChange={(ev) => updateRow(i, "extras", ev.target.value)} placeholder="0" /></td>
-                  <td className="px-2 py-2"><input className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.materialValue} onChange={(ev) => updateRow(i, "materialValue", ev.target.value)} placeholder="0" /></td>
+                  <td className="px-2 py-2"><input inputMode="decimal" className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.quantity} onChange={(ev) => updateRow(i, "quantity", ev.target.value)} placeholder="0" /></td>
+                  <td className="px-2 py-2"><input inputMode="decimal" className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.rate} onChange={(ev) => updateRow(i, "rate", ev.target.value)} placeholder="0" /></td>
+                  <td className="px-2 py-2"><input inputMode="decimal" className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.extras} onChange={(ev) => updateRow(i, "extras", ev.target.value)} placeholder="0" /></td>
+                  <td className="px-2 py-2"><input inputMode="decimal" className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.materialValue} onChange={(ev) => updateRow(i, "materialValue", ev.target.value)} placeholder="0" /></td>
                   <td className="px-2 py-2 text-right tabular-nums font-medium text-ink-700">{grossMinor > 0 ? fmtMoneyEur(grossMinor) : "—"}</td>
                   <td className="px-2 py-2">
                     <div className="flex items-center gap-1">

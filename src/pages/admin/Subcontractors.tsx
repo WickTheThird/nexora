@@ -97,6 +97,14 @@ export function Subcontractors() {
     try { await load(true); } finally { setLoading(false); }
   };
 
+  // Debounce live search-as-you-type. 250ms is short enough for "feels
+  // instant" and long enough to skip a fetch per-keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => { applyFilters(); }, 250);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, status, primaryId]);
+
   return (
     <>
       <PageHeader

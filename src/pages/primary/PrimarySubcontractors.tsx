@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Empty } from "@/components/ui/Empty";
 import { useToast } from "@/components/ui/Toast";
-import { Users, ArrowUpRight, Pencil, Save, X, UserPlus, Clock, AlertTriangle, CheckCircle2, PauseCircle, PlayCircle } from "lucide-react";
+import { Users, ArrowUpRight, Pencil, Save, X, UserPlus, Clock, AlertTriangle, CheckCircle2, PauseCircle, PlayCircle, Search } from "lucide-react";
 
 type RequestRow = Awaited<ReturnType<typeof api.listMyOperativeRequests>>["items"][number];
 
@@ -113,11 +113,28 @@ export function PrimarySubcontractors() {
     }
   };
 
-  const grouped = {
-    active: items.filter(s => bucket(s) === "active"),
-    incomplete: items.filter(s => bucket(s) === "incomplete"),
-    closed: items.filter(s => bucket(s) === "closed"),
+  // Search + filter. Plain substring match across name, ref, email,
+  // trade. Bucket filter chips let you focus on one of the three.
+  const [query, setQuery] = useState("");
+  const [bucketFilter, setBucketFilter] = useState<"all" | "active" | "incomplete" | "closed">("all");
+
+  const matchesQuery = (s: SubItem) => {
+    if (!query.trim()) return true;
+    const q = query.toLowerCase();
+    const hay = [s.fullName, s.subcontractorRef, s.email, s.natureOfServices, s.mob, s.tel]
+      .filter(Boolean).join(" ").toLowerCase();
+    return hay.includes(q);
   };
+
+  const filteredItems = items.filter(matchesQuery);
+  const grouped = {
+    active: filteredItems.filter(s => bucket(s) === "active"),
+    incomplete: filteredItems.filter(s => bucket(s) === "incomplete"),
+    closed: filteredItems.filter(s => bucket(s) === "closed"),
+  };
+  // Apply bucketFilter to limit which sections render.
+  const showBucket = (k: "active" | "incomplete" | "closed") =>
+    bucketFilter === "all" || bucketFilter === k;
 
   const closeOperative = async (s: SubItem) => {
     if (!window.confirm(`Mark ${s.fullName || s.subcontractorRef || "this operative"} as no longer active under your contract?\n\nThey will be removed from your Job Card auto-list. You can reactivate them later.`)) return;
@@ -142,8 +159,8 @@ export function PrimarySubcontractors() {
   };
 
   const renderTable = (rows: SubItem[], allowRateEdit: boolean, bucketKey: "active" | "incomplete" | "closed" = "active") => (
-    <div className="card overflow-hidden">
-      <table className="w-full text-sm">
+    <div className="card overflow-x-auto">
+      <table className="w-full text-sm min-w-[640px]">
         <thead className="bg-ink-50 border-b border-ink-100">
           <tr className="text-left text-xs uppercase tracking-wider text-ink-500 font-semibold">
             <th className="px-5 py-3">Sub ref</th>
@@ -299,17 +316,60 @@ export function PrimarySubcontractors() {
           description="When BC Construction assigns a subcontractor to your contract, they'll appear here."
         />
       ) : (
-        <div className="space-y-8">
-          <section>
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-500 mb-3">
-              Active <span className="text-ink-400 font-normal">({grouped.active.length})</span>
-            </h2>
-            {grouped.active.length === 0 ? (
-              <div className="card-padded text-sm text-ink-500">No active operatives.</div>
-            ) : renderTable(grouped.active, true, "active")}
-          </section>
+        <div className="space-y-6">
+          {/* Search + filter chips. Excel-style: a search box and named
+              "tabs" that filter the visible list. Live filter — no
+              submit button, types-as-you-go. */}
+          <div className="card-padded flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400 pointer-events-none" />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by name, sub code, email, trade…"
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-md border border-ink-200 focus:border-ink-900 outline-none"
+              />
+            </div>
+            <div className="flex gap-1 overflow-x-auto -mx-1 px-1">
+              {([
+                ["all",        `All (${filteredItems.length})`],
+                ["active",     `Active (${grouped.active.length})`],
+                ["incomplete", `Incomplete (${grouped.incomplete.length})`],
+                ["closed",     `Closed (${grouped.closed.length})`],
+              ] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setBucketFilter(key)}
+                  className={`whitespace-nowrap px-3 py-1.5 text-xs font-medium rounded-md transition ${
+                    bucketFilter === key ? "bg-ink-900 text-white" : "bg-ink-100 text-ink-700 hover:bg-ink-200"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-          {grouped.incomplete.length > 0 && (
+          {filteredItems.length === 0 && query && (
+            <Empty
+              icon={Search}
+              title="No matches"
+              description={`Nothing matches "${query}". Try a shorter search, or switch the filter chip.`}
+            />
+          )}
+
+          {showBucket("active") && grouped.active.length > 0 && (
+            <section>
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-500 mb-3">
+                Active <span className="text-ink-400 font-normal">({grouped.active.length})</span>
+              </h2>
+              {renderTable(grouped.active, true, "active")}
+            </section>
+          )}
+
+          {showBucket("incomplete") && grouped.incomplete.length > 0 && (
             <section>
               <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-500 mb-3">
                 Incomplete <span className="text-ink-400 font-normal">({grouped.incomplete.length})</span>
@@ -318,7 +378,7 @@ export function PrimarySubcontractors() {
             </section>
           )}
 
-          {grouped.closed.length > 0 && (
+          {showBucket("closed") && grouped.closed.length > 0 && (
             <section>
               <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-500 mb-3">
                 Closed <span className="text-ink-400 font-normal">({grouped.closed.length})</span>

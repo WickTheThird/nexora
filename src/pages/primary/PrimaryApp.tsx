@@ -1,6 +1,9 @@
 import { Route, Routes } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { PortalShell } from "@/components/layout/PortalShell";
-import { LayoutDashboard, Users, FileText, Send, MapPin, MapPinned, User } from "lucide-react";
+import { LayoutDashboard, Users, FileText, Send, MapPin, MapPinned, User, Plus, ClipboardList } from "lucide-react";
+import { api } from "@/lib/api";
+import type { PaletteItem } from "@/components/ui/CommandPalette";
 import { PrimaryDashboard } from "./PrimaryDashboard";
 import { PrimarySubcontractors } from "./PrimarySubcontractors";
 import { PrimarySubDetail } from "./PrimarySubDetail";
@@ -14,12 +17,6 @@ import { PrincipalSiteDetail } from "./PrincipalSiteDetail";
 import { PrincipalSiteIds } from "./PrincipalSiteIds";
 import { PrincipalAccount } from "./PrincipalAccount";
 
-// Portal for the upper-tier Principal (developer / main contractor).
-// Scope: every endpoint is filtered server-side by their primary_id, so they
-// only see their own subs, invoices, submissions, and site activity.
-// Routes still mounted at /primary/* (matches the App router mount); the
-// portal title and nav labels read "Principal" to match the user-facing
-// rename done earlier.
 const nav = [
   { to: "/primary", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/primary/account", label: "Account", icon: User },
@@ -31,8 +28,54 @@ const nav = [
 ];
 
 export function PrimaryApp() {
+  // Build palette items: every linked operative + every site + a few
+  // shortcut actions. Lazy-load on mount so Cmd+K resolves people by name
+  // instantly without a per-keystroke fetch.
+  const [items, setItems] = useState<PaletteItem[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [ops, sites] = await Promise.all([
+          api.listMyPrimarySubs(),
+          api.listMyPrincipalSiteIds(),
+        ]);
+        if (cancelled) return;
+        const peopleItems: PaletteItem[] = ops.items.map((o) => ({
+          id: `op-${o.id}`,
+          label: o.fullName || o.subcontractorRef || "Unnamed operative",
+          hint: [o.subcontractorRef, o.email, o.natureOfServices].filter(Boolean).join(" · ") || undefined,
+          category: "people",
+          icon: Users,
+          to: `/primary/subcontractors/${o.id}`,
+          keywords: [
+            o.subcontractorRef || "",
+            (o.email || "").split("@")[0] || "",
+            o.mob || "",
+          ].filter(Boolean),
+        }));
+        const siteItems: PaletteItem[] = sites.items.map((s) => ({
+          id: `site-${s.id}`,
+          label: s.siteId,
+          hint: s.projectName || s.address || undefined,
+          category: "people",
+          icon: MapPinned,
+          to: `/primary/site-ids`,
+          keywords: [s.projectName || "", s.address || ""].filter(Boolean),
+        }));
+        const actionItems: PaletteItem[] = [
+          { id: "act-new-jc", label: "New Job Card", hint: "Submit hours for this period", category: "actions", icon: Plus, to: "/primary/submissions/new" },
+          { id: "act-job-cards", label: "View Job Cards", hint: "All submissions, draft + locked", category: "actions", icon: ClipboardList, to: "/primary/submissions" },
+        ];
+        setItems([...peopleItems, ...siteItems, ...actionItems]);
+      } catch { /* non-fatal — palette still has the page list */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   return (
-    <PortalShell title="Principal portal" nav={nav}>
+    <PortalShell title="Principal portal" nav={nav} paletteItems={items}>
       <Routes>
         <Route index element={<PrimaryDashboard />} />
         <Route path="account" element={<PrincipalAccount />} />

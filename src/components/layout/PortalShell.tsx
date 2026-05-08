@@ -2,8 +2,9 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { Logo } from "@/components/ui/Logo";
 import { useAuth } from "@/lib/auth";
 import { initials } from "@/lib/format";
-import { LogOut, ChevronRight } from "lucide-react";
-import { useState, type ComponentType, type ReactNode } from "react";
+import { LogOut, ChevronRight, Search } from "lucide-react";
+import { useEffect, useState, type ComponentType, type ReactNode } from "react";
+import { CommandPalette, type PaletteItem } from "@/components/ui/CommandPalette";
 
 export interface NavItem {
   to: string;
@@ -16,14 +17,47 @@ export function PortalShell({
   title,
   nav,
   children,
+  paletteItems,
 }: {
   title: string;
   nav: NavItem[];
   children: ReactNode;
+  // Cmd+K command palette items (people / pages / actions) — supplied
+  // per-portal via the AppShell wrapper. Optional: if absent we still
+  // render a Cmd+K affordance with just the page list.
+  paletteItems?: PaletteItem[];
 }) {
   const { me, logout } = useAuth();
   const nav_ = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+
+  // Global Cmd+K / Ctrl+K shortcut. Excel users will recognise this from
+  // VS Code, Slack, Spotlight. We deliberately match the K binding (not
+  // /) so it's familiar across tools they already use.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const isCmd = e.metaKey || e.ctrlKey;
+      if (isCmd && (e.key === "k" || e.key === "K")) {
+        e.preventDefault();
+        setPaletteOpen(p => !p);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // Always-available items: navigate to any nav entry. Caller can extend
+  // with people / actions.
+  const builtinPageItems: PaletteItem[] = nav.map(n => ({
+    id: `page-${n.to}`,
+    label: n.label,
+    category: "pages",
+    icon: n.icon,
+    to: n.to,
+    keywords: [title.toLowerCase()],
+  }));
+  const allItems: PaletteItem[] = [...(paletteItems || []), ...builtinPageItems];
 
   const handleLogout = async () => {
     await logout();
@@ -40,6 +74,18 @@ export function PortalShell({
         <div className="px-4 py-5 text-xs uppercase tracking-wider text-ink-400 font-semibold">
           {title}
         </div>
+        {/* Cmd+K affordance — shows the keyboard hint and acts as a
+            click target for users who don't yet know the shortcut. */}
+        <button
+          type="button"
+          onClick={() => setPaletteOpen(true)}
+          className="mx-3 mb-3 flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-ink-500 bg-ink-50 hover:bg-ink-100 hover:text-ink-800 transition border border-ink-100"
+          title="Open command palette"
+        >
+          <Search className="h-4 w-4" />
+          <span className="flex-1 text-left">Quick search</span>
+          <kbd className="font-mono text-[10px] bg-white border border-ink-200 px-1.5 py-0.5 rounded">⌘K</kbd>
+        </button>
         <nav className="flex-1 px-3 space-y-1">
           {nav.map((item) => (
             <NavLink
@@ -81,14 +127,24 @@ export function PortalShell({
 
       {/* Mobile header */}
       <div className="lg:hidden fixed top-0 inset-x-0 z-40 h-14 bg-white border-b border-ink-100 flex items-center justify-between px-4">
-        <Logo />
-        <button
-          onClick={() => setMenuOpen(true)}
-          className="btn-ghost !p-2"
-          aria-label="Menu"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </button>
+        <Logo mark />
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setPaletteOpen(true)}
+            className="btn-ghost !p-2"
+            aria-label="Search"
+            title="Quick search"
+          >
+            <Search className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => setMenuOpen(true)}
+            className="btn-ghost !p-2"
+            aria-label="Menu"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
       </div>
       {menuOpen && (
         <div
@@ -130,12 +186,47 @@ export function PortalShell({
         </div>
       )}
 
-      {/* Main content */}
-      <main className="flex-1 min-w-0 pt-14 lg:pt-0">
+      {/* Main content. Bottom padding on mobile leaves room for the
+          fixed bottom-nav so content doesn't sit underneath it. */}
+      <main className="flex-1 min-w-0 pt-14 lg:pt-0 pb-20 lg:pb-0">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-6 lg:py-10">
           {children}
         </div>
       </main>
+
+      {/* Mobile bottom-nav. Phone-friendly thumb-zone for the most-used
+          shortcuts. Hidden ≥lg where the sidebar takes over. We show
+          AT MOST 5 items + a search button so the row stays one-handed
+          reachable. */}
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 h-16 bg-white border-t border-ink-100 flex items-stretch">
+        {nav.slice(0, 4).map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            className={({ isActive }) =>
+              `flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] ${
+                isActive ? "text-ink-900 font-semibold" : "text-ink-500"
+              }`
+            }
+          >
+            <item.icon className="h-5 w-5" />
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
+        <button
+          type="button"
+          onClick={() => setPaletteOpen(true)}
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] text-ink-500"
+          title="Search (⌘K)"
+        >
+          <Search className="h-5 w-5" />
+          <span>Search</span>
+        </button>
+      </nav>
+
+      {/* Global Cmd+K command palette */}
+      <CommandPalette items={allItems} open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
   );
 }
@@ -149,17 +240,23 @@ export function PageHeader({
   description?: string;
   right?: ReactNode;
 }) {
+  // Mobile: stack vertically with the action buttons full-width below
+  // the heading. Desktop: keep title left, actions right.
   return (
-    <div className="flex items-start justify-between gap-4 mb-8">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-ink-900">
+    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
+      <div className="min-w-0">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-ink-900">
           {title}
         </h1>
         {description && (
-          <p className="text-ink-500 mt-1.5 max-w-2xl">{description}</p>
+          <p className="text-sm sm:text-base text-ink-500 mt-1 sm:mt-1.5 max-w-2xl">{description}</p>
         )}
       </div>
-      {right && <div className="flex-shrink-0 flex gap-2">{right}</div>}
+      {right && (
+        <div className="flex-shrink-0 flex flex-wrap gap-2">
+          {right}
+        </div>
+      )}
     </div>
   );
 }
