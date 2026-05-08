@@ -7,7 +7,7 @@
 //   - verified   — success; CTA to sign in
 //   - error      — invalid / expired token; CTA to resend
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Logo } from "@/components/ui/Logo";
 import { CheckCircle2, AlertTriangle, ArrowRight, Loader2 } from "lucide-react";
@@ -24,12 +24,22 @@ export function VerifyEmail() {
   const [resendEmail, setResendEmail] = useState<string>("");
   const [resending, setResending] = useState(false);
 
+  // React 18 Strict Mode runs effects twice in dev. The verify POST is
+  // not idempotent on the admin-notification side (each call to
+  // /auth/verify-email re-fires the "signup_verified" admin notification
+  // if `email_verified_at` was still NULL at the time of the read,
+  // which races between the two concurrent calls). Guard with a ref so
+  // we only fire once per mount.
+  const verifyFiredRef = useRef(false);
+
   useEffect(() => {
     if (!token) {
       setState("error");
       setErrorMsg("Verification link is missing the token. Check the link from your email.");
       return;
     }
+    if (verifyFiredRef.current) return;
+    verifyFiredRef.current = true;
     let cancelled = false;
     (async () => {
       try {

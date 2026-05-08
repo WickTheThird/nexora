@@ -136,13 +136,13 @@ export function Signup() {
           <Icon className="h-10 w-10 text-accent-400" />
           <h2 className="text-3xl font-bold tracking-tight leading-tight">
             {isPrimary
-              ? <>Apply for a <span className="text-accent-400">Principal</span> account.</>
-              : <>Apply for a <span className="text-accent-400">Subcontractor</span> account.</>}
+              ? <>Create a <span className="text-accent-400">Principal</span> account.</>
+              : <>Create a <span className="text-accent-400">Subcontractor</span> account.</>}
           </h2>
           <p className="text-ink-300 text-sm leading-relaxed">
             {isPrimary
-              ? "We work with developers and main contractors across Ireland. Submit your details and our team will review and approve your account."
-              : "Submit your details and we'll review your request — once approved you'll get an email with sign-in details."}
+              ? "Sign up in two minutes. We'll email a verification link, then you can sign in straight away. BC handles the moderation in the background."
+              : "Sign up in two minutes. We'll email a verification link, then you can sign in. BC links you to your principal contractor in the background."}
           </p>
         </div>
         <div className="relative text-xs text-ink-500">© {new Date().getFullYear()} Samwise · BC</div>
@@ -254,7 +254,7 @@ export function Signup() {
           />
 
           <Button type="submit" variant="accent" loading={submitting} className="w-full" rightIcon={<ArrowRight className="h-4 w-4" />}>
-            {submitting ? "Submitting…" : "Submit request"}
+            {submitting ? "Creating…" : "Create account"}
           </Button>
           <p className="text-[11px] text-ink-400 text-center">
             By submitting you agree to our{" "}
