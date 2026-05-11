@@ -77,7 +77,7 @@ export function Login() {
           backgroundImage: "radial-gradient(circle at 20% 20%, #F59E0B 0, transparent 40%), radial-gradient(circle at 80% 60%, #fff 0, transparent 30%)"
         }} />
         <div className="relative">
-          {/* Dark hero panel — light text on the wordmark. */}
+          {/* Dark hero panel - light text on the wordmark. */}
           <Logo inverse />
         </div>
         <div className="relative space-y-6">

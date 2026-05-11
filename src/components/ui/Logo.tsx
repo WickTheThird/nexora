@@ -3,11 +3,11 @@
 //   Wordmark = "Samwise" in display font + "Building Contractors" subtitle
 //
 // Props:
-//   mark    — render just the badge (sidebar collapsed, mobile, etc.)
-//   inverse — light text for use on dark backgrounds (login hero, splash)
+//   mark    - render just the badge (sidebar collapsed, mobile, etc.)
+//   inverse - light text for use on dark backgrounds (login hero, splash)
 //
 // The icon lives in /public so it's served at the site root. We reference it
-// by URL string rather than ES-importing — Vite leaves public assets alone
+// by URL string rather than ES-importing - Vite leaves public assets alone
 // (no hashing) so the path is stable across deploys.
 // Prefix with the Vite base URL so the path resolves correctly when the app
 // is mounted under a sub-path (e.g. GitHub Pages serves us from /nexora/).

@@ -3,7 +3,7 @@
 // shows last 10 with mark-read on click. "Mark all read" button.
 //
 // Quiet failure: if the endpoint 404s (worker not yet deployed with this
-// migration applied), we just hide the bell — don't break the layout.
+// migration applied), we just hide the bell - don't break the layout.
 
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";

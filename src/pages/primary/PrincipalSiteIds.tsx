@@ -9,7 +9,7 @@ import { Plus, Trash2, MapPinned } from "lucide-react";
 
 // Managed Site IDs registry (Enagh-style). The principal adds their
 // Revenue-registered SIN codes once; they then become the dropdown
-// options on every Job Card / payment submission. Soft-archive only \u2014
+// options on every Job Card / payment submission. Soft-archive only -
 // past payment_records may still reference the SIN string.
 
 type SiteRow = Awaited<ReturnType<typeof api.listMyPrincipalSiteIds>>["items"][number];
@@ -78,10 +78,10 @@ export function PrincipalSiteIds() {
         <a href="https://ros.ie" target="_blank" rel="noopener noreferrer" className="underline">
           ros.ie
         </a>{" "}
-        — your contract manager on site usually has them.
+        - your contract manager on site usually has them.
       </p>
 
-      {/* Add new — sits above the list, like Enagh's "New ID" field */}
+      {/* Add new - sits above the list, like Enagh's "New ID" field */}
       <form onSubmit={add} className="card-padded mb-6">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-500 mb-3">Add a new Site ID</h2>
         <div className="grid sm:grid-cols-4 gap-3 items-end">
@@ -116,7 +116,7 @@ export function PrincipalSiteIds() {
         <Empty
           icon={MapPinned}
           title="No site IDs yet"
-          description="Add your first Revenue SIN above. You can add more any time — they appear as a dropdown when subs or your office submit payment data."
+          description="Add your first Revenue SIN above. You can add more any time - they appear as a dropdown when subs or your office submit payment data."
         />
       ) : (
         <div className="card overflow-hidden">
@@ -133,8 +133,8 @@ export function PrincipalSiteIds() {
               {items.map((row) => (
                 <tr key={row.id} className="border-b border-ink-100 last:border-b-0 hover:bg-ink-50/50">
                   <td className="px-5 py-3 font-mono text-sm text-ink-900 font-semibold">{row.siteId}</td>
-                  <td className="px-5 py-3 text-ink-700">{row.projectName || <span className="text-ink-400">{"\u2014"}</span>}</td>
-                  <td className="px-5 py-3 text-ink-600 text-xs">{row.address || <span className="text-ink-400">{"\u2014"}</span>}</td>
+                  <td className="px-5 py-3 text-ink-700">{row.projectName || <span className="text-ink-400">{"-"}</span>}</td>
+                  <td className="px-5 py-3 text-ink-600 text-xs">{row.address || <span className="text-ink-400">{"-"}</span>}</td>
                   <td className="px-5 py-3 text-right">
                     <button
                       type="button"

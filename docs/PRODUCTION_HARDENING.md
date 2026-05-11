@@ -2,7 +2,7 @@
 
 Steps to harden the Samwise stack before opening it to real Revenue-bound
 data flows. Each item is independent and can be done in any order. None of
-them block the demo — these are the "before real subcontractors with real
+them block the demo - these are the "before real subcontractors with real
 PPS numbers sign in" checklist.
 
 ---
@@ -61,15 +61,15 @@ Free plan allows one rate-limiting rule. If you need multiple (e.g. stricter
 on `/auth/login`), upgrade to Pro (€20/mo) which gives 5 rules.
 
 Recommended additional rules on Pro:
-- `/auth/login` — 5 req/min per IP, block 5 min (defends credential stuffing)
-- `/auth/request-password-reset` — 3 req/min per IP (defends spray)
-- `/admin/bulk-advice/import` — 5 req/min per IP (defends CSV-based abuse)
+- `/auth/login` - 5 req/min per IP, block 5 min (defends credential stuffing)
+- `/auth/request-password-reset` - 3 req/min per IP (defends spray)
+- `/admin/bulk-advice/import` - 5 req/min per IP (defends CSV-based abuse)
 
 ---
 
 ## 3. D1 Backup strategy
 
-D1 has built-in **Time Travel** — automatic point-in-time restore for the
+D1 has built-in **Time Travel** - automatic point-in-time restore for the
 last 30 days. This covers most accidental-delete scenarios. Verify it's on:
 
 ```bash
@@ -139,7 +139,7 @@ data protection and contract law. Specifically:
   (six years is the default safe retention)
 
 **Incremental update process**: when the solicitor's edits land, bump
-`PRIVACY_VERSION` and `TERMS_VERSION` constants in the respective files —
+`PRIVACY_VERSION` and `TERMS_VERSION` constants in the respective files -
 the existing consent gate detects version mismatches and prompts every
 user to re-accept on next sign-in (already wired up).
 
@@ -151,7 +151,7 @@ user to re-accept on next sign-in (already wired up).
   and verify they land in inbox, not spam. If they spam, set up DKIM/SPF
   alignment in Brevo + add a DMARC record on `samwisebc.com`.
 - **Domain SSL grade**: Run `https://www.ssllabs.com/ssltest/analyze.html?d=samwisebc.com`
-  — should be A+ via Cloudflare. If not, check your origin certs.
+  - should be A+ via Cloudflare. If not, check your origin certs.
 - **GitHub Actions secrets rotation**: rotate `CLOUDFLARE_API_TOKEN`
   every 90 days.
 - **Worker secret rotation**: rotate `BREVO_API_KEY` every 6 months or on

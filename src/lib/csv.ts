@@ -37,7 +37,7 @@ export function downloadCsv(filename: string, csv: string): void {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  // Free the blob URL after a tick — browsers complete the download asynchronously.
+  // Free the blob URL after a tick - browsers complete the download asynchronously.
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 

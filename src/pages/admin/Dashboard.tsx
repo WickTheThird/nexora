@@ -41,7 +41,7 @@ function StatCard({
     </>
   );
   // When `to` is set the whole card becomes a link with a hover lift and an
-  // arrow chip in the corner — clearly affording navigation.
+  // arrow chip in the corner - clearly affording navigation.
   if (to) {
     return (
       <Link

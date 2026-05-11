@@ -15,21 +15,21 @@
 # Why we don't declare secrets in this file:
 #   AUTH_SECRET, BREVO_API_KEY, etc. are managed via `wrangler secret put`
 #   so they never land in git. EMAIL_FROM, APP_URL, ALLOWED_ORIGINS are
-#   already set as Plaintext vars in the dashboard — leaving them out of
+#   already set as Plaintext vars in the dashboard - leaving them out of
 #   this file means wrangler won't overwrite them on deploy.
 
 name = "nexora-api"
 main = "worker.js"
 compatibility_date = "2025-01-01"
 
-# D1 binding — env.DB in worker.js. Database itself was created via the
+# D1 binding - env.DB in worker.js. Database itself was created via the
 # dashboard ("nexora"). Get its UUID from `npx wrangler d1 list`.
 [[d1_databases]]
 binding = "DB"
 database_name = "nexora"
-database_id = "TODO"  # ← replace with UUID from `npx wrangler d1 list`
+database_id = "b9f5a8bb-38e2-4c60-b360-c331e4a3de96"
 
-# R2 binding — env.BUCKET in worker.js. Bucket already exists.
+# R2 binding - env.BUCKET in worker.js. Bucket already exists.
 [[r2_buckets]]
 binding = "BUCKET"
 bucket_name = "nexora-projects"

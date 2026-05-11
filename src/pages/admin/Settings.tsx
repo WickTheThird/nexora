@@ -160,7 +160,7 @@ export function Settings() {
           </div>
         </section>
 
-        {/* Job Card calculator — VAT rate + default Less Subs. These appear
+        {/* Job Card calculator - VAT rate + default Less Subs. These appear
             as the live "Calculate" card on every Principal Job Card form. */}
         <section className="card-padded">
           <h2 className="text-base font-semibold text-ink-900 mb-1">Job Card calculator</h2>
@@ -196,7 +196,7 @@ export function Settings() {
           </div>
         </section>
 
-        {/* Principal portal — Latest News + Changes Request email */}
+        {/* Principal portal - Latest News + Changes Request email */}
         <section className="card-padded">
           <h2 className="text-base font-semibold text-ink-900 mb-1">Principal portal</h2>
           <p className="text-sm text-ink-500 mb-5">
@@ -222,7 +222,7 @@ export function Settings() {
           </div>
         </section>
 
-        {/* Invoice template — admin controls every visible part of the PDF.
+        {/* Invoice template - admin controls every visible part of the PDF.
             Toggles default to ON when blank; freeform fields blank → hidden. */}
         <section className="card-padded">
           <h2 className="text-base font-semibold text-ink-900 mb-1">Invoice template</h2>

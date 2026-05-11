@@ -1,6 +1,6 @@
 // Thin fetch wrapper that talks to the Samwise Worker API.
 // Reads the API base URL from runtime config (public/config.js), not from build
-// flags — so the SAME build artifact can be deployed to different domains.
+// flags - so the SAME build artifact can be deployed to different domains.
 
 import type {
   AppSettings,
@@ -343,13 +343,13 @@ export const api = {
   adminCreateSubcontractor: (data: {
     email: string;
     fullName?: string;
-    // Required \u2014 stored encrypted at rest. Captured at create time so
+    // Required - stored encrypted at rest. Captured at create time so
     // admin can record it during initial onboarding.
     ppsNumber?: string;
-    // Optional \u2014 link the sub to a Principal from the creation modal.
+    // Optional - link the sub to a Principal from the creation modal.
     // Server validates the principal exists + isn't archived.
     primaryId?: string;
-    // (clientRef no longer accepted from the client \u2014 worker auto-
+    // (clientRef no longer accepted from the client - worker auto-
     // generates CLI-NNNN. Same for subcontractor_ref \u2192 SUB-NNNN.)
   }) =>
     request<{
@@ -397,7 +397,7 @@ export const api = {
       `/admin/subcontractors/${id}/generate-contract`,
       { body: templateId ? { templateId } : {} },
     ),
-  // Admin-side fetch of an operative's most recent contract — used by the
+  // Admin-side fetch of an operative's most recent contract - used by the
   // "Print contract" action on the Subcontractor detail Contract tab.
   adminGetContract: (id: string) =>
     request<ContractRecord>("GET", `/admin/subcontractors/${id}/contract`),
@@ -693,7 +693,7 @@ export const api = {
       // Email used by the principal's "Changes Request" button
       changesRequestEmail?: string | null;
       // True once any operative under this principal has signed their
-      // contract — drives the "Contract Signed and Complete" banner.
+      // contract - drives the "Contract Signed and Complete" banner.
       contractSigned?: boolean;
       contractSignedAt?: number | null;
       // Enagh's "Friday 2:30pm – Wednesday 2pm" operative-add cutoff.
@@ -710,7 +710,7 @@ export const api = {
     contactEmail?: string | null;
     phone?: string | null;
   }) => request<Primary>("PATCH", "/me/primary", { body: data as Json }),
-  // Principal "View/Print Contract" — returns either the most recent
+  // Principal "View/Print Contract" - returns either the most recent
   // signed contract among any of their operatives ("kind: signed") or
   // the active template as a preview ("kind: template_preview").
   getMyPrimaryContract: () =>
@@ -721,7 +721,7 @@ export const api = {
 
   // -------- primary site IDs (managed registry) --------
   // Per-principal list of registered Revenue SIN numbers (DUB48662N etc.).
-  // Mirrors Enagh's "Site IDs" page \u2014 add once, reuse on every Job Card.
+  // Mirrors Enagh's "Site IDs" page - add once, reuse on every Job Card.
   listMyPrincipalSiteIds: (includeArchived = false) =>
     request<{
       items: Array<{
@@ -917,7 +917,7 @@ export const api = {
         primaryLinkProposedAt: number | null;
       }>;
     }>("GET", "/me/primary/subcontractors"),
-  // Pairing governance — principal accepts the assignment from admin.
+  // Pairing governance - principal accepts the assignment from admin.
   acceptMyPrincipalPairing: (subId: string) =>
     request<{ id: string; primaryLinkStatus: string | null }>(
       "POST", `/me/primary/operatives/${subId}/accept-pairing`,

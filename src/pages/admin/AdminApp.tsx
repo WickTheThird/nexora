@@ -80,7 +80,7 @@ export function AdminApp() {
           { id: "act-submissions", label: "Submissions inbox", hint: "Pending Job Cards from principals", category: "actions", icon: Inbox, to: "/admin/primary-submissions" },
         ];
         setItems([...peopleItems, ...actionItems]);
-      } catch { /* non-fatal — palette still has the page list */ }
+      } catch { /* non-fatal - palette still has the page list */ }
     })();
     return () => { cancelled = true; };
   }, []);

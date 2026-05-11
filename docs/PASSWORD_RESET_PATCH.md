@@ -1,4 +1,4 @@
-# Password Reset — Worker Patch (Brevo)
+# Password Reset - Worker Patch (Brevo)
 
 Three pieces to apply by hand:
 
@@ -36,24 +36,24 @@ CREATE INDEX IF NOT EXISTS idx_prt_expires ON password_reset_tokens(expires_at);
 | `EMAIL_FROM`      | `Samwise <noreply@samwisebc.com>`                |
 | `APP_URL`         | `https://samwisebc.com`                          |
 
-`EMAIL_FROM` must use a domain you've verified in Brevo. Until you finish DNS (DKIM + SPF + DMARC), Brevo will reject sends from that address — use the Brevo sandbox sender for first smoke tests.
+`EMAIL_FROM` must use a domain you've verified in Brevo. Until you finish DNS (DKIM + SPF + DMARC), Brevo will reject sends from that address - use the Brevo sandbox sender for first smoke tests.
 
 ---
 
 ## 3) JS to add to `worker.js`
 
-### 3a — Constants (near the top, alongside `RCT_RATES`, `TIMESHEET_STATUSES`)
+### 3a - Constants (near the top, alongside `RCT_RATES`, `TIMESHEET_STATUSES`)
 
 ```js
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
 const RESET_RATE_LIMIT_PER_HOUR = 5;        // per email + per IP
 ```
 
-### 3b — `sendEmail` helper (Brevo Transactional)
+### 3b - `sendEmail` helper (Brevo Transactional)
 
 ```js
 // Send a transactional email via Brevo. Returns true on success, false on
-// failure (we never throw — email is best-effort, never blocks the API).
+// failure (we never throw - email is best-effort, never blocks the API).
 async function sendEmail(env, { to, subject, html, text }) {
   if (!env.BREVO_API_KEY) {
     console.warn("BREVO_API_KEY not set, skipping email to", to);
@@ -104,7 +104,7 @@ function generateResetToken() {
 }
 ```
 
-### 3c — Request-reset handler
+### 3c - Request-reset handler
 
 ```js
 // POST /auth/request-password-reset  { email }
@@ -114,7 +114,7 @@ async function handleRequestPasswordReset(req, env) {
   const body = await req.json().catch(() => ({}));
   const email = String(body.email || "").trim().toLowerCase();
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    return jsonOk({ ok: true }); // Silent — don't leak validation either.
+    return jsonOk({ ok: true }); // Silent - don't leak validation either.
   }
 
   const ip = req.headers.get("cf-connecting-ip") || "unknown";
@@ -161,10 +161,10 @@ Someone (hopefully you) requested a password reset for your Samwise account.
 Reset your password here (link expires in 1 hour):
 ${link}
 
-If you didn't request this, you can safely ignore this email — your password
+If you didn't request this, you can safely ignore this email - your password
 won't change.
 
-— Samwise`;
+- Samwise`;
   const html = `
 <div style="font-family: -apple-system, Segoe UI, Helvetica, Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; color: #111;">
   <h2 style="margin: 0 0 12px;">Reset your Samwise password</h2>
@@ -178,7 +178,7 @@ won't change.
   <p style="font-size: 12px; color:#888;">Samwise · bc</p>
 </div>`;
 
-  // Fire and forget — don't make the user wait for SMTP, and don't reveal
+  // Fire and forget - don't make the user wait for SMTP, and don't reveal
   // success/failure of email delivery in the response.
   ctx_waitUntil(req, sendEmail(env, { to: email, subject, html, text }));
 
@@ -189,9 +189,9 @@ won't change.
 > Note: replace `ctx_waitUntil(req, ...)` with however your worker passes
 > `ctx` into handlers. If your handler signature is `(req, env, ctx)`, just
 > use `ctx.waitUntil(sendEmail(...))`. If you don't have ctx, `await` the
-> send instead — adds ~300 ms to the response.
+> send instead - adds ~300 ms to the response.
 
-### 3d — Reset-password handler
+### 3d - Reset-password handler
 
 ```js
 // POST /auth/reset-password  { token, newPassword }
@@ -223,7 +223,7 @@ async function handleResetPassword(req, env) {
     env.DB.prepare(
       `UPDATE password_reset_tokens SET consumed_at = ? WHERE token = ?`,
     ).bind(now, token),
-    // Kill all sessions for this user — force fresh login everywhere.
+    // Kill all sessions for this user - force fresh login everywhere.
     env.DB.prepare(`DELETE FROM sessions WHERE user_id = ?`).bind(row.user_id),
   ]);
 
@@ -239,7 +239,7 @@ async function handleResetPassword(req, env) {
 }
 ```
 
-### 3e — Route wiring (in your main router)
+### 3e - Route wiring (in your main router)
 
 Add these BEFORE the auth-required dispatch:
 
@@ -268,4 +268,4 @@ curl -X POST https://nexora-api.bumbufilip22.workers.dev/auth/reset-password \
   -d '{"token":"PASTE_TOKEN_HERE","newPassword":"a-real-strong-password"}'
 ```
 
-Then sign in with the new password — old sessions should be gone.
+Then sign in with the new password - old sessions should be gone.

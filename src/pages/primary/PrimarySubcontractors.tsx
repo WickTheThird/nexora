@@ -86,7 +86,7 @@ export function PrimarySubcontractors() {
         email: reqEmail.trim() || undefined,
         notes: reqNotes.trim() || undefined,
       });
-      toast.success("Request sent to BC \u2014 they'll review and add the operative");
+      toast.success("Request sent to BC - they'll review and add the operative");
       setReqName(""); setReqMobile(""); setReqEmail(""); setReqNotes("");
       setReqOpen(false);
       await refresh();
@@ -170,7 +170,7 @@ export function PrimarySubcontractors() {
   // anchors. Keeps a single Set<string> across all three buckets so
   // users can mix and match (rare but supported).
   const sel = useSelection();
-  // Esc clears the selection — Gmail/Linear/Excel pattern.
+  // Esc clears the selection - Gmail/Linear/Excel pattern.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && sel.count > 0) {
@@ -220,7 +220,7 @@ export function PrimarySubcontractors() {
   const acceptPairing = async (s: SubItem) => {
     try {
       await api.acceptMyPrincipalPairing(s.id);
-      toast.success(`Accepted ${s.fullName || "operative"} \u2014 they're on your Active list now.`);
+      toast.success(`Accepted ${s.fullName || "operative"} - they're on your Active list now.`);
       await refresh();
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : "Failed");
@@ -277,14 +277,14 @@ export function PrimarySubcontractors() {
                   label={`Select ${s.fullName || s.subcontractorRef || "row"}`}
                 />
               </td>
-              <td className="px-5 py-3 font-mono text-xs">{s.subcontractorRef || "\u2014"}</td>
+              <td className="px-5 py-3 font-mono text-xs">{s.subcontractorRef || "-"}</td>
               <td className="px-5 py-3">
-                <div className="font-medium text-ink-900">{s.fullName || "\u2014"}</div>
+                <div className="font-medium text-ink-900">{s.fullName || "-"}</div>
                 {s.email && <div className="text-xs text-ink-500 mt-0.5">{s.email}</div>}
               </td>
-              <td className="px-5 py-3 text-ink-700">{s.natureOfServices || <span className="text-ink-400">{"\u2014"}</span>}</td>
+              <td className="px-5 py-3 text-ink-700">{s.natureOfServices || <span className="text-ink-400">{"-"}</span>}</td>
               <td className="px-5 py-3"><Badge tone="info">{s.onboardingStatus.replace(/_/g, " ")}</Badge></td>
-              <td className="px-5 py-3 text-ink-700">{s.rctRate ? `${s.rctRate}%` : <span className="text-ink-400">{"\u2014"}</span>}</td>
+              <td className="px-5 py-3 text-ink-700">{s.rctRate ? `${s.rctRate}%` : <span className="text-ink-400">{"-"}</span>}</td>
               <td className="px-5 py-3 text-ink-700 tabular-nums">
                 {allowRateEdit && editingRate === s.id ? (
                   <div className="flex items-center gap-1">
@@ -305,7 +305,7 @@ export function PrimarySubcontractors() {
                 ) : (
                   <div className="flex items-center gap-2">
                     <span className={s.rateAmountMinor != null ? "" : "text-ink-400"}>
-                      {fmtRate(s.rateAmountMinor, s.rateUnit) ?? "\u2014"}
+                      {fmtRate(s.rateAmountMinor, s.rateUnit) ?? "-"}
                     </span>
                     {allowRateEdit && (
                       <button type="button" onClick={() => startEdit(s)} className="text-ink-300 hover:text-ink-700" title="Edit rate">
@@ -421,7 +421,7 @@ export function PrimarySubcontractors() {
       ) : (
         <div className="space-y-6">
           {/* Search + filter chips. Excel-style: a search box and named
-              "tabs" that filter the visible list. Live filter — no
+              "tabs" that filter the visible list. Live filter - no
               submit button, types-as-you-go. */}
           <div className="card-padded flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
             <div className="relative flex-1 min-w-0">
@@ -468,7 +468,7 @@ export function PrimarySubcontractors() {
           {proposed.length > 0 && (
             <section className="rounded-lg border border-accent-200 bg-accent-50/40 p-4">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-accent-700 mb-3 inline-flex items-center gap-2">
-                BC proposed these operatives — your call
+                BC proposed these operatives - your call
                 <Badge tone="warn">{proposed.length}</Badge>
               </h2>
               <div className="space-y-3">
@@ -519,7 +519,7 @@ export function PrimarySubcontractors() {
         </div>
       )}
 
-      {/* Floating bulk action bar — appears when ≥1 row is selected.
+      {/* Floating bulk action bar - appears when ≥1 row is selected.
           Buttons are scoped to what makes sense for the selected mix:
           if any row is in 'proposed' state, show accept/decline; if any
           row has closed_at, show reactivate; otherwise close. */}

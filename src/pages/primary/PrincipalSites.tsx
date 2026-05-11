@@ -16,7 +16,7 @@ function fmtMoney(minor: number) {
   return `\u20AC${(minor / 100).toLocaleString("en-IE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 function fmtDate(s: string | null) {
-  if (!s) return "—";
+  if (!s) return "-";
   try {
     return new Date(s).toLocaleDateString("en-IE", { day: "2-digit", month: "short", year: "numeric" });
   } catch { return s; }

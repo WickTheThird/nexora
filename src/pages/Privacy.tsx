@@ -41,9 +41,9 @@ export function PrivacyPolicy({ showHeader = true }: { showHeader?: boolean }) {
           The Service supports a three-tier construction model:
         </p>
         <ul>
-          <li><strong>Principals</strong> (developers / main contractors who hire the Operator) — given a read-mostly portal showing their linked subcontractors and the invoices the Operator has issued to them, plus the ability to submit payment data to the Operator for processing.</li>
-          <li><strong>The Operator</strong> (Samwise Building Contractors Ltd) — administers the platform, onboards subcontractors, processes payments, and issues consolidated invoices to Principals.</li>
-          <li><strong>Subcontractors</strong> — sole traders engaged by the Operator; given a self-service portal to manage their profile, contract, timesheets and payments.</li>
+          <li><strong>Principals</strong> (developers / main contractors who hire the Operator) - given a read-mostly portal showing their linked subcontractors and the invoices the Operator has issued to them, plus the ability to submit payment data to the Operator for processing.</li>
+          <li><strong>The Operator</strong> (Samwise Building Contractors Ltd) - administers the platform, onboards subcontractors, processes payments, and issues consolidated invoices to Principals.</li>
+          <li><strong>Subcontractors</strong> - sole traders engaged by the Operator; given a self-service portal to manage their profile, contract, timesheets and payments.</li>
         </ul>
         <p className="rounded-lg bg-ink-100 border border-ink-200 p-3 text-sm not-prose">
           <strong>Disclaimer.</strong> Samwise is not affiliated with, endorsed by,
@@ -115,9 +115,9 @@ export function PrivacyPolicy({ showHeader = true }: { showHeader?: boolean }) {
         <h2>5. Who we share it with</h2>
         <p>We only share your personal data with:</p>
         <ul>
-          <li>The Revenue Commissioners, where legally required — in particular to notify contracts and payments via the eRCT system and to make VAT and payroll returns.</li>
-          <li><strong>Cloudflare Inc.</strong> — hosting, storage (D1 database, R2 object storage) and network protection for this portal. Cloudflare processes personal data on our instructions under a data processing agreement and EU Standard Contractual Clauses where applicable.</li>
-          <li><strong>Sendinblue SAS (trading as Brevo)</strong> — transactional email delivery (login resets, payment notifications, change-request alerts). Brevo only receives the recipient email address and the message body; no other personal data.</li>
+          <li>The Revenue Commissioners, where legally required - in particular to notify contracts and payments via the eRCT system and to make VAT and payroll returns.</li>
+          <li><strong>Cloudflare Inc.</strong> - hosting, storage (D1 database, R2 object storage) and network protection for this portal. Cloudflare processes personal data on our instructions under a data processing agreement and EU Standard Contractual Clauses where applicable.</li>
+          <li><strong>Sendinblue SAS (trading as Brevo)</strong> - transactional email delivery (login resets, payment notifications, change-request alerts). Brevo only receives the recipient email address and the message body; no other personal data.</li>
           <li>Professional advisors (accountants, auditors, legal counsel) where necessary and under confidentiality.</li>
           <li><strong>Limited cross-tier visibility within the Service</strong>: the Operator (administrators) sees all data; a Principal sees only the subcontractors linked to them and the invoices issued to them, with sensitive identifiers (PPS number, full bank account, contracted rate amount) redacted; a Subcontractor sees only their own data.</li>
         </ul>

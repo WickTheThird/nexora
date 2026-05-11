@@ -91,18 +91,18 @@ export function PrimaryDashboard() {
     })();
   }, []);
 
-  // "Changes Request" — opens a mailto: targeted at the BC-configured
+  // "Changes Request" - opens a mailto: targeted at the BC-configured
   // address (or principal_email fallback) with a sensible subject.
   const openChangesRequest = () => {
     if (!primary) return;
     const to = changesRequestEmail || "hello@bc-construction.ie";
-    const subject = `Changes request \u2014 ${primary.name}`;
+    const subject = `Changes request - ${primary.name}`;
     const body = [
       `Hi BC team,`,
       ``,
       `${primary.name} would like to request the following changes to our account:`,
       ``,
-      `[describe what needs to change \u2014 e.g. update contact email, change address, replace VAT number, etc.]`,
+      `[describe what needs to change - e.g. update contact email, change address, replace VAT number, etc.]`,
       ``,
       `Thanks,`,
       primary.contactName || "",
@@ -128,7 +128,7 @@ export function PrimaryDashboard() {
     <>
       <PageHeader
         title={primary ? primary.name : "Welcome"}
-        description="Your portal — read-only view of subcontractors working under your contract and invoices BC Construction has issued to you."
+        description="Your portal - read-only view of subcontractors working under your contract and invoices BC Construction has issued to you."
         right={primary ? (
           <div className="flex gap-2">
             <Button variant="outline" onClick={openChangesRequest} leftIcon={<MessagesSquare className="h-4 w-4" />}>
@@ -147,7 +147,7 @@ export function PrimaryDashboard() {
         <div className="skeleton h-64" />
       ) : (
         <>
-          {/* "Contract Signed and Complete" banner — Enagh's red-text marker */}
+          {/* "Contract Signed and Complete" banner - Enagh's red-text marker */}
           {contractSigned && (
             <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 mb-5 inline-flex items-center gap-2 text-sm font-semibold text-emerald-900">
               <CheckCircle2 className="h-4 w-4" />
@@ -155,7 +155,7 @@ export function PrimaryDashboard() {
             </div>
           )}
 
-          {/* Latest News — admin-controlled message panel */}
+          {/* Latest News - admin-controlled message panel */}
           {latestNews && (
             <div className="card-padded mb-6 border-l-4 border-l-accent-500">
               <div className="flex items-start gap-3">
@@ -226,8 +226,8 @@ export function PrimaryDashboard() {
                     st === "invoiced" ? "bg-sky-50 border-sky-200" :
                     "bg-accent-50 border-accent-200";
                   const label =
-                    st === "advised" ? "Advised — sub yet to invoice" :
-                    st === "invoiced" ? "Invoiced — BC paying" :
+                    st === "advised" ? "Advised - sub yet to invoice" :
+                    st === "invoiced" ? "Invoiced - BC paying" :
                     "Paid";
                   return (
                     <div key={st} className={`rounded-lg border p-4 ${tone}`}>
@@ -258,7 +258,7 @@ export function PrimaryDashboard() {
                 </p>
               </div>
 
-              {/* Accountant email — primary user can self-serve. Used by the
+              {/* Accountant email - primary user can self-serve. Used by the
                   "Send to my accountant" button on each invoice. */}
               <div className="card-padded">
                 <div className="flex items-start justify-between gap-3 mb-3">

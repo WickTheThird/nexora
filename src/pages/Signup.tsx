@@ -34,7 +34,7 @@ export function Signup() {
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
   // User picks their own password at signup. Min 8 chars; we don't enforce
-  // complexity — modern guidance is length, not symbols.
+  // complexity - modern guidance is length, not symbols.
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   // Sub-only
@@ -90,7 +90,7 @@ export function Signup() {
           <Mail className="h-12 w-12 mx-auto text-emerald-600 mb-4" />
           <h1 className="text-2xl font-bold text-ink-900 mb-2">Check your email</h1>
           <p className="text-ink-600 mb-2">
-            Thanks {fullName.split(" ")[0]} — we sent a verification link to{" "}
+            Thanks {fullName.split(" ")[0]} - we sent a verification link to{" "}
             <strong className="text-ink-900">{email}</strong>.
           </p>
           <p className="text-sm text-ink-500 mb-6">
@@ -139,11 +139,6 @@ export function Signup() {
               ? <>Create a <span className="text-accent-400">Principal</span> account.</>
               : <>Create a <span className="text-accent-400">Subcontractor</span> account.</>}
           </h2>
-          <p className="text-ink-300 text-sm leading-relaxed">
-            {isPrimary
-              ? "Sign up in two minutes. We'll email a verification link, then you can sign in straight away. BC handles the moderation in the background."
-              : "Sign up in two minutes. We'll email a verification link, then you can sign in. BC links you to your principal contractor in the background."}
-          </p>
         </div>
         <div className="relative text-xs text-ink-500">© {new Date().getFullYear()} Samwise · BC</div>
       </aside>
@@ -224,9 +219,10 @@ export function Signup() {
               <Input
                 label="Company VAT number"
                 value={companyVat}
-                onChange={(e) => setCompanyVat(e.target.value)}
+                onChange={(e) => setCompanyVat(e.target.value.toUpperCase())}
                 required
                 placeholder="IE9655432T"
+                hint="VAT numbers are case-insensitive; we store them uppercase to keep the data clean."
               />
               <Textarea
                 label="Company address"
@@ -250,7 +246,7 @@ export function Signup() {
             rows={3}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder={isPrimary ? "Anything we should know about your projects?" : "Anything else useful — references, certifications, who referred you…"}
+            placeholder={isPrimary ? "Anything we should know about your projects?" : "Anything else useful - references, certifications, who referred you…"}
           />
 
           <Button type="submit" variant="accent" loading={submitting} className="w-full" rightIcon={<ArrowRight className="h-4 w-4" />}>

@@ -531,7 +531,7 @@ function ContractTab({ subId, canGenerate, generating, onGenerate }: { subId: st
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [generating]);
 
-  // Print the contract — opens the browser print dialog with only the
+  // Print the contract - opens the browser print dialog with only the
   // rendered contract HTML visible. Mirrors Enagh's print_contract.asp.
   const printContract = () => {
     if (!contract?.renderedHtml) return;
@@ -554,7 +554,7 @@ function ContractTab({ subId, canGenerate, generating, onGenerate }: { subId: st
       </div>
       ${contract.renderedHtml}
       ${contract.signedAt ? `<div class="signed">
-        <strong>Signed</strong> on ${new Date(contract.signedAt).toLocaleString("en-IE")} by ${contract.signedName || "—"}.
+        <strong>Signed</strong> on ${new Date(contract.signedAt).toLocaleString("en-IE")} by ${contract.signedName || "-"}.
         ${contract.signedIp ? `<br>IP at signing: <code>${contract.signedIp}</code>` : ""}
         ${contract.signedToken ? `<br>Token: <code style="font-family:monospace;font-size:9pt">${contract.signedToken.slice(0, 32)}…</code>` : ""}
       </div>` : ""}
@@ -573,7 +573,7 @@ function ContractTab({ subId, canGenerate, generating, onGenerate }: { subId: st
             <h3 className="font-semibold text-ink-900 mb-1">Contract</h3>
             <p className="text-sm text-ink-500">
               {contract
-                ? <>Status: <strong className="text-ink-700">{contract.status}</strong>{contract.signedAt ? <> · signed {new Date(contract.signedAt).toLocaleDateString("en-IE")} by {contract.signedName || "—"}</> : null}</>
+                ? <>Status: <strong className="text-ink-700">{contract.status}</strong>{contract.signedAt ? <> · signed {new Date(contract.signedAt).toLocaleDateString("en-IE")} by {contract.signedName || "-"}</> : null}</>
                 : notFound ? "No contract on file yet." : "Generate a contract from the active template. This supersedes any previous contract."}
             </p>
           </div>
@@ -1143,11 +1143,11 @@ function PaymentsTab({
                         <td className="px-5 py-3">
                           {(() => {
                             const cfg: Record<string, { tone: "neutral"|"info"|"success"|"danger"|"warn"; label: string }> = {
-                              advised:   { tone: "warn", label: "Advised — awaiting sub invoice" },
+                              advised:   { tone: "warn", label: "Advised - awaiting sub invoice" },
                               invoiced:  { tone: "info",    label: p.invoiceNumber ? `Invoiced ${p.invoiceNumber}` : "Invoiced" },
                               paid:      { tone: "success", label: "Paid" },
                               cancelled: { tone: "danger",  label: "Cancelled" },
-                              processed: { tone: "warn", label: "Advised — awaiting sub invoice" },
+                              processed: { tone: "warn", label: "Advised - awaiting sub invoice" },
                               pending:   { tone: "neutral", label: "Pending" },
                               reversed:  { tone: "danger",  label: "Reversed" },
                             };
@@ -1313,7 +1313,7 @@ function PaymentsTab({
                     <div>
                       <div className="text-[10px] uppercase tracking-wider text-ink-400">RCT</div>
                       <div className="text-lg font-bold tabular-nums text-red-300">
-                        {rctRate ? `-${fmtMoney(deduction, currency)}` : "—"}
+                        {rctRate ? `-${fmtMoney(deduction, currency)}` : "-"}
                       </div>
                     </div>
                     <div>
@@ -1431,9 +1431,9 @@ function TaxModal({
           value={rctRate}
           options={[
             { value: "", label: "None (not applicable)" },
-            { value: "0", label: "0% — verified gross" },
-            { value: "20", label: "20% — standard" },
-            { value: "35", label: "35% — unknown / unregistered" },
+            { value: "0", label: "0% - verified gross" },
+            { value: "20", label: "20% - standard" },
+            { value: "35", label: "35% - unknown / unregistered" },
           ]}
           onChange={(e) => setRctRate(e.target.value)}
         />

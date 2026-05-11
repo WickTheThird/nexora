@@ -15,7 +15,7 @@ function fmtMoney(minor: number) {
   return `\u20AC${(minor / 100).toLocaleString("en-IE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 function fmtDate(s: string | null) {
-  if (!s) return "—";
+  if (!s) return "-";
   try {
     return new Date(s).toLocaleDateString("en-IE", { day: "2-digit", month: "short", year: "numeric" });
   } catch { return s; }
@@ -100,7 +100,7 @@ export function PrincipalSiteDetail() {
             {data.subs.map((s) => (
               <tr key={s.subcontractorId} className="border-b border-ink-100 last:border-b-0 hover:bg-ink-50/50">
                 <td className="px-5 py-3">
-                  <div className="font-medium text-ink-900">{s.fullName || "—"}</div>
+                  <div className="font-medium text-ink-900">{s.fullName || "-"}</div>
                   {s.email && <div className="text-xs text-ink-500 mt-0.5">{s.email}</div>}
                 </td>
                 <td className="px-5 py-3 text-right tabular-nums font-medium">{s.totalHours.toFixed(1)}</td>

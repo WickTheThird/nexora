@@ -9,7 +9,7 @@ import { useToast } from "@/components/ui/Toast";
 import { ArrowLeft, FileText, Download, Mail } from "lucide-react";
 
 // Lazy-load the PDF module so jsPDF + html2canvas (~700 KB) only enter the
-// bundle when the user actually clicks Download — not on every page load.
+// bundle when the user actually clicks Download - not on every page load.
 const loadPdf = () => import("@/lib/pdf");
 
 type Detail = Awaited<ReturnType<typeof api.getMyPrimaryInvoice>>;
@@ -76,7 +76,7 @@ export function PrimaryInvoiceDetail() {
       // Issuer block (BILL TO on the principal-side invoice download). Uses
       // the live brand name from runtime config so renames don't get stuck
       // in code. Address/VAT/email are populated by the worker into the
-      // invoice payload when we hand it back \u2014 see worker side below.
+      // invoice payload when we hand it back - see worker side below.
       principal: {
         name: data.invoice.issuerName || "Samwise Building Contractors Ltd",
         address: data.invoice.issuerAddress || null,
@@ -146,7 +146,7 @@ export function PrimaryInvoiceDetail() {
     if (!payload) return;
     try {
       const { downloadInvoicePdf } = await loadPdf();
-      // Reuse 'invoice' mode — sub→principal direction. Here the primary is
+      // Reuse 'invoice' mode - sub→principal direction. Here the primary is
       // in the 'subcontractor' slot as the recipient, BC is the principal/issuer.
       downloadInvoicePdf(payload, brandName(), "invoice");
       toast.success("Invoice PDF downloaded");
@@ -241,9 +241,9 @@ export function PrimaryInvoiceDetail() {
                 <tr key={String(l.id)} className="border-b border-ink-100 last:border-b-0">
                   <td className="px-5 py-3 text-ink-900">{String(l.payment_date)}</td>
                   <td className="px-5 py-3 text-ink-700">{String(l.sub_full_name)}</td>
-                  <td className="px-5 py-3 text-ink-600">{l.period_start && l.period_end ? `${l.period_start} → ${l.period_end}` : "—"}</td>
-                  <td className="px-5 py-3 text-ink-700 tabular-nums">{l.hours != null ? String(l.hours) : "—"}</td>
-                  <td className="px-5 py-3 font-mono text-xs">{l.invoice_number ? String(l.invoice_number) : <span className="text-ink-400">—</span>}</td>
+                  <td className="px-5 py-3 text-ink-600">{l.period_start && l.period_end ? `${l.period_start} → ${l.period_end}` : "-"}</td>
+                  <td className="px-5 py-3 text-ink-700 tabular-nums">{l.hours != null ? String(l.hours) : "-"}</td>
+                  <td className="px-5 py-3 font-mono text-xs">{l.invoice_number ? String(l.invoice_number) : <span className="text-ink-400">-</span>}</td>
                   <td className="px-5 py-3 text-right tabular-nums font-medium">{fmtMoney(Number(l.amount_minor) || 0)}</td>
                 </tr>
               ))}

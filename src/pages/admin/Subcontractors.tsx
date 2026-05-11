@@ -197,7 +197,7 @@ export function Subcontractors() {
                           {primaryName(s.primaryId)}
                         </Link>
                       ) : (
-                        <span className="text-ink-400">—</span>
+                        <span className="text-ink-400">-</span>
                       )}
                     </td>
                     <td className="px-5 py-3 text-sm text-ink-600">{s.clientRef || "·"}</td>
@@ -276,7 +276,7 @@ function CreateSubcontractorModal({
       const r = await api.adminCreateSubcontractor({
         email: email.trim(),
         fullName: fullName.trim() || undefined,
-        // client_ref no longer accepted from admin \u2014 worker auto-generates
+        // client_ref no longer accepted from admin - worker auto-generates
         // it as CLI-NNNN. Only PPS travels in addition to email/name now.
         ppsNumber: ppsNumber.trim(),
         primaryId: primaryId || undefined,
@@ -330,7 +330,7 @@ function CreateSubcontractorModal({
         </div>
       ) : (
         <div className="space-y-5">
-          {/* Personal — identity + tax-side identifiers (PPS lives here,
+          {/* Personal - identity + tax-side identifiers (PPS lives here,
               not under Work, so it matches the layout on the operative's
               own My Details page). */}
           <section>
@@ -349,7 +349,7 @@ function CreateSubcontractorModal({
             </div>
           </section>
 
-          {/* Work \u2014 who they're contracted under. Sub code + client ref
+          {/* Work - who they're contracted under. Sub code + client ref
               are auto-generated server-side, so no input needed. */}
           <section>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">Work</h3>
@@ -357,7 +357,7 @@ function CreateSubcontractorModal({
               label="Principal (optional)"
               value={primaryId}
               options={[
-                { value: "", label: "\u2014 No principal yet \u2014" },
+                { value: "", label: "- No principal yet -" },
                 ...primaries
                   .filter((p) => !p.archivedAt)
                   .map((p) => ({ value: p.id, label: p.name })),

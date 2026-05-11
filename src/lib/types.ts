@@ -24,7 +24,7 @@ export type StepStatus =
   | "completed"
   | "rejected";
 
-// Round B: Enagh's `/operatives/folder_certs.asp` model — categorise
+// Round B: Enagh's `/operatives/folder_certs.asp` model - categorise
 // uploads so the sub can find their certs by folder. Existing values
 // stay for back-compat; new values cover the Irish construction cert
 // canon (Safe Pass · CSCS · Manual Handling). Anything not on this
@@ -101,7 +101,7 @@ export interface AppSettings {
   // Stored as strings (worker stores all settings as strings).
   admin_fee_amount_minor: string | null;
   admin_fee_percent: string | null;
-  // Invoice template — admin controls what appears on every generated PDF.
+  // Invoice template - admin controls what appears on every generated PDF.
   // All optional; PDF generator falls back to sensible defaults if blank.
   invoice_header_tagline: string | null;
   invoice_payment_terms: string | null;
@@ -223,7 +223,7 @@ export interface Subcontractor {
   vatReverseCharge: boolean;
   onboardingStatus: OnboardingStatus;
   submittedAt: number | null;
-  // Subcontractor's own accountant — who they want their invoices CC'd to.
+  // Subcontractor's own accountant - who they want their invoices CC'd to.
   // Distinct from the principal's accountant (in AppSettings).
   accountantEmail: string | null;
   // Default Primary this sub typically works for (per-timesheet override
@@ -395,7 +395,7 @@ export interface PrimaryInvoice {
   paidAt: number | null;
   createdAt: number;
   createdBy: string | null;
-  // Optional issuer + template overlays — populated by the worker on the
+  // Optional issuer + template overlays - populated by the worker on the
   // detail endpoint so the PDF generator can pull them without an extra
   // settings call. Absent on list endpoints; never required.
   issuerName?: string | null;
@@ -417,7 +417,7 @@ export interface Primary {
   vat: string | null;
   phone: string | null;
   notes: string | null;
-  // Primary's own accountant — distinct from the principal's accountant.
+  // Primary's own accountant - distinct from the principal's accountant.
   // The primary user can set this themselves from their portal.
   accountantEmail: string | null;
   archivedAt: number | null;

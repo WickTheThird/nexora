@@ -1,6 +1,6 @@
 // Read-only feed of recent self-serve signups. Since signup is now
-// open (no approval gate), this page is purely informational —
-// "who joined recently" — with deep links to the live entity pages
+// open (no approval gate), this page is purely informational -
+// "who joined recently" - with deep links to the live entity pages
 // where actual moderation happens (close / anonymise / link / etc.).
 //
 // We keep the underlying signup_requests table because it captures the
@@ -42,7 +42,7 @@ export function AdminSignupRequests() {
   useEffect(() => {
     (async () => {
       try {
-        // Always fetch all statuses — feed is read-only so no filter.
+        // Always fetch all statuses - feed is read-only so no filter.
         const r = await api.adminListSignupRequests("approved");
         setItems(r.items);
       } catch (e) {
@@ -57,7 +57,7 @@ export function AdminSignupRequests() {
     <>
       <PageHeader
         title="Recent signups"
-        description="Self-served signups (read-only feed). Approval is automatic on email verification — moderate from the Subcontractors / Principals pages once they appear."
+        description="Self-served signups (read-only feed). Approval is automatic on email verification - moderate from the Subcontractors / Principals pages once they appear."
       />
 
       {loading ? (
@@ -102,7 +102,7 @@ export function AdminSignupRequests() {
                     {r.kind === "primary" ? (
                       <>{r.companyName}{r.companyVat ? ` · ${r.companyVat}` : ""}</>
                     ) : (
-                      <>{r.trade || "—"}</>
+                      <>{r.trade || "-"}</>
                     )}
                     {r.mobile && <div className="text-ink-500">{r.mobile}</div>}
                     {r.notes && <div className="mt-1 text-ink-500 italic">&ldquo;{r.notes}&rdquo;</div>}

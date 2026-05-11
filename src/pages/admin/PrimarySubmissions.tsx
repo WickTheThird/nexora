@@ -93,7 +93,7 @@ export function AdminPrimarySubmissions() {
                 <tr key={s.id} className="border-b border-ink-100 last:border-b-0 hover:bg-ink-50/50">
                   <td className="px-5 py-3 text-ink-900">{fmtDate(s.submittedAt)}</td>
                   <td className="px-5 py-3 text-ink-700">
-                    {s.periodStart && s.periodEnd ? `${s.periodStart} → ${s.periodEnd}` : <span className="text-ink-400">—</span>}
+                    {s.periodStart && s.periodEnd ? `${s.periodStart} → ${s.periodEnd}` : <span className="text-ink-400">-</span>}
                   </td>
                   <td className="px-5 py-3 text-ink-600">{s.source === "csv" ? "CSV upload" : "Manual"}</td>
                   <td className="px-5 py-3 text-right tabular-nums">{s.itemCount}</td>

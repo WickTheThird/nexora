@@ -47,7 +47,7 @@ export function PrimarySubmissionDetail() {
 
   const submitNow = async () => {
     if (!id) return;
-    if (!window.confirm("Submit this draft to BC? This will LOCK the Job Card — no further edits.")) return;
+    if (!window.confirm("Submit this draft to BC? This will LOCK the Job Card - no further edits.")) return;
     setActing(true);
     try {
       await api.submitMyDraftSubmission(id);
@@ -81,7 +81,7 @@ export function PrimarySubmissionDetail() {
       <PageHeader
         title={`Submission ${submission.id.slice(0, 8)}`}
         description={isDraft
-          ? `Draft \u2014 not yet sent to BC. Last saved ${new Date(submission.submittedAt).toLocaleString("en-IE")}`
+          ? `Draft - not yet sent to BC. Last saved ${new Date(submission.submittedAt).toLocaleString("en-IE")}`
           : `Submitted ${new Date(submission.submittedAt).toLocaleString("en-IE")}`}
         right={isDraft ? (
           <div className="flex gap-2">
@@ -96,7 +96,7 @@ export function PrimarySubmissionDetail() {
             </Button>
           </div>
         ) : isLocked && status === "submitted" ? (
-          <Badge tone="warn"><Lock className="h-3 w-3 inline mr-1" />Locked — awaiting BC</Badge>
+          <Badge tone="warn"><Lock className="h-3 w-3 inline mr-1" />Locked - awaiting BC</Badge>
         ) : undefined}
       />
       <Link to="/primary/submissions" className="inline-flex items-center gap-1 text-sm text-ink-600 hover:text-ink-900 mb-6">
@@ -114,7 +114,7 @@ export function PrimarySubmissionDetail() {
         </div>
         <div className="card-padded">
           <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-2">Period</div>
-          <div className="text-sm">{submission.periodStart || "—"} → {submission.periodEnd || "—"}</div>
+          <div className="text-sm">{submission.periodStart || "-"} → {submission.periodEnd || "-"}</div>
         </div>
         <div className="card-padded">
           <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-2">Items</div>
@@ -164,10 +164,10 @@ export function PrimarySubmissionDetail() {
           <tbody>
             {items.map((it) => (
               <tr key={it.id} className={`border-b border-ink-100 last:border-b-0 ${!it.matched ? "bg-amber-50/40" : ""}`}>
-                <td className="px-3 py-2 font-mono text-xs">{it.subcontractorRef || "—"}</td>
-                <td className="px-3 py-2">{it.subcontractorName || "—"}</td>
-                <td className="px-3 py-2 text-ink-600">{it.jobNumber || "—"}</td>
-                <td className="px-3 py-2 text-ink-600">{it.siteAddress || "—"}</td>
+                <td className="px-3 py-2 font-mono text-xs">{it.subcontractorRef || "-"}</td>
+                <td className="px-3 py-2">{it.subcontractorName || "-"}</td>
+                <td className="px-3 py-2 text-ink-600">{it.jobNumber || "-"}</td>
+                <td className="px-3 py-2 text-ink-600">{it.siteAddress || "-"}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{it.quantity.toFixed(2)}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{fmtMoney(it.rateMinor)}</td>
                 <td className="px-3 py-2 text-right tabular-nums font-medium">{fmtMoney(it.grossMinor)}</td>

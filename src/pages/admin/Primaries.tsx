@@ -112,7 +112,7 @@ export function Primaries() {
                     {p.contactEmail && <div className="text-xs text-ink-500">{p.contactEmail}</div>}
                     {p.phone && <div className="text-xs text-ink-500">{p.phone}</div>}
                   </td>
-                  <td className="px-5 py-3 text-ink-700">{p.vat || <span className="text-ink-400">—</span>}</td>
+                  <td className="px-5 py-3 text-ink-700">{p.vat || <span className="text-ink-400">-</span>}</td>
                   <td className="px-5 py-3 text-ink-600 text-sm">{fmtDate(new Date(p.createdAt).toISOString())}</td>
                   <td className="px-5 py-3">
                     {p.archivedAt

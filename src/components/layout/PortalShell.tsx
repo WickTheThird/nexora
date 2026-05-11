@@ -23,7 +23,7 @@ export function PortalShell({
   title: string;
   nav: NavItem[];
   children: ReactNode;
-  // Cmd+K command palette items (people / pages / actions) — supplied
+  // Cmd+K command palette items (people / pages / actions) - supplied
   // per-portal via the AppShell wrapper. Optional: if absent we still
   // render a Cmd+K affordance with just the page list.
   paletteItems?: PaletteItem[];
@@ -66,16 +66,20 @@ export function PortalShell({
   };
 
   return (
-    <div className="min-h-full flex bg-ink-50">
-      {/* Sidebar */}
-      <aside className="hidden lg:flex w-64 flex-col border-r border-ink-100 bg-white">
+    <div className="min-h-full bg-ink-50">
+      {/* Sidebar - fixed to the viewport so the logout button + user
+          chip stay reachable regardless of how long the page is. The
+          inner <nav> scrolls if the navigation list overflows; the
+          footer (avatar + bell + logout) sits below the scroll area
+          and stays pinned to the bottom of the viewport. */}
+      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col border-r border-ink-100 bg-white z-30">
         <div className="h-16 px-5 flex items-center border-b border-ink-100">
           <Logo />
         </div>
         <div className="px-4 py-5 text-xs uppercase tracking-wider text-ink-400 font-semibold">
           {title}
         </div>
-        {/* Cmd+K affordance — shows the keyboard hint and acts as a
+        {/* Cmd+K affordance - shows the keyboard hint and acts as a
             click target for users who don't yet know the shortcut. */}
         <button
           type="button"
@@ -201,7 +205,7 @@ export function PortalShell({
 
       {/* Main content. Bottom padding on mobile leaves room for the
           fixed bottom-nav so content doesn't sit underneath it. */}
-      <main className="flex-1 min-w-0 pt-14 lg:pt-0 pb-20 lg:pb-0">
+      <main className="min-w-0 pt-14 lg:pt-0 pb-20 lg:pb-0 lg:pl-64">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-6 lg:py-10">
           {children}
         </div>

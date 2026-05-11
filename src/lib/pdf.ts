@@ -22,7 +22,7 @@ export type PdfMode = "advice" | "invoice";
 
 function fmtMoneyMinor(amountMinor: number, currency: string): string {
   // Enagh format: plain "1,000.00" with no currency symbol in the number
-  // columns — the currency is implied by the surrounding context.
+  // columns - the currency is implied by the surrounding context.
   return (amountMinor / 100).toLocaleString("en-IE", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -41,7 +41,7 @@ function fmtMoneyWithSymbol(amountMinor: number, currency: string): string {
 }
 
 function fmtDate(s: string | null | undefined): string {
-  if (!s) return "—";
+  if (!s) return "-";
   try {
     const d = new Date(s);
     // Enagh uses dd/mm/yyyy.
@@ -83,7 +83,7 @@ function generatePaymentAdvicePdf(inv: InvoicePayload, brandName: string): jsPDF
   const currency = totals.currency || "EUR";
 
   // ---- HEADER ----
-  // Top left: brand wordmark (we don't have a raster logo bundled — render
+  // Top left: brand wordmark (we don't have a raster logo bundled - render
   // the text mark in a styled box for now). Top right: principal info.
   doc.setFont("helvetica", "bold");
   doc.setFontSize(28);
@@ -122,7 +122,7 @@ function generatePaymentAdvicePdf(inv: InvoicePayload, brandName: string): jsPDF
   doc.setFontSize(10);
   doc.setTextColor(20, 20, 20);
   const subAddrLines = [
-    (sub.fullName || "—").toUpperCase(),
+    (sub.fullName || "-").toUpperCase(),
     [sub.address1, sub.address2].filter(Boolean).join(", "),
     sub.town || "",
     sub.postcode || "",
@@ -145,11 +145,11 @@ function generatePaymentAdvicePdf(inv: InvoicePayload, brandName: string): jsPDF
   // below.
   const headPayment: PaymentRecord | undefined = inv.lines[0];
   const subRef = sub.subcontractorRef || sub.clientRef || sub.id.slice(0, 8).toUpperCase();
-  const taxRef = sub.ppsNumber || "—";
+  const taxRef = sub.ppsNumber || "-";
   const paymentRef = "BACS"; // Standard for Irish bank transfers
   const taxLiability = taxLiabilityLabel(sub.rctRate);
   const contractId = headPayment?.reference || inv.invoiceNumber.slice(-8);
-  const paymentNotificationId = headPayment?.rctAuthNumber || "—";
+  const paymentNotificationId = headPayment?.rctAuthNumber || "-";
   const paymentDate = fmtDate(headPayment?.paymentDate || inv.issuedAt.slice(0, 10));
 
   doc.setFont("helvetica", "bold");
@@ -203,7 +203,7 @@ function generatePaymentAdvicePdf(inv: InvoicePayload, brandName: string): jsPDF
   });
   // Aggregate for the case where there's only one summary row
   if (lineRows.length === 0) {
-    lineRows.push(["—", "—", "—", "—", "—"]);
+    lineRows.push(["-", "-", "-", "-", "-"]);
   }
 
   autoTable(doc, {
@@ -292,7 +292,7 @@ function generatePaymentAdvicePdf(inv: InvoicePayload, brandName: string): jsPDF
   doc.setFontSize(7.5);
   doc.setTextColor(110, 110, 110);
   doc.text(
-    "Reverse charge basis under Section 16(2) VATCA 2010 \u2014 construction services subject to RCT.",
+    "Reverse charge basis under Section 16(2) VATCA 2010 - construction services subject to RCT.",
     margin, afterY, { maxWidth: pageWidth - margin * 2 },
   );
 
@@ -367,7 +367,7 @@ function generatePaymentAdvicePdf(inv: InvoicePayload, brandName: string): jsPDF
     body: [[
       String(paymentNotificationId),
       String(taxRef),
-      (sub.fullName || "—").toUpperCase(),
+      (sub.fullName || "-").toUpperCase(),
       paymentDate,
       fmtMoneyMinor(netCertified, currency),
       fmtMoneyMinor(totals.net, currency),
@@ -402,7 +402,7 @@ function generatePaymentAdvicePdf(inv: InvoicePayload, brandName: string): jsPDF
   doc.setTextColor(40, 40, 40);
   const grossText = fmtMoneyMinor(netCertified, currency);
   const taxText = fmtMoneyMinor(totals.rct, currency);
-  const subName = (sub.fullName || "—").toUpperCase();
+  const subName = (sub.fullName || "-").toUpperCase();
   const noteLines = [
     `You have notified the Revenue Commissioners that you are about to make a relevant payment of ${grossText} to the below subcontractor`,
     "",
@@ -447,7 +447,7 @@ function generateSubInvoicePdf(inv: InvoicePayload, brandName: string): jsPDF {
   const tplShowContact = tpl?.showContact ?? true;
   const tplShowPrincipalRef = tpl?.showPrincipalRef ?? true;
 
-  // Header — heading + optional tagline beneath
+  // Header - heading + optional tagline beneath
   const headerHeight = tpl?.headerTagline ? 86 : 70;
   doc.setFillColor(15, 23, 34);
   doc.rect(0, 0, pageWidth, headerHeight, "F");
@@ -476,7 +476,7 @@ function generateSubInvoicePdf(inv: InvoicePayload, brandName: string): jsPDF {
     pageWidth - margin, 60, { align: "right" },
   );
 
-  // Parties — neutral labels so the same layout works for both
+  // Parties - neutral labels so the same layout works for both
   // sub→principal and BC→primary directions. The actual company name
   // identifies who is who. Start position shifts down when there's a
   // tagline above (taller header bar).
@@ -493,9 +493,9 @@ function generateSubInvoicePdf(inv: InvoicePayload, brandName: string): jsPDF {
 
   // Conditional sections come from the admin template. showContact hides
   // phone/email; showVat hides VAT lines (rare, but useful for non-VAT
-  // contractors who don't want a "VAT: —" line on every invoice).
+  // contractors who don't want a "VAT: -" line on every invoice).
   const subBlock = [
-    sub.fullName || "—",
+    sub.fullName || "-",
     [sub.address1, sub.address2].filter(Boolean).join(", "),
     [sub.town, sub.postcode].filter(Boolean).join(" "),
     tplShowContact ? (sub.email || "") : "",
@@ -540,11 +540,11 @@ function generateSubInvoicePdf(inv: InvoicePayload, brandName: string): jsPDF {
     head: [["Date", "Period", "Hours", "Site", "Reference", "RCT", "Gross", "Net"]],
     body: inv.lines.map((p) => [
       fmtDate(p.paymentDate),
-      p.periodStart && p.periodEnd ? `${fmtDate(p.periodStart)} to ${fmtDate(p.periodEnd)}` : "—",
-      p.hours != null ? p.hours.toFixed(2) : "—",
-      p.siteRef || "—",
-      p.reference || "—",
-      p.rctRate ? `-${fmtMoneyWithSymbol(p.rctDeductionMinor, p.currency)} (${p.rctRate}%)` : "—",
+      p.periodStart && p.periodEnd ? `${fmtDate(p.periodStart)} to ${fmtDate(p.periodEnd)}` : "-",
+      p.hours != null ? p.hours.toFixed(2) : "-",
+      p.siteRef || "-",
+      p.reference || "-",
+      p.rctRate ? `-${fmtMoneyWithSymbol(p.rctDeductionMinor, p.currency)} (${p.rctRate}%)` : "-",
       fmtMoneyWithSymbol(p.grossMinor, p.currency),
       fmtMoneyWithSymbol(p.netMinor, p.currency),
     ]),
@@ -564,7 +564,7 @@ function generateSubInvoicePdf(inv: InvoicePayload, brandName: string): jsPDF {
   let afterY: number = doc.lastAutoTable?.finalY ?? y + 30;
   afterY += 18;
 
-  // Totals — right-aligned in three explicit columns to avoid overlap when
+  // Totals - right-aligned in three explicit columns to avoid overlap when
   // numbers run wide. Gap of >= 24pt between columns; right-align each value
   // on its own column boundary so the totals always look like a tidy stack.
   doc.setFont("helvetica", "bold");
@@ -603,7 +603,7 @@ function generateSubInvoicePdf(inv: InvoicePayload, brandName: string): jsPDF {
   }
 
   // Revenue mandates this exact wording on every subcontractor invoice
-  // for relevant construction services (RCT) — see Revenue VAT TDM Part
+  // for relevant construction services (RCT) - see Revenue VAT TDM Part
   // 11 (Construction Services). The principal self-accounts for VAT at
   // 13.5% in their VAT3 return; the subcontractor invoices net of VAT.
   // We always show this on any RCT-eligible invoice (construction
@@ -624,13 +624,13 @@ function generateSubInvoicePdf(inv: InvoicePayload, brandName: string): jsPDF {
     doc.setFontSize(7.5);
     doc.setTextColor(110, 110, 110);
     doc.text(
-      "Reverse charge basis under Section 16(2) VATCA 2010 \u2014 construction services subject to RCT.",
+      "Reverse charge basis under Section 16(2) VATCA 2010 - construction services subject to RCT.",
       margin, afterY, { maxWidth: pageWidth - margin * 2 },
     );
   }
 
   // Payment terms (admin-controlled freeform). Sits above the PAY TO block
-  // since it usually says "Payment due within X days" — the recipient should
+  // since it usually says "Payment due within X days" - the recipient should
   // see the deadline before the bank details.
   if (tpl?.paymentTerms) {
     afterY += 22;
@@ -649,7 +649,7 @@ function generateSubInvoicePdf(inv: InvoicePayload, brandName: string): jsPDF {
     }
   }
 
-  // Bank — tightened to one line where possible. IBAN + BIC together is the
+  // Bank - tightened to one line where possible. IBAN + BIC together is the
   // minimum a payer needs in the SEPA zone; the account holder name on the
   // same row confirms identity. Bank name is shown only if present.
   if (tplShowBank && (inv.bank?.iban || inv.bank?.accountNumber)) {
@@ -734,7 +734,7 @@ export function downloadInvoicePdf(
 // to claim the withheld RCT against their final tax bill.
 //
 // This generator takes the sub's full payment history + tax year and
-// produces a single-page printable PDF. Pure client-side — no new
+// produces a single-page printable PDF. Pure client-side - no new
 // worker endpoint needed; the Payments page already has the data.
 
 export interface RctSummaryPayload {
@@ -763,7 +763,7 @@ export function generateRctSummaryPdf(p: RctSummaryPayload): jsPDF {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
   doc.setTextColor(20, 20, 20);
-  doc.text(`Annual RCT Summary \u2014 ${p.taxYear}`, margin, y);
+  doc.text(`Annual RCT Summary - ${p.taxYear}`, margin, y);
   y += 18;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
@@ -782,7 +782,7 @@ export function generateRctSummaryPdf(p: RctSummaryPayload): jsPDF {
   y += 13;
   doc.setFont("helvetica", "normal");
   const lines = [
-    `Name: ${p.subcontractor.fullName || "\u2014"}`,
+    `Name: ${p.subcontractor.fullName || "-"}`,
     p.subcontractor.subcontractorRef ? `Sub code: ${p.subcontractor.subcontractorRef}` : null,
     p.subcontractor.ppsn ? `PPSN: ${p.subcontractor.ppsn}` : null,
     p.subcontractor.email ? `Email: ${p.subcontractor.email}` : null,
@@ -858,10 +858,10 @@ export function generateRctSummaryPdf(p: RctSummaryPayload): jsPDF {
         .sort((a, b) => (a.paymentDate || "").localeCompare(b.paymentDate || ""))
         .map(pay => [
           fmtDate(pay.paymentDate),
-          pay.periodStart && pay.periodEnd ? `${fmtDate(pay.periodStart)}\u2192${fmtDate(pay.periodEnd)}` : "\u2014",
-          pay.invoiceNumber || "\u2014",
-          pay.rctRate ? `${pay.rctRate}%` : "\u2014",
-          pay.rctAuthNumber || "\u2014",
+          pay.periodStart && pay.periodEnd ? `${fmtDate(pay.periodStart)}\u2192${fmtDate(pay.periodEnd)}` : "-",
+          pay.invoiceNumber || "-",
+          pay.rctRate ? `${pay.rctRate}%` : "-",
+          pay.rctAuthNumber || "-",
           fmtMoneyMinor(pay.grossMinor || 0, pay.currency || "EUR"),
           fmtMoneyMinor(pay.rctDeductionMinor || 0, pay.currency || "EUR"),
           fmtMoneyMinor(pay.netMinor || 0, pay.currency || "EUR"),
@@ -906,7 +906,7 @@ export function invoiceMailto(
     isInvoice && inv.lines[0]?.invoiceNumber
       ? inv.lines[0].invoiceNumber
       : inv.invoiceNumber;
-  const subject = `${docName} ${docNumber} — ${inv.subcontractor.fullName || ""}`;
+  const subject = `${docName} ${docNumber} - ${inv.subcontractor.fullName || ""}`;
   const totalsLine = Object.entries(inv.totalsByCurrency)
     .map(([c, t]) => `${c} ${(t.gross / 100).toFixed(2)} gross / ${(t.rct / 100).toFixed(2)} RCT / ${(t.net / 100).toFixed(2)} net`)
     .join(" • ");

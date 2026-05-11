@@ -191,7 +191,7 @@ function ApproveModal({
       onClose={() => { setTempPassword(null); onClose(); }}
       title={request ? `Approve ${request.name}` : ""}
       description={tempPassword
-        ? "Operative account created. Share the temp password securely \u2014 it won't be shown again."
+        ? "Operative account created. Share the temp password securely - it won't be shown again."
         : "Approving will create the Subcontractor account, link it to this principal, and return a one-time temp password."}
       footer={
         tempPassword ? (

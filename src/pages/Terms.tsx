@@ -68,7 +68,7 @@ export function Terms() {
           <li>Submit fraudulent or misleading information, including in tax-related fields.</li>
         </ul>
 
-        <h2>5. Tax compliance — important</h2>
+        <h2>5. Tax compliance - important</h2>
         <p>
           The Service records information used by the Operator to comply with
           the Relevant Contracts Tax (RCT) regime, VAT obligations and other

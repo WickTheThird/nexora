@@ -1,4 +1,4 @@
-# Primary Portal — Schema Migration
+# Primary Portal - Schema Migration
 
 Run **one statement at a time** in the D1 console.
 
@@ -26,4 +26,4 @@ SELECT type, name, sql FROM sqlite_master WHERE name = 'idx_users_primary';
 
 Should return the index definition.
 
-That's it. The `users.role` column already exists as TEXT — no constraint widening needed for the new `'primary'` role value (the column has no CHECK constraint on the role).
+That's it. The `users.role` column already exists as TEXT - no constraint widening needed for the new `'primary'` role value (the column has no CHECK constraint on the role).

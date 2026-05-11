@@ -125,7 +125,7 @@ export function PrimaryDetail() {
     <>
       <PageHeader
         title={primary.name}
-        description={`Principal · linked sub count: ${stats?.subcontractorCount ?? "—"}`}
+        description={`Principal · linked sub count: ${stats?.subcontractorCount ?? "-"}`}
         right={
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setInviteOpen(true)} leftIcon={<UserPlus className="h-4 w-4" />}>
@@ -162,7 +162,7 @@ export function PrimaryDetail() {
           className="card-padded block group transition hover:shadow-md hover:-translate-y-0.5 hover:border-ink-300 relative"
         >
           <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-2">Subcontractors</div>
-          <div className="text-3xl font-bold text-ink-900 tabular-nums">{stats?.subcontractorCount ?? "—"}</div>
+          <div className="text-3xl font-bold text-ink-900 tabular-nums">{stats?.subcontractorCount ?? "-"}</div>
           <div className="text-xs text-ink-500 mt-1">linked · click to filter Subs list</div>
           <ArrowUpRight className="absolute top-4 right-4 h-4 w-4 text-ink-300 group-hover:text-ink-700 transition" />
         </Link>
@@ -220,16 +220,16 @@ export function PrimaryDetail() {
             <tbody>
               {subs.map((s) => (
                 <tr key={s.id} className="border-b border-ink-100 last:border-b-0 hover:bg-ink-50/50">
-                  <td className="px-5 py-3 font-medium text-ink-900">{s.fullName || "—"}</td>
+                  <td className="px-5 py-3 font-medium text-ink-900">{s.fullName || "-"}</td>
                   <td className="px-5 py-3 text-ink-600">{s.email}</td>
                   <td className="px-5 py-3"><Badge tone="info">{s.onboardingStatus.replace(/_/g, " ")}</Badge></td>
                   <td className="px-5 py-3 text-ink-700 tabular-nums">
                     {s.rateAmountMinor && s.rateUnit
                       ? `${fmtMoney(s.rateAmountMinor)}/${s.rateUnit}`
-                      : <span className="text-ink-400">—</span>}
+                      : <span className="text-ink-400">-</span>}
                   </td>
                   <td className="px-5 py-3 text-ink-700">
-                    {s.rctRate ? `${s.rctRate}%` : <span className="text-ink-400">—</span>}
+                    {s.rctRate ? `${s.rctRate}%` : <span className="text-ink-400">-</span>}
                   </td>
                   <td className="px-5 py-3 text-right">
                     <Link to={`/admin/subcontractors/${s.id}`} className="btn-ghost !py-1.5 inline-flex text-xs">
@@ -277,7 +277,7 @@ export function PrimaryDetail() {
                     <td className="px-5 py-3"><Badge tone={tone}>{inv.status}</Badge></td>
                     <td className="px-5 py-3 text-right tabular-nums">€{(inv.grossMinor / 100).toFixed(2)}</td>
                     <td className="px-5 py-3 text-right tabular-nums text-ink-600">
-                      {inv.markupMinor ? `€${(inv.markupMinor / 100).toFixed(2)}` : "—"}
+                      {inv.markupMinor ? `€${(inv.markupMinor / 100).toFixed(2)}` : "-"}
                     </td>
                     <td className="px-5 py-3 text-right tabular-nums font-bold">€{(inv.netMinor / 100).toFixed(2)}</td>
                     <td className="px-5 py-3 text-right">
@@ -332,7 +332,7 @@ export function PrimaryDetail() {
   );
 }
 
-// Invite a primary user — creates a user with role='primary' linked to this
+// Invite a primary user - creates a user with role='primary' linked to this
 // primary. Returns a one-time temp password (must_change_password=1 on the
 // new user). Modal stays open after creation so the admin can copy + share.
 function InviteContactModal({
@@ -371,7 +371,7 @@ function InviteContactModal({
       open={open}
       onClose={() => { reset(); onClose(); }}
       title={`Invite contact for ${primaryName}`}
-      description={tempPassword ? "Account created. Share the password securely — it won't be shown again." : "Creates a principal-portal account that can read this principal's subs and invoices (read-only)."}
+      description={tempPassword ? "Account created. Share the password securely - it won't be shown again." : "Creates a principal-portal account that can read this principal's subs and invoices (read-only)."}
       footer={
         tempPassword ? (
           <Button onClick={() => { reset(); onClose(); }}>Done</Button>
@@ -459,7 +459,7 @@ function GenerateInvoiceModal({
         // so we display it informationally below and the worker re-applies.
         setMarkup(flat > 0 ? (flat / 100).toFixed(2) : "");
       } catch {
-        // Non-fatal — admin can still type a markup manually.
+        // Non-fatal - admin can still type a markup manually.
       }
     })();
   }, [open]);
@@ -510,12 +510,12 @@ function GenerateInvoiceModal({
           <Input label="To" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
         </div>
 
-        {/* Fee summary card — auto-computed, with explicit "override" toggle */}
+        {/* Fee summary card - auto-computed, with explicit "override" toggle */}
         <div className={`rounded-lg border p-3 ${feeOverridden ? "bg-accent-50 border-accent-200" : "bg-ink-50 border-ink-200"}`}>
           <div className="flex items-center justify-between">
             <div>
               <div className="text-xs uppercase tracking-wider font-semibold text-ink-500">
-                {feeOverridden ? "Admin fee — overridden" : "Admin fee — auto from Settings"}
+                {feeOverridden ? "Admin fee - overridden" : "Admin fee - auto from Settings"}
               </div>
               <div className="text-sm text-ink-800 mt-1">{feeDescription}</div>
             </div>

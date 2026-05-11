@@ -2,7 +2,7 @@
 
 Run **one statement at a time** in the D1 console.
 
-## 1. Primaries table (top tier — developers / main contractors)
+## 1. Primaries table (top tier - developers / main contractors)
 
 ```sql
 CREATE TABLE IF NOT EXISTS primaries (

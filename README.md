@@ -22,7 +22,7 @@ npm run build
 Pushes to `main` are built and deployed to GitHub Pages by the workflow in
 `.github/workflows/deploy.yml`.
 
-To use a custom domain, add a `public/CNAME` file containing the domain name —
+To use a custom domain, add a `public/CNAME` file containing the domain name -
 the workflow detects it and adjusts the build base path.
 
 Runtime configuration (such as the API base URL) lives in `public/config.js`

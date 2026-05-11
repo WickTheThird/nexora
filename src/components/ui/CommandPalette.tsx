@@ -1,10 +1,10 @@
 // Cmd+K / Ctrl+K command palette. Excel-style mental model: one keystroke
 // gets you to anything (a person, a page, an action). Used everywhere in
-// this product — principal, admin, sub side.
+// this product - principal, admin, sub side.
 //
 // Design goals:
 //   - Zero learning curve for Excel-fluent users
-//   - Fuzzy-substring filter, not full-text — types you saw it spelled
+//   - Fuzzy-substring filter, not full-text - types you saw it spelled
 //   - Keyboard-first (Cmd/Ctrl+K to open, ↑↓ to navigate, Enter to pick,
 //     Esc to close)
 //   - Result categories: People · Pages · Actions
@@ -26,7 +26,7 @@ export type PaletteItem = {
   category: "people" | "pages" | "actions";
   icon?: React.ComponentType<{ className?: string }>;
   // Either navigate to a route OR call a function (for actions like "Mark
-  // active") — caller chooses.
+  // active") - caller chooses.
   to?: string;
   onSelect?: () => void | Promise<void>;
   // Optional keywords to widen the fuzzy match (e.g. include nickname,
@@ -41,7 +41,7 @@ interface Props {
   onClose: () => void;
 }
 
-// Category icons — fall back to a category-default if the item didn't
+// Category icons - fall back to a category-default if the item didn't
 // supply one.
 function defaultIcon(cat: PaletteItem["category"]): React.ComponentType<{ className?: string }> {
   if (cat === "people") return User;
@@ -94,7 +94,13 @@ export function CommandPalette({ items, open, onClose }: Props) {
     }
   }, [open]);
 
-  // Filter + group + sort.
+  // Filter + group + sort. Two orderings come out of this:
+  //   - per-category items are sorted by match score (best first)
+  //   - the flat array used for keyboard nav follows RENDER ORDER
+  //     (People -> Pages -> Actions) so ArrowDown/Up traverses every
+  //     visible row in the order the user sees them. Previously we used
+  //     score order for nav which made the index disagree with render
+  //     order and made arrow keys appear to skip the Pages section.
   const grouped = useMemo(() => {
     const scored: Array<{ item: PaletteItem; s: number }> = [];
     for (const it of items) {
@@ -103,15 +109,19 @@ export function CommandPalette({ items, open, onClose }: Props) {
       scored.push({ item: it, s });
     }
     scored.sort((a, b) => a.s - b.s);
-    // Cap to 50 — nobody is going to scroll past that.
-    const flat = scored.slice(0, 50).map(x => x.item);
+    // Cap to 50 - nobody is going to scroll past that.
+    const scoredCapped = scored.slice(0, 50).map(x => x.item);
     const order: PaletteItem["category"][] = ["people", "pages", "actions"];
     const out: Array<{ category: PaletteItem["category"]; items: PaletteItem[] }> = [];
+    const renderOrder: PaletteItem[] = [];
     for (const cat of order) {
-      const subset = flat.filter(i => i.category === cat);
-      if (subset.length) out.push({ category: cat, items: subset });
+      const subset = scoredCapped.filter(i => i.category === cat);
+      if (subset.length) {
+        out.push({ category: cat, items: subset });
+        renderOrder.push(...subset);
+      }
     }
-    return { grouped: out, flatAllInOrder: flat };
+    return { grouped: out, flatAllInOrder: renderOrder };
   }, [items, q]);
 
   const flat = grouped.flatAllInOrder;

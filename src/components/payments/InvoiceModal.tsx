@@ -9,7 +9,7 @@ import { Download, Mail, FileText, FileSpreadsheet, History } from "lucide-react
 import { exportRowsAsCsv } from "@/lib/csv";
 
 // Lazy-load the PDF module so jsPDF + html2canvas (~700 KB) only enter the
-// bundle when the user actually clicks Download — not on every page load.
+// bundle when the user actually clicks Download - not on every page load.
 const loadPdf = () => import("@/lib/pdf");
 
 function fmtMoney(amountMinor: number, currency: string) {
@@ -295,11 +295,11 @@ export function InvoiceModal({
                   ) : inv.lines.map((p) => (
                     <tr key={p.id} className="border-b border-ink-100 last:border-b-0">
                       <td className="px-4 py-2">{p.paymentDate}</td>
-                      <td className="px-4 py-2 tabular-nums">{p.hours != null ? p.hours.toFixed(2) : "—"}</td>
-                      <td className="px-4 py-2 text-ink-600">{p.reference || "—"}</td>
+                      <td className="px-4 py-2 tabular-nums">{p.hours != null ? p.hours.toFixed(2) : "-"}</td>
+                      <td className="px-4 py-2 text-ink-600">{p.reference || "-"}</td>
                       <td className="px-4 py-2 text-right tabular-nums">{fmtMoney(p.grossMinor, p.currency)}</td>
                       <td className="px-4 py-2 text-right tabular-nums text-red-700">
-                        {p.rctRate ? `-${fmtMoney(p.rctDeductionMinor, p.currency)}` : "—"}
+                        {p.rctRate ? `-${fmtMoney(p.rctDeductionMinor, p.currency)}` : "-"}
                       </td>
                       <td className="px-4 py-2 text-right tabular-nums font-bold">{fmtMoney(p.netMinor, p.currency)}</td>
                     </tr>

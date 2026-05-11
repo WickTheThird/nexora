@@ -4,13 +4,13 @@
 //   - Shift+click on a row checkbox selects the range from the last
 //     clicked row to the current one (the canonical Excel/Gmail/Linear
 //     pattern people already know)
-//   - Cmd/Ctrl+A would select all but we don't bind that globally — too
+//   - Cmd/Ctrl+A would select all but we don't bind that globally - too
 //     intrusive in input-heavy admin pages.
 //
 // Returns:
-//   selected      — Set<string> of selected row IDs
+//   selected      - Set<string> of selected row IDs
 //   isSelected(id)
-//   toggle(id, opts?) — opts.shift triggers range from anchor to id
+//   toggle(id, opts?) - opts.shift triggers range from anchor to id
 //   toggleAll(allIds)
 //   clear()
 //   count

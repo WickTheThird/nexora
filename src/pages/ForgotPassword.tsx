@@ -7,7 +7,7 @@ import { Logo } from "@/components/ui/Logo";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 
 // Forgot-password page. Always shows the same "if the email exists" message
-// regardless of whether the address is on file — prevents account enumeration.
+// regardless of whether the address is on file - prevents account enumeration.
 export function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,7 +22,7 @@ export function ForgotPassword() {
       await api.requestPasswordReset(email);
       setSubmitted(true);
     } catch {
-      // Even on failure we show the success state — don't leak whether the
+      // Even on failure we show the success state - don't leak whether the
       // address exists. Only show error for clear network failures.
       setSubmitted(true);
     } finally {

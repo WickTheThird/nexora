@@ -10,7 +10,7 @@ import { Send, Eye, Mail, AlertTriangle, CheckCircle2, Upload, FileSpreadsheet }
 
 // Bulk Payment Advice page. Admin picks a date range, sees a per-sub
 // preview of approved+unpaid hours and the computed gross/RCT/net, ticks
-// the rows to include, and clicks "Send advices" — each ticked sub gets
+// the rows to include, and clicks "Send advices" - each ticked sub gets
 // a payment record in 'advised' state and (by default) an email saying
 // "you have a new payment advice in your portal".
 
@@ -246,12 +246,12 @@ export function BulkAdvice() {
                         <td className="px-3 py-2 text-ink-500">{it.rowIndex}</td>
                         <td className="px-3 py-2 font-mono">{it.code}</td>
                         <td className="px-3 py-2">{it.subcontractorName || it.csvName}</td>
-                        <td className="px-3 py-2 text-ink-600">{it.jobNumber || "—"}</td>
-                        <td className="px-3 py-2 text-ink-600">{it.siteAddress || "—"}</td>
+                        <td className="px-3 py-2 text-ink-600">{it.jobNumber || "-"}</td>
+                        <td className="px-3 py-2 text-ink-600">{it.siteAddress || "-"}</td>
                         <td className="px-3 py-2 text-right tabular-nums">{it.quantity.toFixed(2)}</td>
                         <td className="px-3 py-2 text-right tabular-nums">{it.rate.toFixed(2)}</td>
                         <td className="px-3 py-2 text-right tabular-nums">{fmtMoney(it.grossMinor)}</td>
-                        <td className="px-3 py-2 text-right tabular-nums text-red-700">{it.rctRate ? `-${fmtMoney(it.rctDeductionMinor)} (${it.rctRate}%)` : "—"}</td>
+                        <td className="px-3 py-2 text-right tabular-nums text-red-700">{it.rctRate ? `-${fmtMoney(it.rctDeductionMinor)} (${it.rctRate}%)` : "-"}</td>
                         <td className="px-3 py-2 text-right tabular-nums font-bold">{fmtMoney(it.netMinor)}</td>
                         <td className="px-3 py-2">
                           {it.matched
@@ -391,16 +391,16 @@ export function BulkAdvice() {
                     <td className="px-3 py-3 text-right tabular-nums">{i.sheetCount}</td>
                     <td className="px-3 py-3 text-right tabular-nums">{i.totalHours.toFixed(1)}</td>
                     <td className="px-3 py-3 text-right tabular-nums text-ink-600">
-                      {i.rateAmountMinor ? `${fmtMoney(i.rateAmountMinor)}/${i.rateUnit}` : "—"}
+                      {i.rateAmountMinor ? `${fmtMoney(i.rateAmountMinor)}/${i.rateUnit}` : "-"}
                     </td>
                     <td className="px-3 py-3 text-right tabular-nums font-medium">
-                      {i.eligible ? fmtMoney(i.grossMinor) : "—"}
+                      {i.eligible ? fmtMoney(i.grossMinor) : "-"}
                     </td>
                     <td className="px-3 py-3 text-right tabular-nums text-red-700">
-                      {i.eligible && i.rctRate ? `-${fmtMoney(i.rctDeductionMinor)} (${i.rctRate}%)` : "—"}
+                      {i.eligible && i.rctRate ? `-${fmtMoney(i.rctDeductionMinor)} (${i.rctRate}%)` : "-"}
                     </td>
                     <td className="px-3 py-3 text-right tabular-nums font-bold">
-                      {i.eligible ? fmtMoney(i.netMinor) : "—"}
+                      {i.eligible ? fmtMoney(i.netMinor) : "-"}
                     </td>
                   </tr>
                 ))}

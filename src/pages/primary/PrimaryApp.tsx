@@ -69,7 +69,7 @@ export function PrimaryApp() {
           { id: "act-job-cards", label: "View Job Cards", hint: "All submissions, draft + locked", category: "actions", icon: ClipboardList, to: "/primary/submissions" },
         ];
         setItems([...peopleItems, ...siteItems, ...actionItems]);
-      } catch { /* non-fatal — palette still has the page list */ }
+      } catch { /* non-fatal - palette still has the page list */ }
     })();
     return () => { cancelled = true; };
   }, []);

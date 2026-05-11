@@ -24,7 +24,7 @@ import {
   FolderOpen,
 } from "lucide-react";
 
-// Round B: Enagh's `/operatives/folder_certs.asp` model — group document
+// Round B: Enagh's `/operatives/folder_certs.asp` model - group document
 // types into named folders so the sub can find their certs at a glance.
 // Each folder is a panel of types; each type still uploads/reviews
 // independently. New types (safe_pass / cscs / manual_handling /

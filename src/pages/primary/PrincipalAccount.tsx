@@ -11,7 +11,7 @@ import { Save, Building2, MessagesSquare, FileText } from "lucide-react";
 // Dedicated Account page for the principal user. Replaces the editable
 // accountant card on the Dashboard with a proper Account section. Editable
 // (self-serve): accountant_email. Read-only (admin-managed): everything
-// else \u2014 with a "Request changes" CTA that opens a change-request flow.
+// else - with a "Request changes" CTA that opens a change-request flow.
 export function PrincipalAccount() {
   const toast = useToast();
   const [primary, setPrimary] = useState<Primary | null>(null);
@@ -59,18 +59,18 @@ export function PrincipalAccount() {
     }
   };
 
-  // View/Print Contract — opens the contract HTML in a new tab with print styles
+  // View/Print Contract - opens the contract HTML in a new tab with print styles
   const viewContract = async () => {
     try {
       const r = await api.getMyPrimaryContract();
       const html = r.kind === "signed" ? r.contract.renderedHtml : r.template.bodyHtml;
       const banner = r.kind === "signed"
         ? `<div class="banner">Signed on ${new Date(r.signedAt).toLocaleDateString("en-IE")}${r.signedBy ? ` by ${r.signedBy}` : ""}.</div>`
-        : `<div class="banner banner-amber">Preview \u2014 this is the active contract template. Operatives sign individually as part of their onboarding.</div>`;
+        : `<div class="banner banner-amber">Preview - this is the active contract template. Operatives sign individually as part of their onboarding.</div>`;
       const w = window.open("", "_blank", "noopener,noreferrer,width=900,height=1100");
       if (!w) { toast.error("Pop-up blocker prevented opening the contract."); return; }
       w.document.open();
-      w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Contract \u2014 ${primary?.name || ""}</title>
+      w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Contract - ${primary?.name || ""}</title>
         <style>
           body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color:#111; max-width: 800px; margin: 24mm auto; padding: 0 16mm; line-height: 1.55; font-size: 11pt; }
           h1, h2, h3 { color:#000; } h1 { font-size: 18pt; margin-top: 0; } h2 { font-size: 13pt; margin-top: 18pt; }
@@ -100,7 +100,7 @@ export function PrincipalAccount() {
     <>
       <PageHeader
         title="Account"
-        description="Your company details on file with BC Construction. Some fields you can edit yourself; others are managed by BC — use 'Request changes' to update those."
+        description="Your company details on file with BC Construction. Some fields you can edit yourself; others are managed by BC - use 'Request changes' to update those."
       />
 
       <form onSubmit={save} className="space-y-6 max-w-3xl">
@@ -121,7 +121,7 @@ export function PrincipalAccount() {
             <div>
               <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-1">Trading name</div>
               <div className="font-medium text-ink-900">{primary.name}</div>
-              <div className="text-[11px] text-ink-400 mt-0.5">Managed by BC — contact us to change.</div>
+              <div className="text-[11px] text-ink-400 mt-0.5">Managed by BC - contact us to change.</div>
             </div>
             {primary.vat && (
               <div>
@@ -138,7 +138,7 @@ export function PrincipalAccount() {
               </div>
             )}
           </div>
-          {/* Editable contact block — Title-cased server-side. */}
+          {/* Editable contact block - Title-cased server-side. */}
           <div className="mt-5 pt-4 border-t border-ink-100">
             <div className="text-xs uppercase tracking-wider text-emerald-700 font-semibold mb-3">You can edit these</div>
             <div className="grid sm:grid-cols-2 gap-4">

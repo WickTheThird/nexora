@@ -13,11 +13,11 @@ type OperativeRow = Awaited<ReturnType<typeof api.listMyPrimarySubs>>["items"][n
 type JobCardType = "weekly" | "fortnightly" | "monthly";
 
 // Enagh's three-step Job Card flow:
-//   Save      — persists as status='draft'. Editable. No admin notification.
-//   Calculate — recomputes the totals panel (in our impl this is live, but
+//   Save      - persists as status='draft'. Editable. No admin notification.
+//   Calculate - recomputes the totals panel (in our impl this is live, but
 //               we keep the button as an explicit user action so the muscle
 //               memory matches Enagh).
-//   Submit    — flips status='draft'→'submitted', LOCKS the card (no further
+//   Submit    - flips status='draft'→'submitted', LOCKS the card (no further
 //               edits), notifies admin, emails the principal a confirmation
 //               of the submission.
 //
@@ -147,7 +147,7 @@ export function PrimarySubmitPayment() {
         setSitesLoaded(true);
         // Active operatives only (Enagh: only Active appear on Job Card).
         //   - Closed ones (closedAt non-null) excluded.
-        //   - Proposed pairings excluded — principal must accept first.
+        //   - Proposed pairings excluded - principal must accept first.
         const active = ops.items.filter(o =>
           (o.onboardingStatus === "approved" || o.onboardingStatus === "active") &&
           !o.closedAt &&
@@ -192,7 +192,7 @@ export function PrimarySubmitPayment() {
             } : operativeToRow(op);
           });
           // Items that didn't match an active operative (e.g. operative
-          // since deactivated) — keep as ad-hoc rows so the user doesn't
+          // since deactivated) - keep as ad-hoc rows so the user doesn't
           // lose data.
           const adhoc = dr.items
             .filter(it => !byRef.has(it.subcontractorRef || ""))
@@ -233,7 +233,7 @@ export function PrimarySubmitPayment() {
   }]);
   const removeRow = (i: number) => setRows((prev) => prev.filter((_, idx) => idx !== i));
 
-  // CSV upload — overwrites Qty/Rate per matching SUB ref. Doesn't add
+  // CSV upload - overwrites Qty/Rate per matching SUB ref. Doesn't add
   // ad-hoc rows; the auto-listed roster is the source of truth.
   const onCsvFile = (file: File) => {
     file.text().then((text) => {
@@ -286,7 +286,7 @@ export function PrimarySubmitPayment() {
 
   // Live totals (Enagh: same numbers, just driven by typing rather than
   // "Calculate" button. The Calculate button is still here for users who
-  // expect to click it — it just animates the totals panel.)
+  // expect to click it - it just animates the totals panel.)
   const totals = useMemo(() => {
     const totalGrossMinor = rows.reduce((s, r) => {
       const q = parseFloat(r.quantity) || 0;
@@ -367,7 +367,7 @@ export function PrimarySubmitPayment() {
 
   const recalculate = () => {
     setCalcTick(t => t + 1);
-    toast.info(`Recalculated \u2014 Total to Pay BC: ${fmtMoneyEur(totals.totalToPay)}`);
+    toast.info(`Recalculated - Total to Pay BC: ${fmtMoneyEur(totals.totalToPay)}`);
   };
 
   // Submit (lock + notify + auto-invoice on admin process).
@@ -379,7 +379,7 @@ export function PrimarySubmitPayment() {
     try {
       let submissionId = draftId;
       if (!submissionId) {
-        // No draft yet — create directly with status='submitted'.
+        // No draft yet - create directly with status='submitted'.
         const r = await api.createMySubmission({
           jobCardType, dateEnding, periodStart, periodEnd,
           notes: notes || null, status: "submitted",
@@ -418,12 +418,12 @@ export function PrimarySubmitPayment() {
     <>
       <PageHeader
         title={editDraftId ? "Edit Job Card (Draft)" : "New Job Card"}
-        description={`Job Card Details \u2014 Created by ${principalName || "your company"}. Auto-listed your active operatives below; fill Qty + Site for anyone who worked this period.`}
+        description={`Job Card Details - Created by ${principalName || "your company"}. Auto-listed your active operatives below; fill Qty + Site for anyone who worked this period.`}
       />
 
       {subMenu}
 
-      {/* Top context — Date Ending + Type + Notes (left) and the BC contact help-block (right), Enagh layout */}
+      {/* Top context - Date Ending + Type + Notes (left) and the BC contact help-block (right), Enagh layout */}
       <div className="grid lg:grid-cols-3 gap-4 mb-5">
         <div className="lg:col-span-2 card-padded">
           <div className="grid sm:grid-cols-3 gap-3">
@@ -509,7 +509,7 @@ export function PrimarySubmitPayment() {
         </div>
       )}
 
-      {/* Quick-fill bar — Excel-style "apply this once, fill many rows".
+      {/* Quick-fill bar - Excel-style "apply this once, fill many rows".
           Pick a site, click Apply → every row with a non-zero Qty (or
           every row with no site set, if no qty filter applies) gets
           that site. Saves the typical "everyone worked Park West this
@@ -531,10 +531,10 @@ export function PrimarySubmitPayment() {
               e.target.value = "";
             }}
           >
-            <option value="">— Apply Site ID to all empty rows —</option>
+            <option value="">- Apply Site ID to all empty rows -</option>
             {sites.map((s) => (
               <option key={s.id} value={s.siteId}>
-                {s.siteId}{s.projectName ? ` \u2014 ${s.projectName}` : ""}
+                {s.siteId}{s.projectName ? ` - ${s.projectName}` : ""}
               </option>
             ))}
           </select>
@@ -552,7 +552,7 @@ export function PrimarySubmitPayment() {
         </div>
       )}
 
-      {/* Operatives roster table — auto-listed from active operatives (Enagh parity) */}
+      {/* Operatives roster table - auto-listed from active operatives (Enagh parity) */}
       <div className="card overflow-x-auto mb-5">
         <table className="w-full text-sm">
           <thead className="bg-ink-50 border-b border-ink-100">
@@ -586,14 +586,14 @@ export function PrimarySubmitPayment() {
               const isAuto = !!row.operativeId;
               return (
                 <tr key={row.operativeId || `adhoc-${i}`} className="border-b border-ink-100 last:border-b-0">
-                  <td className="px-3 py-2 font-mono text-xs text-ink-500">{row.operativeId ? row.operativeId.slice(0, 6) : "—"}</td>
-                  <td className="px-3 py-2 font-mono text-xs text-ink-700">{row.subcontractorRef || "—"}</td>
-                  <td className="px-3 py-2 text-ink-900">{row.subcontractorName || "—"}</td>
+                  <td className="px-3 py-2 font-mono text-xs text-ink-500">{row.operativeId ? row.operativeId.slice(0, 6) : "-"}</td>
+                  <td className="px-3 py-2 font-mono text-xs text-ink-700">{row.subcontractorRef || "-"}</td>
+                  <td className="px-3 py-2 text-ink-900">{row.subcontractorName || "-"}</td>
                   <td className="px-2 py-2"><input inputMode="decimal" className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.quantity} onChange={(ev) => updateRow(i, "quantity", ev.target.value)} placeholder="0" /></td>
                   <td className="px-2 py-2"><input inputMode="decimal" className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.rate} onChange={(ev) => updateRow(i, "rate", ev.target.value)} placeholder="0" /></td>
                   <td className="px-2 py-2"><input inputMode="decimal" className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.extras} onChange={(ev) => updateRow(i, "extras", ev.target.value)} placeholder="0" /></td>
                   <td className="px-2 py-2"><input inputMode="decimal" className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.materialValue} onChange={(ev) => updateRow(i, "materialValue", ev.target.value)} placeholder="0" /></td>
-                  <td className="px-2 py-2 text-right tabular-nums font-medium text-ink-700">{grossMinor > 0 ? fmtMoneyEur(grossMinor) : "—"}</td>
+                  <td className="px-2 py-2 text-right tabular-nums font-medium text-ink-700">{grossMinor > 0 ? fmtMoneyEur(grossMinor) : "-"}</td>
                   <td className="px-2 py-2">
                     <div className="flex items-center gap-1">
                       {sites.length > 0 ? (
@@ -602,10 +602,10 @@ export function PrimarySubmitPayment() {
                           value={row.siteAddress}
                           onChange={(ev) => updateRow(i, "siteAddress", ev.target.value)}
                         >
-                          <option value="">— Site ID —</option>
+                          <option value="">- Site ID -</option>
                           {sites.map((s) => (
                             <option key={s.id} value={s.siteId}>
-                              {s.siteId}{s.projectName ? ` \u2014 ${s.projectName}` : ""}
+                              {s.siteId}{s.projectName ? ` - ${s.projectName}` : ""}
                             </option>
                           ))}
                         </select>
@@ -650,7 +650,7 @@ export function PrimarySubmitPayment() {
         </table>
       </div>
 
-      {/* Calculate block — Enagh's labels verbatim */}
+      {/* Calculate block - Enagh's labels verbatim */}
       <div className="card-padded mb-5 bg-ink-50/40">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-500 mb-4">Calculate</h2>
         <div className="grid sm:grid-cols-2 gap-6">
@@ -688,7 +688,7 @@ export function PrimarySubmitPayment() {
         </div>
       </div>
 
-      {/* Action bar — Enagh's three-button row + Print Blank */}
+      {/* Action bar - Enagh's three-button row + Print Blank */}
       <div className="flex flex-wrap justify-between items-center gap-2">
         <div className="flex flex-wrap gap-2">
           <Button variant="ghost" onClick={addAdhocRow} leftIcon={<Plus className="h-4 w-4" />}>
@@ -735,11 +735,11 @@ export function PrimarySubmitPayment() {
         }
       `}</style>
       <div className="print-blank">
-        <h1>{principalName || "Principal"} — Job Card</h1>
+        <h1>{principalName || "Principal"} - Job Card</h1>
         <div className="pb-meta">
           Type: <strong>{jobCardType.charAt(0).toUpperCase() + jobCardType.slice(1)}</strong>{" \u00B7 "}
-          Period: <strong>{periodStart || "—"}</strong> to <strong>{periodEnd || dateEnding || "—"}</strong>{" \u00B7 "}
-          Date ending: <strong>{dateEnding || "—"}</strong>
+          Period: <strong>{periodStart || "-"}</strong> to <strong>{periodEnd || dateEnding || "-"}</strong>{" \u00B7 "}
+          Date ending: <strong>{dateEnding || "-"}</strong>
         </div>
         <table>
           <thead>
@@ -775,9 +775,9 @@ export function PrimarySubmitPayment() {
               <tbody>
                 {operatives.map((o) => (
                   <tr key={o.id}>
-                    <td style={{ fontFamily: "monospace" }}>{o.subcontractorRef || "—"}</td>
-                    <td>{o.fullName || "—"}</td>
-                    <td className="num">{o.rateAmountMinor != null ? `\u20AC${(o.rateAmountMinor / 100).toFixed(2)}${o.rateUnit ? `/${o.rateUnit}` : ""}` : "—"}</td>
+                    <td style={{ fontFamily: "monospace" }}>{o.subcontractorRef || "-"}</td>
+                    <td>{o.fullName || "-"}</td>
+                    <td className="num">{o.rateAmountMinor != null ? `\u20AC${(o.rateAmountMinor / 100).toFixed(2)}${o.rateUnit ? `/${o.rateUnit}` : ""}` : "-"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -793,8 +793,8 @@ export function PrimarySubmitPayment() {
                 {sites.map((s) => (
                   <tr key={s.id}>
                     <td style={{ fontFamily: "monospace" }}>{s.siteId}</td>
-                    <td>{s.projectName || "—"}</td>
-                    <td>{s.address || "—"}</td>
+                    <td>{s.projectName || "-"}</td>
+                    <td>{s.address || "-"}</td>
                   </tr>
                 ))}
               </tbody>

@@ -150,7 +150,7 @@ export function AdminPrimarySubmissionDetail() {
               <p className={`text-sm ${matchedCount > 0 ? "text-emerald-800" : "text-amber-800"}`}>
                 {matchedCount > 0
                   ? <>Created <strong>{matchedCount}</strong> payment advice{matchedCount === 1 ? "" : "s"} and emailed the matched subcontractor{matchedCount === 1 ? "" : "s"}{unmatchedCount > 0 ? <> · skipped <strong>{unmatchedCount}</strong> unmatched row{unmatchedCount === 1 ? "" : "s"}</> : null}.</>
-                  : <>No payment advices were created — all <strong>{items.length}</strong> row{items.length === 1 ? "" : "s"} were unmatched (sub code didn't link to any active operative).</>}
+                  : <>No payment advices were created - all <strong>{items.length}</strong> row{items.length === 1 ? "" : "s"} were unmatched (sub code didn't link to any active operative).</>}
               </p>
             </div>
           </div>
@@ -183,10 +183,10 @@ export function AdminPrimarySubmissionDetail() {
           <tbody>
             {items.map((it) => (
               <tr key={it.id} className={`border-b border-ink-100 last:border-b-0 ${!it.matched ? "bg-amber-50/40" : ""}`}>
-                <td className="px-3 py-2 font-mono text-xs">{it.subcontractorRef || "—"}</td>
-                <td className="px-3 py-2">{it.subcontractorName || "—"}</td>
-                <td className="px-3 py-2 text-ink-600">{it.jobNumber || "—"}</td>
-                <td className="px-3 py-2 text-ink-600">{it.siteAddress || "—"}</td>
+                <td className="px-3 py-2 font-mono text-xs">{it.subcontractorRef || "-"}</td>
+                <td className="px-3 py-2">{it.subcontractorName || "-"}</td>
+                <td className="px-3 py-2 text-ink-600">{it.jobNumber || "-"}</td>
+                <td className="px-3 py-2 text-ink-600">{it.siteAddress || "-"}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{it.quantity.toFixed(2)}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{fmtMoney(it.rateMinor)}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{fmtMoney(it.materialValueMinor)}</td>

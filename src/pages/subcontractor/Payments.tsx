@@ -92,7 +92,7 @@ export function Payments() {
     try {
       const { downloadInvoicePdf } = await loadPdf();
       // We don't have AppSettings exposed to subcontractors, so principal
-      // info is empty here — the PDF still renders correctly with sub as the
+      // info is empty here - the PDF still renders correctly with sub as the
       // FROM party and a clear "Principal" placeholder when Settings haven't
       // been mirrored. For a full template, the admin sends the advice; the
       // sub PDF is mainly a record/copy.
@@ -159,7 +159,7 @@ export function Payments() {
           fullName: sub.fullName,
           email: sub.email,
           subcontractorRef: sub.subcontractorRef,
-          // PPSN not exposed via /me/profile yet — left null. The summary
+          // PPSN not exposed via /me/profile yet - left null. The summary
           // is still valid; the sub fills it in by hand on Form 11 anyway.
           ppsn: null,
           rctRate: sub.rctRate,
@@ -177,7 +177,7 @@ export function Payments() {
     <>
       <PageHeader
         title="Payments & Income"
-        description="Payment advices from the principal appear here. Click ‘Generate invoice’ to issue your own invoice for any advice — that is the legal document."
+        description="Payment advices from the principal appear here. Click ‘Generate invoice’ to issue your own invoice for any advice - that is the legal document."
         right={taxYears.length > 0 ? (
           <div className="flex items-center gap-2">
             <select
@@ -251,7 +251,7 @@ export function Payments() {
                               {p.hours != null ? p.hours.toLocaleString(undefined, { maximumFractionDigits: 2 }) : <span className="text-ink-400">·</span>}
                             </td>
                             <td className="px-5 py-4 text-sm text-ink-700 tabular-nums">
-                              {p.invoiceNumber || <span className="text-ink-400">—</span>}
+                              {p.invoiceNumber || <span className="text-ink-400">-</span>}
                               {p.vatReverseCharge && (
                                 <Badge tone="info">VAT RC</Badge>
                               )}

@@ -3,9 +3,9 @@
 // and show a friendly result.
 //
 // Three states:
-//   - verifying  — initial spinner while we hit /auth/verify-email
-//   - verified   — success; CTA to sign in
-//   - error      — invalid / expired token; CTA to resend
+//   - verifying  - initial spinner while we hit /auth/verify-email
+//   - verified   - success; CTA to sign in
+//   - error      - invalid / expired token; CTA to resend
 
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";

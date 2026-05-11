@@ -54,7 +54,7 @@ export function PrimarySubDetail() {
         </div>
         <div className="card-padded">
           <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-2">RCT rate</div>
-          <div className="text-lg font-bold text-ink-900">{sub.rctRate ? `${sub.rctRate}%` : "—"}</div>
+          <div className="text-lg font-bold text-ink-900">{sub.rctRate ? `${sub.rctRate}%` : "-"}</div>
         </div>
         <div className="card-padded">
           <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-2">VAT</div>
@@ -83,10 +83,10 @@ export function PrimarySubDetail() {
                 <tr key={String(p.id)} className="border-b border-ink-100 last:border-b-0">
                   <td className="px-5 py-3 text-ink-900">{String(p.payment_date)}</td>
                   <td className="px-5 py-3 text-ink-600">
-                    {p.period_start && p.period_end ? `${p.period_start} → ${p.period_end}` : <span className="text-ink-400">—</span>}
+                    {p.period_start && p.period_end ? `${p.period_start} → ${p.period_end}` : <span className="text-ink-400">-</span>}
                   </td>
-                  <td className="px-5 py-3 text-ink-700 tabular-nums">{p.hours != null ? String(p.hours) : <span className="text-ink-400">—</span>}</td>
-                  <td className="px-5 py-3 text-ink-700 font-mono text-xs">{p.invoice_number ? String(p.invoice_number) : <span className="text-ink-400">—</span>}</td>
+                  <td className="px-5 py-3 text-ink-700 tabular-nums">{p.hours != null ? String(p.hours) : <span className="text-ink-400">-</span>}</td>
+                  <td className="px-5 py-3 text-ink-700 font-mono text-xs">{p.invoice_number ? String(p.invoice_number) : <span className="text-ink-400">-</span>}</td>
                   <td className="px-5 py-3"><Badge tone={p.status === "paid" ? "success" : p.status === "invoiced" ? "info" : "warn"}>{String(p.status)}</Badge></td>
                   <td className="px-5 py-3 text-right tabular-nums font-medium">{fmtMoney(Number(p.amount_minor) || 0)}</td>
                 </tr>
@@ -114,8 +114,8 @@ export function PrimarySubDetail() {
               {data.timesheets.map((t: Record<string, unknown>) => (
                 <tr key={String(t.id)} className="border-b border-ink-100 last:border-b-0">
                   <td className="px-5 py-3 text-ink-900">{String(t.work_date)}</td>
-                  <td className="px-5 py-3 text-ink-700 tabular-nums">{t.hours != null ? String(t.hours) : <span className="text-ink-400">—</span>}</td>
-                  <td className="px-5 py-3 text-ink-600">{t.site_ref ? String(t.site_ref) : <span className="text-ink-400">—</span>}</td>
+                  <td className="px-5 py-3 text-ink-700 tabular-nums">{t.hours != null ? String(t.hours) : <span className="text-ink-400">-</span>}</td>
+                  <td className="px-5 py-3 text-ink-600">{t.site_ref ? String(t.site_ref) : <span className="text-ink-400">-</span>}</td>
                   <td className="px-5 py-3"><Badge tone={t.status === "approved" || t.status === "paid" ? "success" : "info"}>{String(t.status)}</Badge></td>
                 </tr>
               ))}
