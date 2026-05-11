@@ -14,3 +14,9 @@ tsconfig.tsbuildinfo
 # Worker source lives in Cloudflare dashboard, not in the repo
 worker.js
 worker.ts
+
+# DB migrations are applied via `wrangler d1 execute --file=...` and
+# already reflected in the live schema. Each is a one-shot artifact
+# tied to a specific deploy; keeping them in the public repo adds
+# noise without adding capability.
+migrate-*.sql
