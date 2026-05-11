@@ -159,7 +159,12 @@ export function SubcontractorDetail() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {["submitted", "under_review"].includes(sub.onboardingStatus) && (
+          {/* Approve/Reject/Request-changes are available from any
+              non-terminal status. Previously this was gated to
+              ["submitted","under_review"] which trapped freshly-invited
+              subs - admin had no way to fast-track them. Now admin can
+              act as soon as the user is invited. */}
+          {["invited","in_progress","submitted","under_review","changes_requested"].includes(sub.onboardingStatus) && (
             <>
               <Button variant="outline" onClick={() => setChangesModal(true)} leftIcon={<MessageSquareWarning className="h-4 w-4"/>}>
                 Request changes
