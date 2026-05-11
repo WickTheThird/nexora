@@ -255,24 +255,30 @@ function CreateSubcontractorModal({
   const toast = useToast();
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
-  const [clientRef, setClientRef] = useState("");
+  // PPS captured here so admin can record it during initial onboarding
+  // without forcing the operative to log in to add it themselves. Lives
+  // under the Personal section (mirrors where it appears on My Details).
+  const [ppsNumber, setPpsNumber] = useState("");
   const [primaryId, setPrimaryId] = useState(defaultPrimaryId);
   const [loading, setLoading] = useState(false);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
 
-  // Re-sync the selected principal when the parent's filter changes between
-  // opens (e.g. admin filters list by Glenveagh, then opens the modal).
   useEffect(() => {
     if (open) setPrimaryId(defaultPrimaryId);
   }, [open, defaultPrimaryId]);
 
   const submit = async () => {
+    if (!email.trim()) { toast.error("Email is required"); return; }
+    if (!fullName.trim()) { toast.error("Full name is required"); return; }
+    if (!ppsNumber.trim()) { toast.error("PPS number is required"); return; }
     setLoading(true);
     try {
       const r = await api.adminCreateSubcontractor({
         email: email.trim(),
         fullName: fullName.trim() || undefined,
-        clientRef: clientRef.trim() || undefined,
+        // client_ref no longer accepted from admin \u2014 worker auto-generates
+        // it as CLI-NNNN. Only PPS travels in addition to email/name now.
+        ppsNumber: ppsNumber.trim(),
         primaryId: primaryId || undefined,
       });
       setTempPassword(r.tempPassword);
@@ -287,7 +293,7 @@ function CreateSubcontractorModal({
   const reset = () => {
     setEmail("");
     setFullName("");
-    setClientRef("");
+    setPpsNumber("");
     setPrimaryId(defaultPrimaryId);
     setTempPassword(null);
   };
@@ -323,22 +329,46 @@ function CreateSubcontractorModal({
           </Button>
         </div>
       ) : (
-        <div className="space-y-4">
-          <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="john@example.com" required />
-          <Input label="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="John Subcontractor" />
-          <Input label="Client reference" value={clientRef} onChange={(e) => setClientRef(e.target.value)} placeholder="Optional internal ID" />
-          <Select
-            label="Principal (optional)"
-            value={primaryId}
-            options={[
-              { value: "", label: "— No principal yet —" },
-              ...primaries
-                .filter((p) => !p.archivedAt)
-                .map((p) => ({ value: p.id, label: p.name })),
-            ]}
-            onChange={(e) => setPrimaryId(e.target.value)}
-            hint="Link the new subcontractor to a developer / main contractor. You can change this later."
-          />
+        <div className="space-y-5">
+          {/* Personal — identity + tax-side identifiers (PPS lives here,
+              not under Work, so it matches the layout on the operative's
+              own My Details page). */}
+          <section>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">Personal</h3>
+            <div className="space-y-3">
+              <Input label="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="John Subcontractor" required />
+              <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="john@example.com" required autoComplete="off" />
+              <Input
+                label="PPS number"
+                value={ppsNumber}
+                onChange={(e) => setPpsNumber(e.target.value.toUpperCase())}
+                placeholder="1234567T"
+                required
+                hint="Required for RCT / Revenue. Stored encrypted at rest."
+              />
+            </div>
+          </section>
+
+          {/* Work \u2014 who they're contracted under. Sub code + client ref
+              are auto-generated server-side, so no input needed. */}
+          <section>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">Work</h3>
+            <Select
+              label="Principal (optional)"
+              value={primaryId}
+              options={[
+                { value: "", label: "\u2014 No principal yet \u2014" },
+                ...primaries
+                  .filter((p) => !p.archivedAt)
+                  .map((p) => ({ value: p.id, label: p.name })),
+              ]}
+              onChange={(e) => setPrimaryId(e.target.value)}
+              hint="You can change this later. The principal must accept the pairing before the operative appears on their roster."
+            />
+            <p className="text-[11px] text-ink-400 mt-2">
+              Internal IDs (sub code <code>SUB-NNNN</code> + client ref <code>CLI-NNNN</code>) are auto-generated.
+            </p>
+          </section>
         </div>
       )}
     </Modal>

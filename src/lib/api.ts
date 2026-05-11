@@ -343,10 +343,14 @@ export const api = {
   adminCreateSubcontractor: (data: {
     email: string;
     fullName?: string;
-    clientRef?: string;
-    // Optional — link the sub to a Principal from the creation modal.
+    // Required \u2014 stored encrypted at rest. Captured at create time so
+    // admin can record it during initial onboarding.
+    ppsNumber?: string;
+    // Optional \u2014 link the sub to a Principal from the creation modal.
     // Server validates the principal exists + isn't archived.
     primaryId?: string;
+    // (clientRef no longer accepted from the client \u2014 worker auto-
+    // generates CLI-NNNN. Same for subcontractor_ref \u2192 SUB-NNNN.)
   }) =>
     request<{
       subcontractorId: string;
@@ -354,6 +358,8 @@ export const api = {
       email: string;
       primaryId: string | null;
       tempPassword: string;
+      subRef: string;
+      clientRef: string;
       note: string;
     }>("POST", "/admin/subcontractors", { body: data }),
   adminPatchSubcontractor: (id: string, data: Partial<Subcontractor>) =>
