@@ -48,6 +48,11 @@ type Row = {
   materialValue: string;
   extras: string;
   notes: string;
+  // RCT rate selected by the principal for this row. Defaults to the
+  // sub's recorded rate (sub.rctRate). Persisted to the submission
+  // item; admin uses it when generating the payment. Only the three
+  // legal Irish RCT bands are valid.
+  rctRate: "" | "0" | "20" | "35";
 };
 
 function operativeToRow(o: OperativeRow): Row {
@@ -62,6 +67,10 @@ function operativeToRow(o: OperativeRow): Row {
     materialValue: "0",
     extras: "0",
     notes: "",
+    // Default the dropdown to whatever's set on the sub (typed via the
+    // sub onboarding / admin patch). Empty string = "not picked yet"
+    // so the dropdown shows the placeholder option.
+    rctRate: (o.rctRate as "0" | "20" | "35") ?? "",
   };
 }
 
@@ -189,12 +198,13 @@ export function PrimarySubmitPayment() {
               materialValue: saved.materialValueMinor != null ? (saved.materialValueMinor / 100).toFixed(2) : "0",
               extras: saved.extrasMinor != null ? (saved.extrasMinor / 100).toFixed(2) : "0",
               notes: saved.notes || "",
+              rctRate: (saved.rctRate as "0" | "20" | "35") ?? (op.rctRate as "0" | "20" | "35") ?? "",
             } : operativeToRow(op);
           });
           // Items that didn't match an active operative (e.g. operative
           // since deactivated) - keep as ad-hoc rows so the user doesn't
           // lose data.
-          const adhoc = dr.items
+          const adhoc: Row[] = dr.items
             .filter(it => !byRef.has(it.subcontractorRef || ""))
             .map(it => ({
               operativeId: "",
@@ -207,6 +217,7 @@ export function PrimarySubmitPayment() {
               materialValue: it.materialValueMinor != null ? (it.materialValueMinor / 100).toFixed(2) : "0",
               extras: it.extrasMinor != null ? (it.extrasMinor / 100).toFixed(2) : "0",
               notes: it.notes || "",
+              rctRate: (it.rctRate as "0" | "20" | "35") ?? "",
             }));
           setRows([...hydrated, ...adhoc]);
         } else {
@@ -229,7 +240,7 @@ export function PrimarySubmitPayment() {
   const addAdhocRow = () => setRows((prev) => [...prev, {
     operativeId: "", subcontractorRef: "", subcontractorName: "",
     jobNumber: "", siteAddress: "", quantity: "0", rate: "0",
-    materialValue: "0", extras: "0", notes: "",
+    materialValue: "0", extras: "0", notes: "", rctRate: "",
   }]);
   const removeRow = (i: number) => setRows((prev) => prev.filter((_, idx) => idx !== i));
 
@@ -300,7 +311,11 @@ export function PrimarySubmitPayment() {
       : null;
     const lessSubs = overrideMinor != null ? overrideMinor : lessSubsMinor;
     const vatAmt = Math.round((totalGrossMinor * vatRatePercent) / 100);
-    const totalToPay = totalGrossMinor + vatAmt - lessSubs;
+    // RCT-applicable construction services are subject to VAT REVERSE-CHARGE
+    // under VATCA s.16(2): the principal accounts for the VAT themselves on
+    // their VAT3 return. So BC's invoice to the principal does NOT include
+    // VAT in the total. The VAT figure is shown informationally only.
+    const totalToPay = totalGrossMinor - lessSubs;
     return { totalGrossMinor, vatAmt, lessSubs, totalToPay };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, lessSubsOverride, lessSubsMinor, vatRatePercent, calcTick]);
@@ -323,6 +338,7 @@ export function PrimarySubmitPayment() {
       siteAddress: row.siteAddress || undefined,
       quantity: row.quantity || undefined,
       rate: row.rate || undefined,
+      rctRate: row.rctRate || undefined,
       materialValue: row.materialValue || undefined,
       extras: row.extras || undefined,
       notes: row.notes || undefined,
@@ -562,6 +578,7 @@ export function PrimarySubmitPayment() {
               <th className="px-3 py-2 text-right">Extras</th>
               <th className="px-3 py-2 text-right">Materials</th>
               <th className="px-3 py-2 text-right">Gross</th>
+              <th className="px-3 py-2">RCT</th>
               <th className="px-3 py-2">Site ID</th>
               <th className="px-3 py-2">Job #</th>
               <th className="px-3 py-2 w-8"></th>
@@ -570,7 +587,7 @@ export function PrimarySubmitPayment() {
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={11} className="px-5 py-10 text-center text-sm text-ink-500">
+                <td colSpan={12} className="px-5 py-10 text-center text-sm text-ink-500">
                   You don&apos;t have any active subcontractors yet. <Link to="/primary/subcontractors" className="text-ink-900 underline font-medium">Request your first subcontractor</Link> to start filling Job Cards.
                 </td>
               </tr>
@@ -591,6 +608,23 @@ export function PrimarySubmitPayment() {
                   <td className="px-2 py-2"><input inputMode="decimal" className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.extras} onChange={(ev) => updateRow(i, "extras", ev.target.value)} placeholder="0" /></td>
                   <td className="px-2 py-2"><input inputMode="decimal" className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.materialValue} onChange={(ev) => updateRow(i, "materialValue", ev.target.value)} placeholder="0" /></td>
                   <td className="px-2 py-2 text-right tabular-nums font-medium text-ink-700">{grossMinor > 0 ? fmtMoneyEur(grossMinor) : "-"}</td>
+                  <td className="px-2 py-2">
+                    {/* RCT rate dropdown - per-line, defaults to the sub's
+                        recorded rate. The principal can override per Job
+                        Card; admin uses this value when generating the
+                        payment record. */}
+                    <select
+                      className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none bg-white"
+                      value={row.rctRate}
+                      onChange={(ev) => updateRow(i, "rctRate", ev.target.value)}
+                      title="RCT deduction rate for this row"
+                    >
+                      <option value="">-</option>
+                      <option value="0">0%</option>
+                      <option value="20">20%</option>
+                      <option value="35">35%</option>
+                    </select>
+                  </td>
                   <td className="px-2 py-2">
                     <div className="flex items-center gap-1">
                       {sites.length > 0 ? (
@@ -654,9 +688,14 @@ export function PrimarySubmitPayment() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between"><span className="text-ink-600">Total Gross</span><span className="tabular-nums font-medium">{fmtMoneyEur(totals.totalGrossMinor)}</span></div>
             <div className="flex justify-between"><span className="text-ink-600">Total to certify to revenue</span><span className="tabular-nums">{fmtMoneyEur(totals.totalGrossMinor)}</span></div>
-            <div className="flex justify-between">
-              <span className="text-ink-600">The principal must account for VAT on this supply ({vatRatePercent}%)</span>
-              <span className="tabular-nums">{fmtMoneyEur(totals.vatAmt)}</span>
+            <div className="rounded-md bg-amber-50/80 border border-amber-200 px-3 py-2 text-xs text-amber-900 mt-1">
+              <div className="flex justify-between items-center">
+                <span><strong>VAT reverse-charge (VATCA s.16(2))</strong></span>
+                <span className="tabular-nums font-semibold">{fmtMoneyEur(totals.vatAmt)} ({vatRatePercent}%)</span>
+              </div>
+              <p className="mt-1 text-[11px] text-amber-800">
+                You account for this VAT yourself on your VAT3 return. It is <strong>not</strong> added to Total to Pay BC.
+              </p>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-ink-600">Less Subs</span>

@@ -9,9 +9,10 @@ import { Empty } from "@/components/ui/Empty";
 import { Modal } from "@/components/ui/Modal";
 import { Select, Textarea } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
+import { exportRowsAsCsv } from "@/lib/csv";
 import {
   ArrowLeft, AlertTriangle, Edit3, Send, Trash2, Lock,
-  RefreshCw, UserMinus, Repeat,
+  RefreshCw, UserMinus, Repeat, Download,
 } from "lucide-react";
 
 function fmtMoney(minor: number) {
@@ -90,6 +91,28 @@ export function PrimarySubmissionDetail() {
     } finally {
       setActing(false);
     }
+  };
+
+  // Export the line items of this Job Card to CSV. Same column set as
+  // the admin "Job Card export" so principals + admins exchange a
+  // consistent file format (matches Enagh's downloadable invoice CSV).
+  const exportCsv = () => {
+    if (!submission) return;
+    const ref = submission.jobRef || submission.id.slice(0, 8);
+    exportRowsAsCsv(`jobcard-${ref}.csv`, items, [
+      { header: "Sub code",    value: (i) => i.subcontractorRef },
+      { header: "Name",        value: (i) => i.subcontractorName },
+      { header: "Job #",       value: (i) => i.jobNumber },
+      { header: "Site",        value: (i) => i.siteAddress },
+      { header: "Qty",         value: (i) => (i.quantity ?? 0).toFixed(2) },
+      { header: "Rate (EUR)",  value: (i) => ((i.rateMinor || 0) / 100).toFixed(2) },
+      { header: "Material",    value: (i) => ((i.materialValueMinor || 0) / 100).toFixed(2) },
+      { header: "Extras",      value: (i) => ((i.extrasMinor || 0) / 100).toFixed(2) },
+      { header: "Gross (EUR)", value: (i) => ((i.grossMinor || 0) / 100).toFixed(2) },
+      { header: "RCT rate",    value: (i) => i.rctRate ? `${i.rctRate}%` : "" },
+      { header: "Notes",       value: (i) => i.notes },
+      { header: "Matched",     value: (i) => i.matched ? "yes" : "no" },
+    ]);
   };
 
   const deleteDraft = async () => {
@@ -173,7 +196,10 @@ export function PrimarySubmissionDetail() {
           ? `Draft - not yet sent to BC. Last saved ${new Date(submission.submittedAt).toLocaleString("en-IE")}`
           : `Submitted ${new Date(submission.submittedAt).toLocaleString("en-IE")}`}
         right={isDraft ? (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="ghost" onClick={exportCsv} leftIcon={<Download className="h-4 w-4" />}>
+              Download CSV
+            </Button>
             <Button variant="outline" onClick={deleteDraft} loading={acting} leftIcon={<Trash2 className="h-4 w-4" />}>
               Delete draft
             </Button>
@@ -188,11 +214,16 @@ export function PrimarySubmissionDetail() {
           // Locked Job Card: principal cannot edit directly, but they
           // CAN ask BC to flip the status (back to draft, etc.) or to
           // change subs on the card. Both flows post change_requests
-          // rows that admin actions in their inbox.
+          // rows that admin actions in their inbox. CSV download is
+          // always available so the principal can hand the line items
+          // to their accountant.
           <div className="flex flex-wrap gap-2 items-center">
             {status === "submitted" && (
               <Badge tone="warn"><Lock className="h-3 w-3 inline mr-1" />Locked - awaiting BC</Badge>
             )}
+            <Button variant="ghost" onClick={exportCsv} leftIcon={<Download className="h-4 w-4" />}>
+              Download CSV
+            </Button>
             <Button variant="outline" onClick={() => setStatusModalOpen(true)} leftIcon={<RefreshCw className="h-4 w-4" />}>
               Request status change
             </Button>

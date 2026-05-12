@@ -379,6 +379,10 @@ export interface PrimarySubmissionItem {
   notes: string | null;
   paymentId: string | null;
   matched: boolean;
+  /** RCT deduction rate chosen by the principal for this row at
+   *  submission time. Defaults to the sub's recorded rate. Admin uses
+   *  this value when generating the payment record. */
+  rctRate: "0" | "20" | "35" | null;
   createdAt: number;
 }
 
