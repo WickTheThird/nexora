@@ -1,15 +1,17 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, ApiError } from "@/lib/api";
-import type { Primary, PrimaryInvoice, Subcontractor } from "@/lib/types";
+import type { Primary, PrimaryInvoice, PrimarySubmission, Subcontractor } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { Input, Select } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Badge } from "@/components/ui/Badge";
 import { Empty } from "@/components/ui/Empty";
 import { useToast } from "@/components/ui/Toast";
-import { ArrowLeft, FileText, Mail, CheckCircle2, Plus, Users, ArrowUpRight, UserPlus } from "lucide-react";
+import { ArrowLeft, FileText, Mail, CheckCircle2, Plus, Users, ArrowUpRight, UserPlus, Download, Briefcase } from "lucide-react";
+import { exportRowsAsCsv } from "@/lib/csv";
+import { fmtDate } from "@/lib/format";
 
 function fmtMoney(minor: number) {
   return `\u20AC${(minor / 100).toLocaleString("en-IE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -29,21 +31,31 @@ export function PrimaryDetail() {
   } | null>(null);
   const [subs, setSubs] = useState<Subcontractor[]>([]);
   const [invoices, setInvoices] = useState<PrimaryInvoice[]>([]);
+  const [submissions, setSubmissions] = useState<PrimarySubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [genOpen, setGenOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  // Period filter affects the money rollup + submissions + invoices.
+  // '0' = all time.
+  const [period, setPeriod] = useState("90");
+  const PERIOD_DAYS = Number(period) || 0;
+  const periodCutoff = PERIOD_DAYS > 0 ? Date.now() - PERIOD_DAYS * 24 * 60 * 60 * 1000 : 0;
 
   const refresh = async () => {
     if (!id) return;
     try {
-      const [p, list] = await Promise.all([
+      const [p, list, subs] = await Promise.all([
         api.adminGetPrimary(id),
         api.adminListPrimaryInvoices(id),
+        // Pull this principal's submissions for the inline 'Jobs
+        // history' panel below. New primaryId filter on the worker.
+        api.adminListPrimarySubmissions(undefined, id).catch(() => ({ items: [] as PrimarySubmission[] })),
       ]);
       setPrimary(p.primary);
       setStats(p.stats);
       setSubs(p.subcontractors);
       setInvoices(list.items);
+      setSubmissions(subs.items);
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : "Failed to load");
     } finally {
@@ -125,9 +137,40 @@ export function PrimaryDetail() {
     <>
       <PageHeader
         title={primary.name}
-        description={`Principal · linked sub count: ${stats?.subcontractorCount ?? "-"}`}
         right={
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-end">
+            <div className="w-40">
+              <Select
+                label="Period"
+                value={period}
+                onChange={(e) => setPeriod(e.target.value)}
+                options={[
+                  { value: "0",   label: "All time" },
+                  { value: "30",  label: "Last 30 days" },
+                  { value: "90",  label: "Last 90 days" },
+                  { value: "180", label: "Last 6 months" },
+                  { value: "365", label: "Last 12 months" },
+                ]}
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => exportRowsAsCsv(`principal-${primary.name.replace(/\s+/g, "_")}-jobs-${new Date().toISOString().slice(0,10)}.csv`,
+                submissions.filter(s => !periodCutoff || s.submittedAt >= periodCutoff),
+                [
+                  { header: "Job NR",     value: s => s.jobRef ?? s.id.slice(0,8) },
+                  { header: "Status",     value: s => s.status },
+                  { header: "Period",     value: s => `${s.periodStart ?? ""} -> ${s.periodEnd ?? ""}` },
+                  { header: "Items",      value: s => s.itemCount },
+                  { header: "Gross EUR",  value: s => (s.totalGrossMinor / 100).toFixed(2) },
+                  { header: "Submitted",  value: s => fmtDate(s.submittedAt) },
+                  { header: "Invoice",    value: s => s.invoiceNumber ?? "" },
+                ])}
+              leftIcon={<Download className="h-4 w-4" />}
+              disabled={submissions.length === 0}
+            >
+              CSV
+            </Button>
             <Button variant="outline" onClick={() => setInviteOpen(true)} leftIcon={<UserPlus className="h-4 w-4" />}>
               Invite contact
             </Button>
@@ -242,6 +285,72 @@ export function PrimaryDetail() {
           </table>
         </div>
       )}
+
+      {/* Jobs history (Phase 5 of admin rework). Shows the principal's
+          submissions filtered by the current period. Click-through to
+          the individual Job Card detail page. */}
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-semibold text-ink-900 inline-flex items-center gap-2">
+          <Briefcase className="h-5 w-5 text-ink-600" /> Jobs history
+        </h2>
+        <Link to={`/admin/jobs?primary=${primary.id}`} className="text-sm text-ink-600 hover:text-ink-900 inline-flex items-center gap-1">
+          See all <ArrowUpRight className="h-4 w-4" />
+        </Link>
+      </div>
+      {(() => {
+        const filteredSubs = submissions.filter(s => !periodCutoff || s.submittedAt >= periodCutoff);
+        if (filteredSubs.length === 0) {
+          return (
+            <div className="card-padded text-sm text-ink-500 mb-8 flex items-center gap-3">
+              <Briefcase className="h-5 w-5 text-ink-400" />
+              No Job Cards submitted in this period.
+            </div>
+          );
+        }
+        return (
+          <div className="card overflow-hidden mb-8">
+            <table className="w-full text-sm">
+              <thead className="bg-ink-50 border-b border-ink-100">
+                <tr className="text-left text-xs uppercase tracking-wider text-ink-500 font-semibold">
+                  <th className="px-5 py-3">Job NR</th>
+                  <th className="px-5 py-3">Submitted</th>
+                  <th className="px-5 py-3">Period</th>
+                  <th className="px-5 py-3 text-right">Items</th>
+                  <th className="px-5 py-3 text-right">Gross</th>
+                  <th className="px-5 py-3">Status</th>
+                  <th className="px-5 py-3">Invoice</th>
+                  <th className="px-5 py-3"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredSubs.slice(0, 30).map(s => (
+                  <tr key={s.id} className="border-b border-ink-100 last:border-b-0 hover:bg-ink-50/50">
+                    <td className="px-5 py-3 font-mono text-xs font-semibold text-ink-900">{s.jobRef || s.id.slice(0,8)}</td>
+                    <td className="px-5 py-3 text-ink-600 text-xs">{fmtDate(s.submittedAt)}</td>
+                    <td className="px-5 py-3 text-ink-600 text-xs">{s.periodStart && s.periodEnd ? `${s.periodStart} -> ${s.periodEnd}` : <span className="text-ink-400">-</span>}</td>
+                    <td className="px-5 py-3 text-right tabular-nums">{s.itemCount}</td>
+                    <td className="px-5 py-3 text-right tabular-nums font-medium">{fmtMoney(s.totalGrossMinor)}</td>
+                    <td className="px-5 py-3">
+                      <Badge tone={
+                        s.status === "submitted" ? "warn"
+                        : s.status === "completed" ? "success"
+                        : s.status === "rejected" ? "danger"
+                        : "neutral"
+                      }>{s.status}</Badge>
+                    </td>
+                    <td className="px-5 py-3 font-mono text-xs">{s.invoiceNumber || <span className="text-ink-400">-</span>}</td>
+                    <td className="px-5 py-3 text-right">
+                      <Link to={`/admin/primary-submissions/${s.id}`} className="btn-ghost !py-1.5 inline-flex">
+                        Open <ArrowUpRight className="h-4 w-4" />
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      })()}
 
       <h2 className="text-lg font-semibold text-ink-900 mb-4">Invoices issued to this principal</h2>
       {invoices.length === 0 ? (

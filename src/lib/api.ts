@@ -905,11 +905,15 @@ export const api = {
     ),
 
   // -------- admin: primary submissions inbox --------
-  adminListPrimarySubmissions: (status?: string) =>
-    request<{ items: PrimarySubmission[] }>(
+  adminListPrimarySubmissions: (status?: string, primaryId?: string) => {
+    const q = new URLSearchParams();
+    if (status) q.set("status", status);
+    if (primaryId) q.set("primaryId", primaryId);
+    return request<{ items: PrimarySubmission[] }>(
       "GET",
-      "/admin/primary-submissions" + (status ? `?status=${status}` : ""),
-    ),
+      "/admin/primary-submissions" + (q.toString() ? `?${q.toString()}` : ""),
+    );
+  },
   adminGetPrimarySubmission: (id: string) =>
     request<{
       submission: PrimarySubmission;
