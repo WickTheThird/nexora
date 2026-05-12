@@ -1,7 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { PortalShell } from "@/components/layout/PortalShell";
-import { LayoutDashboard, Users, FileText, Send, MapPin, MapPinned, User, Plus, ClipboardList } from "lucide-react";
+import { LayoutDashboard, Users, FileText, Send, MapPin, MapPinned, User, Plus, ClipboardList, ShieldCheck } from "lucide-react";
 import { api } from "@/lib/api";
 import type { PaletteItem } from "@/components/ui/CommandPalette";
 import { PrimaryDashboard } from "./PrimaryDashboard";
@@ -17,11 +17,13 @@ import { PrincipalSiteDetail } from "./PrincipalSiteDetail";
 import { PrincipalSiteIds } from "./PrincipalSiteIds";
 import { PrincipalAccount } from "./PrincipalAccount";
 import { PrimaryJobsPosted, PrimaryPublicJobDetail } from "./PrimaryPublicJobs";
+import { PrimaryVendorList } from "./PrimaryVendorList";
 
 const nav = [
   { to: "/primary", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/primary/account", label: "Account", icon: User },
   { to: "/primary/subcontractors", label: "Subcontractors", icon: Users },
+  { to: "/primary/vendor-list",    label: "Vendor list",    icon: ShieldCheck },
   { to: "/primary/site-ids", label: "Site IDs", icon: MapPinned },
   { to: "/primary/sites", label: "Site activity", icon: MapPin },
   { to: "/primary/submissions", label: "Jobs Posted", icon: Send },
@@ -82,6 +84,7 @@ export function PrimaryApp() {
         <Route path="account" element={<PrincipalAccount />} />
         <Route path="subcontractors" element={<PrimarySubcontractors />} />
         <Route path="subcontractors/:id" element={<PrimarySubDetail />} />
+        <Route path="vendor-list" element={<PrimaryVendorList />} />
         <Route path="site-ids" element={<PrincipalSiteIds />} />
         <Route path="sites" element={<PrincipalSites />} />
         <Route path="sites/:ref" element={<PrincipalSiteDetail />} />

@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, ApiError } from "@/lib/api";
-import type { JobApplication, PublicJob, PublicJobRateUnit } from "@/lib/types";
+import type { JobApplication, PublicJob, PublicJobRateUnit, PublicJobVisibility, VendorListEntry } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -129,11 +129,49 @@ function PostJobModal({ open, onClose, onCreated }: { open: boolean; onClose: ()
   const [rateUnit, setRateUnit] = useState<PublicJobRateUnit | "">("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  // Phase 4.5 visibility model. Defaults to invite_only (closed
+  // procurement). Principal can switch to vendor_list (all approved
+  // subs) or discoverable (also visible to subs on other principals'
+  // vendor lists).
+  const [visibility, setVisibility] = useState<PublicJobVisibility>("invite_only");
+  const [vendorList, setVendorList] = useState<VendorListEntry[]>([]);
+  const [vendorListLoading, setVendorListLoading] = useState(false);
+  // Selected invitee subcontractor ids (only used for invite_only).
+  const [selectedInvitees, setSelectedInvitees] = useState<Set<string>>(new Set());
+
+  // Lazy-load the vendor list the first time the modal opens so we
+  // don't fetch it for principals who never post jobs.
+  useEffect(() => {
+    if (!open || vendorList.length > 0) return;
+    let cancelled = false;
+    setVendorListLoading(true);
+    api.primaryListVendorList({ status: "approved" })
+      .then(r => { if (!cancelled) setVendorList(r.items); })
+      .catch(() => { /* non-fatal */ })
+      .finally(() => { if (!cancelled) setVendorListLoading(false); });
+    return () => { cancelled = true; };
+  }, [open, vendorList.length]);
 
   const reset = () => {
     setTitle(""); setBrief(""); setTrade(""); setLocation("");
     setPayRate(""); setRateUnit(""); setStartDate(""); setEndDate("");
+    setVisibility("invite_only"); setSelectedInvitees(new Set());
   };
+
+  const toggleInvitee = (subId: string) => {
+    setSelectedInvitees(prev => {
+      const next = new Set(prev);
+      if (next.has(subId)) next.delete(subId); else next.add(subId);
+      return next;
+    });
+  };
+  const addAllFavourites = () => {
+    setSelectedInvitees(new Set(vendorList.filter(v => v.isFavourite).map(v => v.subcontractorId)));
+  };
+  const addAllApproved = () => {
+    setSelectedInvitees(new Set(vendorList.map(v => v.subcontractorId)));
+  };
+  const clearInvitees = () => setSelectedInvitees(new Set());
 
   const submit = async () => {
     if (!title.trim() || title.trim().length < 3) {
@@ -142,6 +180,10 @@ function PostJobModal({ open, onClose, onCreated }: { open: boolean; onClose: ()
     }
     if (payRate && !rateUnit) {
       toast.error("Pick a rate unit when you set a pay rate.");
+      return;
+    }
+    if (visibility === "invite_only" && selectedInvitees.size === 0) {
+      toast.error("Pick at least one subcontractor to invite.");
       return;
     }
     setSubmitting(true);
@@ -156,8 +198,16 @@ function PostJobModal({ open, onClose, onCreated }: { open: boolean; onClose: ()
         rateUnit: rateUnit || null,
         startDate: startDate || null,
         endDate: endDate || null,
+        visibility,
+        inviteeIds: visibility === "invite_only" ? Array.from(selectedInvitees) : undefined,
       });
-      toast.success("Job posted. Notifying favourites and your wing now.");
+      toast.success(
+        visibility === "invite_only"
+          ? `Job posted. Invitations sent to ${selectedInvitees.size} subcontractor${selectedInvitees.size === 1 ? "" : "s"}.`
+          : visibility === "vendor_list"
+            ? "Job posted to your vendor list."
+            : "Job posted. Discoverable across the platform."
+      );
       reset();
       onClose();
       onCreated();
@@ -172,8 +222,8 @@ function PostJobModal({ open, onClose, onCreated }: { open: boolean; onClose: ()
     <Modal
       open={open}
       onClose={onClose}
-      title="Post a public job"
-      description="Visible to every verified subcontractor. Your favourites get a Featured notification first."
+      title="Post a job"
+      description="Default is invite-only. Open it wider only if you want subs you haven't pre-vetted to apply."
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
@@ -207,6 +257,76 @@ function PostJobModal({ open, onClose, onCreated }: { open: boolean; onClose: ()
         <div className="grid sm:grid-cols-2 gap-3">
           <Input label="Start date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
           <Input label="End date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+        </div>
+
+        {/* Visibility picker - the heart of the procurement model. */}
+        <div className="card-padded bg-ink-50/40">
+          <Select
+            label="Who can see this job?"
+            value={visibility}
+            onChange={(e) => setVisibility(e.target.value as PublicJobVisibility)}
+            options={[
+              { value: "invite_only", label: "Invite only - pick specific subs (default)" },
+              { value: "vendor_list", label: "My whole vendor list - any approved sub can apply" },
+              { value: "discoverable", label: "Discoverable - also visible to vetted subs on other principals' lists" },
+            ]}
+          />
+          <p className="mt-2 text-xs text-ink-500">
+            {visibility === "invite_only" && "Only the subs you pick below see this job + an invite notification. Cleanest for routine, repeat work."}
+            {visibility === "vendor_list" && "Every approved sub on your vendor list sees it and can apply. Favourites get a featured notification."}
+            {visibility === "discoverable" && "Your vendor list is notified first. Subs vetted by other principals also see it on the discover board."}
+          </p>
+
+          {visibility === "invite_only" && (
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs uppercase tracking-wider text-ink-500 font-semibold">
+                  Invitees ({selectedInvitees.size} selected)
+                </label>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={addAllFavourites} type="button">
+                    Add favourites
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={addAllApproved} type="button">
+                    Add all approved
+                  </Button>
+                  {selectedInvitees.size > 0 && (
+                    <Button variant="ghost" size="sm" onClick={clearInvitees} type="button">Clear</Button>
+                  )}
+                </div>
+              </div>
+              {vendorListLoading ? (
+                <div className="skeleton h-32" />
+              ) : vendorList.length === 0 ? (
+                <p className="text-xs text-ink-500 py-3">
+                  Your vendor list is empty. Approve subcontractors first from the Vendor List page, or switch to "Discoverable" so vetted subs from other principals can apply.
+                </p>
+              ) : (
+                <div className="max-h-56 overflow-y-auto border border-ink-200 rounded-md divide-y divide-ink-100">
+                  {vendorList.map(v => (
+                    <label key={v.subcontractorId} className="flex items-center gap-3 px-3 py-2 hover:bg-ink-50 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedInvitees.has(v.subcontractorId)}
+                        onChange={() => toggleInvitee(v.subcontractorId)}
+                        className="h-4 w-4 rounded border-ink-300"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-ink-900 font-medium">{v.subcontractorName || "(unnamed)"}</span>
+                          {v.subcontractorRef && <span className="font-mono text-[10px] text-ink-500">{v.subcontractorRef}</span>}
+                          {v.isFavourite && (
+                            <Badge tone="warn">Favourite</Badge>
+                          )}
+                        </div>
+                        {v.trade && <div className="text-xs text-ink-500">{v.trade}</div>}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </Modal>

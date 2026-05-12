@@ -85,6 +85,20 @@ export function AdminPublicJobsModeration() {
                     <Badge tone={j.removedAt ? "danger" : j.status === "open" ? "success" : "neutral"}>
                       {j.removedAt ? "removed" : j.status}
                     </Badge>
+                    {/* Phase 4.5 visibility chip - so the office sees
+                        whether this was a private invite-only post,
+                        an open-to-vendor-list post, or a discoverable
+                        one. Affects moderation priorities (only
+                        discoverable posts go to the public board). */}
+                    <Badge tone={
+                      j.visibility === "discoverable" ? "info"
+                      : j.visibility === "vendor_list" ? "neutral"
+                      : "neutral"
+                    }>
+                      {j.visibility === "invite_only" ? "Invite only"
+                       : j.visibility === "vendor_list" ? "Vendor list"
+                       : "Discoverable"}
+                    </Badge>
                   </div>
                   <div className="text-xs text-ink-500 mb-2">
                     From <strong>{j.primaryName}</strong> · posted {fmtDateTime(j.createdAt)} · {j.applicationCount ?? 0} application(s)
