@@ -107,17 +107,74 @@ export function Subcontractors() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, status, primaryId]);
 
+  // Bucket presets matching the Jobs pattern. Each maps to one or more
+  // onboarding_status values. 'All' clears the filter. The narrow
+  // Status select below stays as a power-user escape hatch.
+  type Bucket = "all" | "current" | "active" | "archive";
+  const BUCKETS: { key: Bucket; label: string; statuses: string[] | null }[] = [
+    { key: "all",     label: "All",     statuses: null },
+    { key: "current", label: "Current", statuses: ["invited","in_progress","submitted","under_review","changes_requested"] },
+    { key: "active",  label: "Active",  statuses: ["approved","active"] },
+    { key: "archive", label: "Archive", statuses: ["rejected"] },
+  ];
+  const bucketOf = (st: string): Bucket => {
+    for (const b of BUCKETS) {
+      if (b.statuses && b.statuses.includes(st)) return b.key;
+    }
+    return "all";
+  };
+  // We don't have client-side bucket counts because the list is
+  // paginated server-side. Instead the bucket chip switches the
+  // server-side status filter to a comma-joined list (the API only
+  // takes a single status, so for buckets >1 status we clear status
+  // and bucket client-side; for single-status buckets we use the
+  // server filter directly).
+  const activeBucket: Bucket = status ? bucketOf(status) : "all";
+  const setBucket = (b: Bucket) => {
+    const cfg = BUCKETS.find(x => x.key === b);
+    if (!cfg || !cfg.statuses) { setStatus(""); return; }
+    if (cfg.statuses.length === 1) { setStatus(cfg.statuses[0]); return; }
+    // Multi-status bucket - clear server-side status filter and let
+    // the client filter pass below trim the page. The 'Status' select
+    // already lets the user pick a single one for precision.
+    setStatus("");
+  };
+
+  // Client-side bucket filter for multi-status buckets where the
+  // server-side `status` is cleared. For single-status buckets the
+  // server already trims.
+  const visibleItems = items.filter(s => {
+    const cfg = BUCKETS.find(x => x.key === activeBucket);
+    if (!cfg || !cfg.statuses) return true;
+    return cfg.statuses.includes(s.onboardingStatus);
+  });
+
   return (
     <>
       <PageHeader
         title="Subcontractors"
-        description="Manage accounts, review onboarding and approve."
         right={
           <Button variant="accent" onClick={() => setCreateOpen(true)} leftIcon={<UserPlus className="h-4 w-4" />}>
             New subcontractor
           </Button>
         }
       />
+
+      {/* Bucket tabs - same pattern as primary Jobs Posted page. */}
+      <div className="flex gap-1 mb-4 border-b border-ink-200 overflow-x-auto">
+        {BUCKETS.map(b => (
+          <button
+            key={b.key}
+            type="button"
+            onClick={() => setBucket(b.key)}
+            className={`px-4 py-2 text-sm font-medium -mb-px border-b-2 whitespace-nowrap transition ${
+              activeBucket === b.key ? "border-ink-900 text-ink-900" : "border-transparent text-ink-500 hover:text-ink-800"
+            }`}
+          >
+            {b.label}
+          </button>
+        ))}
+      </div>
 
       <div className="card-padded mb-6">
         <div className="flex flex-col md:flex-row md:items-end gap-3">
@@ -132,7 +189,7 @@ export function Subcontractors() {
           </div>
           <div className="md:w-48">
             <Select
-              label="Status"
+              label="Status (precise)"
               value={status}
               options={STATUSES}
               onChange={(e) => setStatus(e.target.value)}
@@ -158,7 +215,7 @@ export function Subcontractors() {
 
       {loading ? (
         <div className="skeleton h-64" />
-      ) : items.length === 0 ? (
+      ) : visibleItems.length === 0 ? (
         <Empty icon={Users} title="No subcontractors match" description="Try adjusting the filters." />
       ) : (
         <div className="card overflow-hidden">
@@ -176,7 +233,7 @@ export function Subcontractors() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((s) => (
+                {visibleItems.map((s) => (
                   <tr key={s.id} className="border-b border-ink-100 last:border-b-0 hover:bg-ink-50/50">
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">

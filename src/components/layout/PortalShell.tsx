@@ -12,6 +12,10 @@ export interface NavItem {
   label: string;
   icon: ComponentType<{ className?: string }>;
   end?: boolean;
+  /** When set, renders a muted ALL-CAPS group label above this nav
+   *  item in the desktop sidebar. Lets us visually section the
+   *  sidebar without inventing a separate type. */
+  groupBefore?: string;
 }
 
 export function PortalShell({
@@ -93,21 +97,27 @@ export function PortalShell({
         </button>
         <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
           {nav.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                  isActive
-                    ? "bg-ink-900 text-white font-medium shadow-sm"
-                    : "text-ink-600 hover:bg-ink-100 hover:text-ink-900"
-                }`
-              }
-            >
-              <item.icon className="h-4 w-4" />
-              <span>{item.label}</span>
-            </NavLink>
+            <div key={item.to}>
+              {item.groupBefore && (
+                <div className="pt-3 pb-1 px-3 text-[10px] uppercase tracking-wider text-ink-400 font-semibold">
+                  {item.groupBefore}
+                </div>
+              )}
+              <NavLink
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                    isActive
+                      ? "bg-ink-900 text-white font-medium shadow-sm"
+                      : "text-ink-600 hover:bg-ink-100 hover:text-ink-900"
+                  }`
+                }
+              >
+                <item.icon className="h-4 w-4" />
+                <span>{item.label}</span>
+              </NavLink>
+            </div>
           ))}
         </nav>
         <a

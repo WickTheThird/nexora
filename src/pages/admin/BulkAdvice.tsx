@@ -123,8 +123,7 @@ export function BulkAdvice() {
   return (
     <>
       <PageHeader
-        title="Bulk Payment Advice"
-        description="Generate a payment advice for every subcontractor with approved hours in a period. They'll see it in their portal and (optionally) get an email."
+        title="Advice"
       />
 
       {/* Tab switcher: timesheet-driven (built-in) vs CSV import (Enagh-style) */}

@@ -180,7 +180,14 @@ export function SubcontractorDetail() {
           <Button variant="ghost" onClick={() => setResetModal(true)} leftIcon={<KeyRound className="h-4 w-4"/>}>
             Reset password
           </Button>
-          <Button variant="ghost" onClick={() => setAnonModal(true)} leftIcon={<UserX className="h-4 w-4"/>}>
+          {/* Anonymise is destructive - red hover + red text on hover
+              so it reads as 'danger' even in the ghost variant. */}
+          <Button
+            variant="ghost"
+            onClick={() => setAnonModal(true)}
+            leftIcon={<UserX className="h-4 w-4"/>}
+            className="hover:bg-red-50 hover:text-red-700"
+          >
             Anonymise
           </Button>
         </div>

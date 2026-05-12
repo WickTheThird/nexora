@@ -10,7 +10,8 @@ import { Empty } from "@/components/ui/Empty";
 import { Badge } from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
 import { fmtDate } from "@/lib/format";
-import { Building2, Plus, Archive, Pencil } from "lucide-react";
+import { Building2, Plus, Archive, Pencil, Download } from "lucide-react";
+import { exportRowsAsCsv } from "@/lib/csv";
 
 // Admin Primaries page. CRUD for the top tier of the 3-tier hierarchy:
 // developers / main contractors who hire BC Construction. Subcontractors
@@ -59,7 +60,6 @@ export function Primaries() {
     <>
       <PageHeader
         title="Principals"
-        description="Developers and main contractors who hire BC Construction. Subcontractors are linked to a principal; consolidated invoices flow up to them."
         right={
           <div className="flex items-center gap-2">
             <label className="text-sm text-ink-600 flex items-center gap-2 mr-2">
@@ -70,6 +70,22 @@ export function Primaries() {
               />
               Show archived
             </label>
+            <Button
+              variant="outline"
+              onClick={() => exportRowsAsCsv(`principals-${new Date().toISOString().slice(0,10)}.csv`, items, [
+                { header: "Name",          value: (p) => p.name },
+                { header: "Contact name",  value: (p) => p.contactName ?? "" },
+                { header: "Contact email", value: (p) => p.contactEmail ?? "" },
+                { header: "Phone",         value: (p) => p.phone ?? "" },
+                { header: "VAT",           value: (p) => p.vat ?? "" },
+                { header: "Address",       value: (p) => p.address ?? "" },
+                { header: "Status",        value: (p) => p.archivedAt ? "Archived" : "Active" },
+                { header: "Created",       value: (p) => fmtDate(new Date(p.createdAt).toISOString()) },
+              ])}
+              leftIcon={<Download className="h-4 w-4" />}
+            >
+              Download CSV
+            </Button>
             <Button variant="accent" onClick={() => setCreateOpen(true)} leftIcon={<Plus className="h-4 w-4" />}>
               Add principal
             </Button>
@@ -125,7 +141,13 @@ export function Primaries() {
                         Edit
                       </Button>
                       {!p.archivedAt && (
-                        <Button variant="ghost" size="sm" onClick={() => archive(p)} leftIcon={<Archive className="h-4 w-4" />}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => archive(p)}
+                          leftIcon={<Archive className="h-4 w-4" />}
+                          className="hover:bg-red-50 hover:text-red-700"
+                        >
                           Archive
                         </Button>
                       )}

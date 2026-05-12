@@ -88,7 +88,6 @@ export function Dashboard() {
     <>
       <PageHeader
         title="Dashboard"
-        description="At-a-glance overview of the whole 3-tier flow: principals, subcontractors, and payments."
         right={
           <>
             <Button

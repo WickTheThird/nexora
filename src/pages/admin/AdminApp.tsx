@@ -12,6 +12,8 @@ import {
   FileText,
   MessagesSquare,
   Settings as SettingsIcon,
+  Briefcase,
+  Activity,
 } from "lucide-react";
 import { Dashboard } from "./Dashboard";
 import { Subcontractors } from "./Subcontractors";
@@ -26,18 +28,28 @@ import { BulkAdvice } from "./BulkAdvice";
 import { Templates } from "./Templates";
 import { ChangeRequests } from "./ChangeRequests";
 import { Settings } from "./Settings";
+import { AdminJobs } from "./Jobs";
 
+// Sidebar restructured into three logical groups (Dashboard | Core records |
+// Workflow inboxes | Settings). The group labels are encoded as `groupBefore`
+// strings; PortalShell renders them as muted dividers above each item that
+// starts a new group. Items the user asked to remove or rename are gone.
 const nav = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/admin/primaries", label: "Principals", icon: Building2 },
+  // Core records
+  { to: "/admin/primaries", label: "Principals", icon: Building2, groupBefore: "Records" },
   { to: "/admin/subcontractors", label: "Subcontractors", icon: Users },
-  { to: "/admin/primary-submissions", label: "Submissions", icon: Inbox },
+  { to: "/admin/jobs", label: "Jobs", icon: Briefcase },
+  // Workflow inboxes
+  { to: "/admin/primary-submissions", label: "Submissions", icon: Inbox, groupBefore: "Inboxes" },
   { to: "/admin/operative-requests", label: "Subcontractor Requests", icon: Inbox },
-  { to: "/admin/signup-requests", label: "Recent Signups", icon: Inbox },
-  { to: "/admin/bulk-advice", label: "Bulk Advice", icon: Send },
-  { to: "/admin/templates", label: "Contract Templates", icon: FileText },
   { to: "/admin/change-requests", label: "Change Requests", icon: MessagesSquare },
-  { to: "/admin/settings", label: "Settings", icon: SettingsIcon },
+  { to: "/admin/signup-requests", label: "Recent Activity", icon: Activity },
+  // Actions
+  { to: "/admin/bulk-advice", label: "Advice", icon: Send, groupBefore: "Actions" },
+  { to: "/admin/templates", label: "Contract Templates", icon: FileText },
+  // Misc
+  { to: "/admin/settings", label: "Settings", icon: SettingsIcon, groupBefore: "Setup" },
 ];
 
 export function AdminApp() {
@@ -75,9 +87,10 @@ export function AdminApp() {
           })),
         ];
         const actionItems: PaletteItem[] = [
-          { id: "act-bulk-advice", label: "Bulk advice", hint: "Issue payment advices in batch", category: "actions", icon: Send, to: "/admin/bulk-advice" },
+          { id: "act-advice", label: "Advice", hint: "Issue payment advices (single + bulk)", category: "actions", icon: Send, to: "/admin/bulk-advice" },
           { id: "act-op-requests", label: "Subcontractor requests inbox", hint: "Pending principals' new-subcontractor requests", category: "actions", icon: Inbox, to: "/admin/operative-requests" },
           { id: "act-submissions", label: "Submissions inbox", hint: "Pending Job Cards from principals", category: "actions", icon: Inbox, to: "/admin/primary-submissions" },
+          { id: "act-jobs", label: "All Jobs", hint: "Cross-platform view of every Job Card + tender post", category: "actions", icon: Briefcase, to: "/admin/jobs" },
         ];
         setItems([...peopleItems, ...actionItems]);
       } catch { /* non-fatal - palette still has the page list */ }
@@ -97,6 +110,7 @@ export function AdminApp() {
         <Route path="signup-requests" element={<AdminSignupRequests />} />
         <Route path="subcontractors" element={<Subcontractors />} />
         <Route path="subcontractors/:id" element={<SubcontractorDetail />} />
+        <Route path="jobs" element={<AdminJobs />} />
         <Route path="bulk-advice" element={<BulkAdvice />} />
         <Route path="templates" element={<Templates />} />
         <Route path="change-requests" element={<ChangeRequests />} />
