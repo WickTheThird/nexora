@@ -118,6 +118,13 @@ const ACTIONS: ActionDef[] = [
 
   // ---- Sub-request actions ----
   {
+    key: "approve_sub_request",
+    label: "Approve subcontractor request",
+    description: "Create the sub user + send the welcome email. Uses the email and name from the original request.",
+    audiences: ["sub_requests"],
+    run: async (id) => { await api.adminApproveOperativeRequest(id, {}); },
+  },
+  {
     key: "reject_sub_request",
     label: "Reject subcontractor request",
     description: "Reject the pending principal-initiated request with a shared reason.",
