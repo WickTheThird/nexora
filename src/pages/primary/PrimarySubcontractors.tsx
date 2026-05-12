@@ -192,6 +192,9 @@ export function PrimarySubcontractors() {
   // trade. Bucket filter chips let you focus on one of the three.
   const [query, setQuery] = useState("");
   const [bucketFilter, setBucketFilter] = useState<"all" | "active" | "incomplete" | "closed">("all");
+  // 'Favourites only' toggle. Layers on top of search + bucket filter.
+  // Honours favSubIds (loaded from primaryListFavouriteSubs).
+  const [favouritesOnly, setFavouritesOnly] = useState(false);
 
   const matchesQuery = (s: SubItem) => {
     if (!query.trim()) return true;
@@ -201,7 +204,9 @@ export function PrimarySubcontractors() {
     return hay.includes(q);
   };
 
-  const filteredItems = items.filter(matchesQuery);
+  const filteredItems = items
+    .filter(matchesQuery)
+    .filter(s => !favouritesOnly || favSubIds.has(s.id));
   const grouped = {
     active: filteredItems.filter(s => bucket(s) === "active"),
     incomplete: filteredItems.filter(s => bucket(s) === "incomplete"),
@@ -533,14 +538,37 @@ export function PrimarySubcontractors() {
                   {label}
                 </button>
               ))}
+              {/* Favourites toggle - layers on top of bucket + search.
+                  Amber when active so it reads visually like the star
+                  it filters by. */}
+              <button
+                type="button"
+                onClick={() => setFavouritesOnly(v => !v)}
+                aria-pressed={favouritesOnly}
+                title={favouritesOnly ? "Show all subcontractors" : "Show only favourites"}
+                className={`whitespace-nowrap px-3 py-1.5 text-xs font-medium rounded-md transition inline-flex items-center gap-1.5 ${
+                  favouritesOnly
+                    ? "bg-amber-500 text-white"
+                    : "bg-ink-100 text-ink-700 hover:bg-ink-200"
+                }`}
+              >
+                <Star className={`h-3.5 w-3.5 ${favouritesOnly ? "fill-current" : ""}`} />
+                Favourites ({favSubIds.size})
+              </button>
             </div>
           </div>
 
-          {filteredItems.length === 0 && query && (
+          {filteredItems.length === 0 && (query || favouritesOnly) && (
             <Empty
-              icon={Search}
+              icon={favouritesOnly ? Star : Search}
               title="No matches"
-              description={`Nothing matches "${query}". Try a shorter search, or switch the filter chip.`}
+              description={
+                favouritesOnly && favSubIds.size === 0
+                  ? "You haven't starred any subcontractors yet. Click the star on an Active row to add them to your favourites."
+                  : favouritesOnly
+                    ? "No favourites match the current search or filter chip."
+                    : `Nothing matches "${query}". Try a shorter search, or switch the filter chip.`
+              }
             />
           )}
 
