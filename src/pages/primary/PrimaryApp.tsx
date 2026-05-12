@@ -16,6 +16,7 @@ import { PrincipalSites } from "./PrincipalSites";
 import { PrincipalSiteDetail } from "./PrincipalSiteDetail";
 import { PrincipalSiteIds } from "./PrincipalSiteIds";
 import { PrincipalAccount } from "./PrincipalAccount";
+import { PrimaryJobsPosted, PrimaryPublicJobDetail } from "./PrimaryPublicJobs";
 
 const nav = [
   { to: "/primary", label: "Overview", icon: LayoutDashboard, end: true },
@@ -84,10 +85,15 @@ export function PrimaryApp() {
         <Route path="site-ids" element={<PrincipalSiteIds />} />
         <Route path="sites" element={<PrincipalSites />} />
         <Route path="sites/:ref" element={<PrincipalSiteDetail />} />
-        <Route path="submissions" element={<PrimarySubmissions />} />
+        {/* Jobs Posted = Job Cards (legacy) + Public Jobs marketplace
+            on one tabbed page. /primary/submissions is the legacy
+            entry-point and stays as a direct deep link for now; the
+            new Jobs Posted page is at /primary/jobs. */}
+        <Route path="submissions" element={<PrimaryJobsPosted />} />
         <Route path="submissions/new" element={<PrimarySubmitPayment />} />
         <Route path="submissions/:id/edit" element={<PrimarySubmitPayment />} />
         <Route path="submissions/:id" element={<PrimarySubmissionDetail />} />
+        <Route path="public-jobs/:id" element={<PrimaryPublicJobDetail />} />
         <Route path="invoices" element={<PrimaryInvoices />} />
         <Route path="invoices/:id" element={<PrimaryInvoiceDetail />} />
       </Routes>

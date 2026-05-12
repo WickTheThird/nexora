@@ -12,6 +12,7 @@ import {
   FileText,
   MessagesSquare,
   Settings as SettingsIcon,
+  Shield,
 } from "lucide-react";
 import { Dashboard } from "./Dashboard";
 import { Subcontractors } from "./Subcontractors";
@@ -26,6 +27,7 @@ import { BulkAdvice } from "./BulkAdvice";
 import { Templates } from "./Templates";
 import { ChangeRequests } from "./ChangeRequests";
 import { Settings } from "./Settings";
+import { AdminPublicJobsModeration } from "./PublicJobsModeration";
 
 const nav = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -37,6 +39,7 @@ const nav = [
   { to: "/admin/bulk-advice", label: "Bulk Advice", icon: Send },
   { to: "/admin/templates", label: "Contract Templates", icon: FileText },
   { to: "/admin/change-requests", label: "Change Requests", icon: MessagesSquare },
+  { to: "/admin/public-jobs", label: "Public Jobs", icon: Shield },
   { to: "/admin/settings", label: "Settings", icon: SettingsIcon },
 ];
 
@@ -100,6 +103,7 @@ export function AdminApp() {
         <Route path="bulk-advice" element={<BulkAdvice />} />
         <Route path="templates" element={<Templates />} />
         <Route path="change-requests" element={<ChangeRequests />} />
+        <Route path="public-jobs" element={<AdminPublicJobsModeration />} />
         <Route path="settings" element={<Settings />} />
       </Routes>
     </PortalShell>

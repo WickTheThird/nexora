@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Empty } from "@/components/ui/Empty";
 import { useToast } from "@/components/ui/Toast";
-import { Users, ArrowUpRight, Pencil, Save, X, UserPlus, Clock, AlertTriangle, CheckCircle2, PauseCircle, PlayCircle, Search } from "lucide-react";
+import { Users, ArrowUpRight, Pencil, Save, X, UserPlus, Clock, AlertTriangle, CheckCircle2, PauseCircle, PlayCircle, Search, Star } from "lucide-react";
 import { useSelection } from "@/lib/useSelection";
 import { BulkActionBar, SelectCheckbox } from "@/components/ui/BulkActionBar";
 
@@ -52,25 +52,53 @@ export function PrimarySubcontractors() {
   const [reqNotes, setReqNotes] = useState("");
   const [reqSending, setReqSending] = useState(false);
   const [requests, setRequests] = useState<RequestRow[]>([]);
+  // Favourite subs (Phase 4 marketplace): set of subcontractor IDs the
+  // principal has starred. These get notified FIRST when the principal
+  // posts a public job.
+  const [favSubIds, setFavSubIds] = useState<Set<string>>(new Set());
 
   const [windowOpen, setWindowOpen] = useState<boolean>(true);
   const [windowText, setWindowText] = useState<string>("Friday 2:30pm – Wednesday 2pm");
 
   const refresh = async () => {
     try {
-      const [s, r, p] = await Promise.all([
+      const [s, r, p, fav] = await Promise.all([
         api.listMyPrimarySubs(),
         api.listMyOperativeRequests(),
         api.getMyPrimary(),
+        api.primaryListFavouriteSubs().catch(() => ({ items: [] })),
       ]);
       setItems(s.items);
       setRequests(r.items);
+      setFavSubIds(new Set(fav.items.map(f => f.subcontractorId)));
       if (p.operativeRequestWindow) {
         setWindowOpen(p.operativeRequestWindow.open);
         setWindowText(p.operativeRequestWindow.humanWindow);
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleFavourite = async (subId: string) => {
+    const wasFav = favSubIds.has(subId);
+    // Optimistic update so the star flips immediately.
+    setFavSubIds(prev => {
+      const next = new Set(prev);
+      if (wasFav) next.delete(subId); else next.add(subId);
+      return next;
+    });
+    try {
+      if (wasFav) await api.primaryRemoveFavouriteSub(subId);
+      else await api.primaryAddFavouriteSub(subId);
+    } catch (e) {
+      // Roll back on failure.
+      setFavSubIds(prev => {
+        const next = new Set(prev);
+        if (wasFav) next.add(subId); else next.delete(subId);
+        return next;
+      });
+      toast.error(e instanceof ApiError ? e.message : "Failed");
     }
   };
   useEffect(() => { refresh(); }, []);
@@ -317,6 +345,20 @@ export function PrimarySubcontractors() {
               </td>
               <td className="px-5 py-3 text-right">
                 <div className="inline-flex gap-1 items-center">
+                  {/* Favourite star (Phase 4): only meaningful for active
+                      subs - they're the ones who'll get the Featured
+                      notification when the principal posts a public job. */}
+                  {bucketKey === "active" && (
+                    <button
+                      type="button"
+                      onClick={() => toggleFavourite(s.id)}
+                      className={`p-1.5 rounded hover:bg-amber-50 ${favSubIds.has(s.id) ? "text-amber-500" : "text-ink-300 hover:text-amber-500"}`}
+                      title={favSubIds.has(s.id) ? "Remove from favourites" : "Favourite (notify first on new public jobs)"}
+                      aria-label="Toggle favourite"
+                    >
+                      <Star className={`h-4 w-4 ${favSubIds.has(s.id) ? "fill-current" : ""}`} />
+                    </button>
+                  )}
                   {bucketKey === "active" && (
                     <button type="button" onClick={() => closeOperative(s)} className="text-ink-400 hover:text-amber-700 inline-flex items-center gap-1 text-xs px-2 py-1 rounded hover:bg-amber-50" title="Mark In-Active (remove from Job Card auto-list)">
                       <PauseCircle className="h-3.5 w-3.5" /> Mark In-Active

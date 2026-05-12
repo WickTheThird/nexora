@@ -496,6 +496,58 @@ export interface OnboardingView {
   steps: Record<StepKey, StepStatus>;
 }
 
+// -------- Public Jobs marketplace (Phase 4) --------
+export type PublicJobStatus = "open" | "paused" | "closed" | "filled" | "removed";
+export type PublicJobRateUnit = "hour" | "day" | "fixed";
+export type JobApplicationStatus = "pending" | "approved" | "rejected" | "withdrawn";
+
+export interface PublicJob {
+  id: string;
+  primaryId: string;
+  primaryName: string | null;
+  jobRef: string | null;
+  title: string;
+  brief: string | null;
+  trade: string | null;
+  location: string | null;
+  payRateMinor: number | null;
+  rateUnit: PublicJobRateUnit | null;
+  startDate: string | null;
+  endDate: string | null;
+  status: PublicJobStatus;
+  createdBy: string | null;
+  removedAt: number | null;
+  removedReason: string | null;
+  removedBy: string | null;
+  createdAt: number;
+  updatedAt: number;
+  applicationCount: number | null;
+  pendingCount: number | null;
+  // Sub-side only: decoration showing whether the viewer already applied.
+  myApplicationStatus: JobApplicationStatus | null;
+  myApplicationId: string | null;
+  isFavourite?: boolean;
+}
+
+export interface JobApplication {
+  id: string;
+  jobId: string;
+  subcontractorId: string;
+  subcontractorName: string | null;
+  subcontractorRef: string | null;
+  jobTitle: string | null;
+  jobRef: string | null;
+  primaryId: string | null;
+  primaryName: string | null;
+  message: string | null;
+  status: JobApplicationStatus;
+  appliedAt: number;
+  decidedAt: number | null;
+  decidedBy: string | null;
+  decidedReason: string | null;
+  nextApplyAllowedAt: number | null;
+}
+
 export interface Page<T> {
   items: T[];
   nextCursor: string | null;

@@ -10,6 +10,7 @@ import type {
   ContractTemplate,
   DocumentRecord,
   InvoicePayload,
+  JobApplication,
   Me,
   OnboardingView,
   Page,
@@ -18,6 +19,8 @@ import type {
   PrimaryInvoice,
   PrimarySubmission,
   PrimarySubmissionItem,
+  PublicJob,
+  PublicJobRateUnit,
   QuestionnaireRecord,
   Subcontractor,
   Timesheet,
@@ -1117,4 +1120,63 @@ export const api = {
   getSettings: () => request<AppSettings>("GET", "/admin/settings"),
   putSettings: (data: Partial<AppSettings>) =>
     request<{ ok: true }>("PUT", "/admin/settings", { body: data }),
+
+  // -------- public jobs marketplace (Phase 4) --------
+  // Principal-side
+  primaryCreatePublicJob: (data: {
+    title: string;
+    brief?: string;
+    trade?: string;
+    location?: string;
+    payRateMinor?: number | null;
+    rateUnit?: PublicJobRateUnit | null;
+    startDate?: string | null;
+    endDate?: string | null;
+  }) => request<PublicJob>("POST", "/me/primary/public-jobs", { body: data as Json }),
+  primaryListPublicJobs: () =>
+    request<{ items: PublicJob[] }>("GET", "/me/primary/public-jobs"),
+  primaryGetPublicJob: (id: string) =>
+    request<{ job: PublicJob; applications: JobApplication[] }>("GET", `/me/primary/public-jobs/${id}`),
+  primaryPatchPublicJob: (id: string, data: Partial<{
+    title: string; brief: string; trade: string; location: string;
+    payRateMinor: number | null; rateUnit: PublicJobRateUnit | null;
+    startDate: string | null; endDate: string | null;
+    status: "open" | "paused" | "closed" | "filled";
+  }>) =>
+    request<PublicJob>("PATCH", `/me/primary/public-jobs/${id}`, { body: data as Json }),
+  primaryApproveApplication: (jobId: string, appId: string) =>
+    request<JobApplication>("POST", `/me/primary/public-jobs/${jobId}/applications/${appId}/approve`),
+  primaryRejectApplication: (jobId: string, appId: string, reason: string) =>
+    request<JobApplication>("POST", `/me/primary/public-jobs/${jobId}/applications/${appId}/reject`, { body: { reason } }),
+
+  // Favourite subs
+  primaryListFavouriteSubs: () =>
+    request<{ items: { subcontractorId: string; createdAt: number }[] }>("GET", "/me/primary/favourite-subs"),
+  primaryAddFavouriteSub: (subId: string) =>
+    request<{ subcontractorId: string; createdAt: number }>("POST", `/me/primary/favourite-subs/${subId}`),
+  primaryRemoveFavouriteSub: (subId: string) =>
+    request<{ removed: true }>("DELETE", `/me/primary/favourite-subs/${subId}`),
+
+  // Sub-side
+  subListPublicJobs: (params: { q?: string; trade?: string } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.q) qs.set("q", params.q);
+    if (params.trade) qs.set("trade", params.trade);
+    const s = qs.toString();
+    return request<{ items: PublicJob[] }>("GET", `/me/sub/public-jobs${s ? `?${s}` : ""}`);
+  },
+  subGetPublicJob: (id: string) =>
+    request<{ job: PublicJob; nextApplyAllowedAt: number | null }>("GET", `/me/sub/public-jobs/${id}`),
+  subApplyToJob: (id: string, message: string) =>
+    request<JobApplication>("POST", `/me/sub/public-jobs/${id}/apply`, { body: { message } }),
+  subListMyApplications: () =>
+    request<{ items: JobApplication[] }>("GET", "/me/sub/applications"),
+  subWithdrawApplication: (id: string) =>
+    request<{ withdrawn: true }>("POST", `/me/sub/applications/${id}/withdraw`),
+
+  // Admin
+  adminListPublicJobs: (status?: string) =>
+    request<{ items: PublicJob[] }>("GET", `/admin/public-jobs${status ? `?status=${status}` : ""}`),
+  adminRemovePublicJob: (id: string, reason: string) =>
+    request<{ removed: true }>("POST", `/admin/public-jobs/${id}/remove`, { body: { reason } }),
 };
