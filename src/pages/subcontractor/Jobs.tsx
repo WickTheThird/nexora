@@ -17,7 +17,15 @@ import { useToast } from "@/components/ui/Toast";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { Search, Briefcase, Send, Star, Clock, CheckCircle2, XCircle } from "lucide-react";
 
-type Bucket = "invited" | "my_lists" | "discover" | "all";
+// Sub-side Jobs: status-bucket tabs matching the principal's pattern.
+// Five buckets, derived client-side from `myApplicationStatus` on each
+// visible job:
+//   - All:      every visible job (applied or not)
+//   - Pending:  my invited + pending applications (awaiting decision)
+//   - Approved: principal said yes
+//   - Rejected: principal said no
+//   - Archive:  I withdrew or declined
+type Bucket = "all" | "pending" | "approved" | "rejected" | "archive";
 
 export function SubJobsBoard() {
   const toast = useToast();
@@ -26,17 +34,14 @@ export function SubJobsBoard() {
   const [q, setQ] = useState("");
   const [applying, setApplying] = useState<PublicJob | null>(null);
   const [bucket, setBucket] = useState<Bucket>("all");
-  const [isTrusted, setIsTrusted] = useState(true);
 
-  const refresh = async (qOverride?: string, bucketOverride?: Bucket) => {
+  const refresh = async (qOverride?: string) => {
     setLoading(true);
     try {
-      const r = await api.subListPublicJobsByBucket(
-        bucketOverride ?? bucket,
-        { q: (qOverride ?? q) || undefined },
-      );
+      // Pull all visible jobs in one shot (the worker handles trust
+      // gate + visibility per row). Bucket client-side by myAppStatus.
+      const r = await api.subListPublicJobsByBucket("all", { q: (qOverride ?? q) || undefined });
       setItems(r.items);
-      setIsTrusted(r.isTrusted);
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : "Failed to load");
     } finally {
@@ -44,24 +49,48 @@ export function SubJobsBoard() {
     }
   };
 
-  useEffect(() => { refresh("", bucket); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [bucket]);
+  useEffect(() => { refresh(""); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
+  // Each row's bucket assignment:
+  //   no application yet                          -> 'all' only
+  //   invited / pending                           -> Pending
+  //   approved                                    -> Approved
+  //   rejected                                    -> Rejected
+  //   withdrawn / declined                        -> Archive
+  const bucketOf = (j: PublicJob): Bucket | "unapplied" => {
+    const s = j.myApplicationStatus;
+    if (!s) return "unapplied";
+    if (s === "invited" || s === "pending") return "pending";
+    if (s === "approved") return "approved";
+    if (s === "rejected") return "rejected";
+    return "archive"; // withdrawn / declined
+  };
+
+  const counts = {
+    all: items.length,
+    pending: items.filter(j => bucketOf(j) === "pending").length,
+    approved: items.filter(j => bucketOf(j) === "approved").length,
+    rejected: items.filter(j => bucketOf(j) === "rejected").length,
+    archive: items.filter(j => bucketOf(j) === "archive").length,
+  };
+
+  const filtered = items.filter(j => bucket === "all" ? true : bucketOf(j) === bucket);
 
   const buckets: { key: Bucket; label: string }[] = [
     { key: "all",      label: "All" },
-    { key: "invited",  label: "Invited" },
-    { key: "my_lists", label: "From my principals" },
-    { key: "discover", label: "Discover" },
+    { key: "pending",  label: "Pending" },
+    { key: "approved", label: "Approved" },
+    { key: "rejected", label: "Rejected" },
+    { key: "archive",  label: "Archive" },
   ];
 
   return (
     <>
-      <PageHeader title="Jobs board" />
+      <PageHeader title="Jobs" />
 
-      {/* Procurement-model tabs (Phase 4.5). Subs see four buckets:
-          - All: union of the three below
-          - Invited: principal pre-invited me (need to accept / decline)
-          - From my principals: vendor-list jobs from principals I'm on
-          - Discover: discoverable jobs from principals I'm NOT on */}
+      {/* Status buckets mirror the principal's Jobs Posted pattern.
+          The COUNTS feed off the raw items list so the chip badges
+          don't lie when a search filter narrows the visible set. */}
       <div className="flex gap-1 mb-4 border-b border-ink-200 overflow-x-auto">
         {buckets.map(b => (
           <button
@@ -73,15 +102,12 @@ export function SubJobsBoard() {
             }`}
           >
             {b.label}
+            <span className={`ml-2 text-xs ${bucket === b.key ? "text-ink-500" : "text-ink-400"}`}>
+              {counts[b.key]}
+            </span>
           </button>
         ))}
       </div>
-
-      {bucket === "discover" && !isTrusted && (
-        <div className="rounded-md bg-amber-50 border border-amber-200 p-3 mb-4 text-sm text-amber-900">
-          <strong>Discover is locked.</strong> Apply to join at least one principal's vendor list to unlock discoverable jobs across the platform.
-        </div>
-      )}
 
       <div className="card-padded mb-5 flex gap-2 items-end">
         <div className="flex-1">
@@ -98,25 +124,27 @@ export function SubJobsBoard() {
 
       {loading ? (
         <div className="skeleton h-64" />
-      ) : items.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <Empty
           icon={Briefcase}
           title={
-            bucket === "invited"  ? "No invitations"
-            : bucket === "my_lists" ? "No open jobs from your principals"
-            : bucket === "discover" ? (isTrusted ? "Nothing in Discover right now" : "Locked")
-            : "No open jobs"
+            bucket === "pending"  ? "Nothing pending"
+            : bucket === "approved" ? "No approved jobs yet"
+            : bucket === "rejected" ? "Nothing rejected"
+            : bucket === "archive"  ? "Nothing in Archive"
+            : "No jobs"
           }
           description={
-            bucket === "invited"  ? "When a principal invites you directly, the invitation appears here."
-            : bucket === "my_lists" ? "Principals you're on the vendor list for will post jobs visible here."
-            : bucket === "discover" && !isTrusted ? "You need to be approved on at least one principal's vendor list to see discoverable jobs."
+            bucket === "pending"  ? "Once you apply or are invited to a job, it'll appear here while a principal decides."
+            : bucket === "approved" ? "Approved applications will show up here."
+            : bucket === "rejected" ? "Jobs you weren't accepted for will land here."
+            : bucket === "archive"  ? "Withdrawn or declined applications will sit here for your records."
             : "We'll notify you when a new one is posted."
           }
         />
       ) : (
         <div className="grid gap-3">
-          {items.map((j) => (
+          {filtered.map((j) => (
             <div key={j.id} className={`card p-5 ${j.isFavourite ? "border-l-4 border-l-amber-400" : ""}`}>
               <div className="flex items-start gap-4">
                 <div className="flex-1 min-w-0">

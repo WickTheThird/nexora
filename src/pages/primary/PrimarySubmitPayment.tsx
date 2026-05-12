@@ -4,8 +4,9 @@ import { api, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
-import { Plus, Trash2, Send, FileSpreadsheet, Edit3, MapPinned, Printer, Save, Calculator, Phone, Mail, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, Send, FileSpreadsheet, Edit3, MapPinned, Printer, Save, Calculator, Phone, Mail, ArrowLeft, Download } from "lucide-react";
 
 type SiteIdRow = Awaited<ReturnType<typeof api.listMyPrincipalSiteIds>>["items"][number];
 type OperativeRow = Awaited<ReturnType<typeof api.listMyPrimarySubs>>["items"][number];
@@ -123,10 +124,48 @@ export function PrimarySubmitPayment() {
   // overridden manually.
   const [defaultRctRate, setDefaultRctRate] = useState<"" | "0" | "20" | "35">("");
 
+  // ----- Audience (Phase 4.5 procurement, folded inline) -----
+  // Decides whether this Job Card ALSO becomes a tender post and who
+  // can see/apply to it. 'internal' = payment-only (no posting). The
+  // other three create a public_jobs row alongside the submission so
+  // subs can apply or get invited.
+  type Audience = "internal" | "invite_only" | "vendor_list" | "discoverable";
+  const [audience, setAudience] = useState<Audience>("internal");
+  const [pool, setPool] = useState<import("@/lib/types").VendorListEntry[]>([]);
+  const [poolLoading, setPoolLoading] = useState(false);
+  const [selectedInvitees, setSelectedInvitees] = useState<Set<string>>(new Set());
+  const [postTitle, setPostTitle] = useState("");
+  const [postBrief, setPostBrief] = useState("");
+  const [postTrade, setPostTrade] = useState("");
+  const [postLocation, setPostLocation] = useState("");
+
   useEffect(() => {
     const w = deriveWindow(jobCardType, dateEnding);
     if (w) { setPeriodStart(w.from); setPeriodEnd(w.to); }
   }, [jobCardType, dateEnding]);
+
+  // Lazy-load the principal's approved pool only when an audience other
+  // than 'internal' is chosen - no point fetching for routine payment
+  // submissions.
+  useEffect(() => {
+    if (audience === "internal" || pool.length > 0) return;
+    let cancelled = false;
+    setPoolLoading(true);
+    api.primaryListVendorList({ status: "approved" })
+      .then(r => { if (!cancelled) setPool(r.items); })
+      .catch(() => { /* non-fatal */ })
+      .finally(() => { if (!cancelled) setPoolLoading(false); });
+    return () => { cancelled = true; };
+  }, [audience, pool.length]);
+
+  // Toggle helpers for the invitee picker.
+  const toggleInvitee = (subId: string) => setSelectedInvitees(prev => {
+    const next = new Set(prev);
+    if (next.has(subId)) next.delete(subId); else next.add(subId);
+    return next;
+  });
+  const addAllFavourites = () => setSelectedInvitees(new Set(pool.filter(v => v.isFavourite).map(v => v.subcontractorId)));
+  const addAllApproved = () => setSelectedInvitees(new Set(pool.map(v => v.subcontractorId)));
 
   const [rows, setRows] = useState<Row[]>([]);
   const [savingDraft, setSavingDraft] = useState(false);
@@ -390,6 +429,44 @@ export function PrimarySubmitPayment() {
     toast.info(`Recalculated - Total to Pay BC: ${fmtMoneyEur(totals.totalToPay)}`);
   };
 
+  // When audience != 'internal', the Job Card ALSO posts a tender so
+  // subs can see/apply/be invited. We do this best-effort AFTER the
+  // submission is created so a posting failure doesn't roll back the
+  // Job Card (which is the source-of-truth for billing).
+  const maybeCreateTenderPost = async () => {
+    if (audience === "internal") return;
+    if (audience === "invite_only" && selectedInvitees.size === 0) {
+      toast.error("Invite-only audience requires at least one invitee. Skipping tender post.");
+      return;
+    }
+    if (!postTitle.trim() || postTitle.trim().length < 3) {
+      toast.error("Tender title required (min 3 chars). Skipping tender post.");
+      return;
+    }
+    try {
+      await api.primaryCreatePublicJob({
+        title: postTitle.trim(),
+        brief: postBrief.trim() || undefined,
+        trade: postTrade.trim() || undefined,
+        location: postLocation.trim() || undefined,
+        startDate: periodStart || null,
+        endDate: dateEnding || null,
+        visibility: audience,
+        inviteeIds: audience === "invite_only" ? Array.from(selectedInvitees) : undefined,
+      });
+      toast.success(
+        audience === "invite_only"
+          ? `Tender post created. ${selectedInvitees.size} subcontractor${selectedInvitees.size === 1 ? "" : "s"} invited.`
+          : audience === "vendor_list"
+            ? "Tender post created - visible to your approved pool."
+            : "Tender post created - discoverable platform-wide."
+      );
+    } catch (e) {
+      // Don't block the Job Card flow. Just surface the error.
+      toast.error(`Job Card saved but tender post failed: ${e instanceof ApiError ? e.message : "unknown"}`);
+    }
+  };
+
   // Submit (lock + notify + auto-invoice on admin process).
   const submitJobCard = async () => {
     const cleaned = buildItems(true);
@@ -415,6 +492,8 @@ export function PrimarySubmitPayment() {
         });
         await api.submitMyDraftSubmission(submissionId);
       }
+      // Phase 4.5: also fire a tender post if audience != internal.
+      await maybeCreateTenderPost();
       toast.success(`Job Card locked and sent to BC. Reference: ${submissionId.slice(0, 8)}\u2026`);
       nav(`/primary/submissions/${submissionId}`);
     } catch (e) {
@@ -515,6 +594,90 @@ export function PrimarySubmitPayment() {
         </aside>
       </div>
 
+      {/* Audience picker (Phase 4.5 procurement, folded inline). Default
+          is 'internal' so existing Job Card flows behave identically.
+          Picking any other audience ALSO opens a tender post so subs
+          can see / apply / be invited. Replaces the killed PostJobModal. */}
+      <div className="card-padded mb-5">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+          <div className="sm:w-72 shrink-0">
+            <label className="text-xs uppercase tracking-wider text-ink-500 font-semibold">Audience</label>
+            <select
+              className="mt-2 w-full px-3 py-2 text-sm rounded-md border border-ink-200 focus:border-ink-900 outline-none bg-white"
+              value={audience}
+              onChange={(e) => setAudience(e.target.value as Audience)}
+            >
+              <option value="internal">Internal payment only (default)</option>
+              <option value="invite_only">Also invite specific subs</option>
+              <option value="vendor_list">Also open to my pool</option>
+              <option value="discoverable">Also discoverable platform-wide</option>
+            </select>
+            <p className="mt-2 text-xs text-ink-500">
+              {audience === "internal" && "Just a payment record. No subs outside the rows below see this."}
+              {audience === "invite_only" && "Pick subs from your pool. They get an invite notification."}
+              {audience === "vendor_list" && "Every approved sub in your pool sees it and can apply."}
+              {audience === "discoverable" && "Visible to your pool first, then subs on other principals' pools."}
+            </p>
+          </div>
+          {audience !== "internal" && (
+            <div className="flex-1 min-w-0 space-y-3">
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Input label="Tender title (required)" value={postTitle} onChange={(e) => setPostTitle(e.target.value)} placeholder="e.g. Skim coat 200m2 + ceilings" />
+                <Input label="Trade" value={postTrade} onChange={(e) => setPostTrade(e.target.value)} placeholder="e.g. plastering" />
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Input label="Location" value={postLocation} onChange={(e) => setPostLocation(e.target.value)} placeholder="e.g. Park West, Dublin 12" />
+                <Input label="Tender brief (optional)" value={postBrief} onChange={(e) => setPostBrief(e.target.value)} placeholder="Short description shown to applicants" />
+              </div>
+              {audience === "invite_only" && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs uppercase tracking-wider text-ink-500 font-semibold">
+                      Invitees ({selectedInvitees.size} picked)
+                    </label>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm" onClick={addAllFavourites} type="button">Add favourites</Button>
+                      <Button variant="ghost" size="sm" onClick={addAllApproved} type="button">Add all approved</Button>
+                      {selectedInvitees.size > 0 && (
+                        <Button variant="ghost" size="sm" onClick={() => setSelectedInvitees(new Set())} type="button">Clear</Button>
+                      )}
+                    </div>
+                  </div>
+                  {poolLoading ? (
+                    <div className="skeleton h-24" />
+                  ) : pool.length === 0 ? (
+                    <p className="text-xs text-ink-500 py-2">
+                      Your approved pool is empty. Approve subcontractors on the Subcontractors page first, or switch the audience to Discoverable.
+                    </p>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto border border-ink-200 rounded-md divide-y divide-ink-100">
+                      {pool.map(v => (
+                        <label key={v.subcontractorId} className="flex items-center gap-3 px-3 py-2 hover:bg-ink-50 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedInvitees.has(v.subcontractorId)}
+                            onChange={() => toggleInvitee(v.subcontractorId)}
+                            className="h-4 w-4 rounded border-ink-300"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-ink-900 font-medium">{v.subcontractorName || "(unnamed)"}</span>
+                              {v.subcontractorRef && <span className="font-mono text-[10px] text-ink-500">{v.subcontractorRef}</span>}
+                              {v.isFavourite && <Badge tone="warn">Favourite</Badge>}
+                            </div>
+                            {v.trade && <div className="text-xs text-ink-500">{v.trade}</div>}
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Tab switcher (CSV is now an *override* for Qty/Rate, not row replacer) */}
       <div className="flex gap-1 mb-3 border-b border-ink-200">
         <button
@@ -547,15 +710,52 @@ export function PrimarySubmitPayment() {
       {tab === "csv" && (
         <div className="card-padded mb-5">
           <p className="text-sm text-ink-600 mb-3">
-            CSV with columns: <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">SubcontractorCo</code>, <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">Quantity</code>. Optional: <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">Rate</code>, <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">Material</code>, <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">Extras</code>, <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">SiteAddress</code>, <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">JobNumber</code>. Matches by Sub code; doesn&apos;t add new rows.
+            CSV with columns: <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">SubcontractorCo</code>, <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">Quantity</code>. Optional: <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">Rate</code>, <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">Material</code>, <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">Extras</code>, <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">SiteAddress</code>, <code className="text-xs bg-ink-100 px-1.5 py-0.5 rounded">RctRate</code>. Matches by Sub code; doesn&apos;t add new rows.
           </p>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".csv,text/csv,application/vnd.ms-excel"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) onCsvFile(f); e.target.value = ""; }}
-            className="block text-sm file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:bg-ink-100 file:text-ink-800 hover:file:bg-ink-200"
-          />
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+            {/* Pre-filled template seeded with the principal's active
+                subs so they only have to fill Qty + Rate. Generated
+                client-side - no round-trip needed. */}
+            <Button
+              variant="outline"
+              type="button"
+              leftIcon={<Download className="h-4 w-4" />}
+              onClick={() => {
+                const headers = ["SubcontractorCo", "SubcontractorName", "Quantity", "Rate", "Material", "Extras", "SiteAddress", "RctRate"];
+                const escapeCell = (v: string) => /[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+                const dataRows = operatives.map(o => [
+                  o.subcontractorRef || "",
+                  o.fullName || "",
+                  "0",
+                  o.rateAmountMinor != null ? (o.rateAmountMinor / 100).toFixed(2) : "0",
+                  "0",
+                  "0",
+                  "",
+                  (o.rctRate as string) || "",
+                ].map(escapeCell).join(","));
+                const csv = "\ufeff" + headers.join(",") + "\r\n" + dataRows.join("\r\n") + "\r\n";
+                const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `jobcard-template-${dateEnding || new Date().toISOString().slice(0,10)}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                toast.success("Template downloaded - your active subs are pre-filled.");
+              }}
+            >
+              Download template
+            </Button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".csv,text/csv,application/vnd.ms-excel"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) onCsvFile(f); e.target.value = ""; }}
+              className="block text-sm file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:bg-ink-100 file:text-ink-800 hover:file:bg-ink-200"
+            />
+          </div>
           {hint && <p className="text-xs text-emerald-700 mt-2">{hint}</p>}
         </div>
       )}
