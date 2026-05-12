@@ -726,15 +726,12 @@ export function PrimarySubmitPayment() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between"><span className="text-ink-600">Total Gross</span><span className="tabular-nums font-medium">{fmtMoneyEur(totals.totalGrossMinor)}</span></div>
             <div className="flex justify-between"><span className="text-ink-600">Total to certify to revenue</span><span className="tabular-nums">{fmtMoneyEur(totals.totalGrossMinor)}</span></div>
-            <div className="rounded-md bg-amber-50/80 border border-amber-200 px-3 py-2 text-xs text-amber-900 mt-1">
-              <div className="flex justify-between items-center">
-                <span><strong>VAT reverse-charge (VATCA s.16(2))</strong></span>
-                <span className="tabular-nums font-semibold">{fmtMoneyEur(totals.vatAmt)} ({vatRatePercent}%)</span>
-              </div>
-              <p className="mt-1 text-[11px] text-amber-800">
-                You account for this VAT yourself on your VAT3 return. It is <strong>not</strong> added to Total to Pay BC.
-              </p>
-            </div>
+            {/* The principal accounts for the reverse-charge VAT
+                themselves on their VAT3 return - we no longer surface
+                it as a banner here (it was confusing). RCT rate is
+                picked at the top of the form (default) and per row.
+                totals.vatAmt is still computed + sent to the server
+                for invoice / audit, just not displayed inline. */}
             <div className="flex justify-between items-center">
               <span className="text-ink-600">Less Subs</span>
               <div className="flex items-center gap-1">
