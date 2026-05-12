@@ -107,6 +107,31 @@ export function ChangeRequests() {
     }
   };
 
+  // Bulk selection state - lives on the page so it persists across
+  // view-mode toggles (kanban / list).
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const togglePick = (id: string) => setSelected(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+  const clearPicked = () => setSelected(new Set());
+  const [bulkActing, setBulkActing] = useState(false);
+  const bulkTransition = async (target: Status) => {
+    if (selected.size === 0) return;
+    if (!window.confirm(`Move ${selected.size} request${selected.size === 1 ? "" : "s"} to '${target}'?`)) return;
+    setBulkActing(true);
+    let ok = 0, failed = 0;
+    for (const id of selected) {
+      try { await api.adminPatchChangeRequest(id, target); ok++; }
+      catch { failed++; }
+    }
+    setItems(prev => prev.map(r => selected.has(r.id) ? { ...r, status: target } : r));
+    toast.success(`Moved ${ok}.${failed ? ` ${failed} failed.` : ""}`);
+    setSelected(new Set());
+    setBulkActing(false);
+  };
+
   // Filter pipeline: archive toggle hides closed/rejected by default.
   const filtered = useMemo(() => {
     let rows = items;
@@ -195,6 +220,21 @@ export function ChangeRequests() {
         <Search className="h-3.5 w-3.5" /> {filtered.length} match{filtered.length === 1 ? "" : "es"}
       </div>
 
+      {/* Bulk action bar - shows when any card is picked. Same sticky
+          black bar pattern used on other admin inboxes. */}
+      {selected.size > 0 && (
+        <div className="rounded-lg bg-ink-900 text-white px-4 py-2 flex items-center justify-between gap-3 mb-3 sticky top-2 z-10">
+          <div className="text-sm"><strong className="tabular-nums">{selected.size}</strong> selected</div>
+          <div className="flex gap-2 items-center flex-wrap">
+            <Button variant="ghost" size="sm" onClick={clearPicked} className="text-white hover:bg-white/10">Clear</Button>
+            <Button variant="ghost" size="sm" onClick={() => bulkTransition("seen")}     loading={bulkActing} className="text-white hover:bg-white/10">Mark seen</Button>
+            <Button variant="ghost" size="sm" onClick={() => bulkTransition("actioned")} loading={bulkActing} className="text-white hover:bg-white/10">Mark actioned</Button>
+            <Button variant="ghost" size="sm" onClick={() => bulkTransition("rejected")} loading={bulkActing} className="text-white hover:bg-white/10 hover:text-red-300">Reject</Button>
+            <Button variant="accent" size="sm" onClick={() => bulkTransition("closed")}  loading={bulkActing}>Close</Button>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="skeleton h-64" />
       ) : filtered.length === 0 ? (
@@ -204,27 +244,59 @@ export function ChangeRequests() {
           columns={visibleColumns}
           items={filtered}
           onTransition={transition}
+          selected={selected}
+          onTogglePick={togglePick}
         />
       ) : (
-        <ListView items={filtered} onTransition={transition} />
+        <ListView
+          items={filtered}
+          onTransition={transition}
+          selected={selected}
+          onTogglePick={togglePick}
+        />
       )}
     </>
   );
 }
 
 function KanbanView({
-  columns, items, onTransition,
+  columns, items, onTransition, selected, onTogglePick,
 }: {
   columns: typeof COLUMNS;
   items: ChangeRequest[];
   onTransition: (id: string, status: Status) => void;
+  selected: Set<string>;
+  onTogglePick: (id: string) => void;
 }) {
+  // Drag-and-drop wiring uses native HTML5 DnD - no library needed.
+  // Source card sets dataTransfer; column dragover prevents default to
+  // accept the drop; on drop we call onTransition with the column's
+  // status. Visual: dragover columns get a dashed outline; dragged
+  // card goes semi-transparent.
+  const [dragOver, setDragOver] = useState<Status | null>(null);
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 items-start">
       {columns.map(col => {
         const colItems = items.filter(r => r.status === col.key);
+        const isOver = dragOver === col.key;
         return (
-          <div key={col.key} className="bg-ink-50 rounded-lg border border-ink-100 p-3">
+          <div
+            key={col.key}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(col.key); }}
+            onDragLeave={() => setDragOver(d => d === col.key ? null : d)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(null);
+              const id = e.dataTransfer.getData("text/plain");
+              if (!id) return;
+              const r = items.find(x => x.id === id);
+              if (!r || r.status === col.key) return;
+              onTransition(id, col.key);
+            }}
+            className={`bg-ink-50 rounded-lg border p-3 transition ${
+              isOver ? "border-accent-500 border-dashed ring-2 ring-accent-200" : "border-ink-100"
+            }`}
+          >
             <div className="flex items-center justify-between mb-3 px-1">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-700 inline-flex items-center gap-2">
                 <Badge tone={col.tone}>{col.label}</Badge>
@@ -233,9 +305,17 @@ function KanbanView({
             </div>
             <div className="space-y-2 max-h-[70vh] overflow-y-auto">
               {colItems.length === 0 ? (
-                <p className="text-xs text-ink-400 text-center py-4 italic">Empty</p>
+                <p className="text-xs text-ink-400 text-center py-4 italic">Drop here</p>
               ) : (
-                colItems.map(r => <KanbanCard key={r.id} r={r} onTransition={onTransition} />)
+                colItems.map(r => (
+                  <KanbanCard
+                    key={r.id}
+                    r={r}
+                    onTransition={onTransition}
+                    isSelected={selected.has(r.id)}
+                    onTogglePick={onTogglePick}
+                  />
+                ))
               )}
             </div>
           </div>
@@ -245,15 +325,36 @@ function KanbanView({
   );
 }
 
-function KanbanCard({ r, onTransition }: { r: ChangeRequest; onTransition: (id: string, s: Status) => void }) {
+function KanbanCard({
+  r, onTransition, isSelected, onTogglePick,
+}: {
+  r: ChangeRequest;
+  onTransition: (id: string, s: Status) => void;
+  isSelected: boolean;
+  onTogglePick: (id: string) => void;
+}) {
   const { isJobCard, label, Icon, link } = kindOf(r);
   return (
-    <div className={`bg-white rounded-md border border-ink-100 p-3 hover:shadow-sm transition ${isJobCard ? "border-l-4 border-l-accent-500" : ""}`}>
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-600 inline-flex items-center gap-1">
-          <Icon className="h-3 w-3" /> {label}
+    <div
+      draggable
+      onDragStart={(e) => { e.dataTransfer.setData("text/plain", r.id); e.dataTransfer.effectAllowed = "move"; }}
+      className={`bg-white rounded-md border p-3 hover:shadow-sm transition cursor-grab active:cursor-grabbing ${
+        isSelected ? "border-accent-500 ring-2 ring-accent-200" : "border-ink-100"
+      } ${isJobCard ? "border-l-4 border-l-accent-500" : ""}`}
+    >
+      <div className="flex items-start gap-2 mb-1">
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={() => onTogglePick(r.id)}
+          onClick={(e) => e.stopPropagation()}
+          className="mt-0.5 h-3.5 w-3.5 rounded border-ink-300"
+        />
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-600 inline-flex items-center gap-1 flex-1 min-w-0">
+          <Icon className="h-3 w-3" />
+          <span className="truncate">{label}</span>
         </span>
-        <span className="text-[10px] text-ink-400">{fmtDate(r.createdAt)}</span>
+        <span className="text-[10px] text-ink-400 whitespace-nowrap">{fmtDate(r.createdAt)}</span>
       </div>
       <p className="text-xs text-ink-700 whitespace-pre-wrap line-clamp-3 mb-2">{r.message}</p>
       {isJobCard && r.category === "status_change" && (
@@ -261,35 +362,38 @@ function KanbanCard({ r, onTransition }: { r: ChangeRequest; onTransition: (id: 
           Requested: <span className="font-mono">{r.requestedStatus}</span>
         </div>
       )}
-      <div className="flex items-center justify-between">
-        <Link to={link} className="text-[11px] text-ink-500 hover:text-ink-900 inline-flex items-center gap-0.5">
-          Open <ArrowUpRight className="h-3 w-3" />
-        </Link>
-        <div className="flex gap-1">
-          {COLUMNS.filter(c => c.key !== r.status).map(c => (
-            <button
-              key={c.key}
-              type="button"
-              onClick={() => onTransition(r.id, c.key)}
-              className="text-[10px] px-1.5 py-0.5 rounded text-ink-500 hover:bg-ink-100 hover:text-ink-900"
-              title={`Move to ${c.label}`}
-            >
-              {"-> "}{c.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <Link to={link} className="text-[11px] text-ink-500 hover:text-ink-900 inline-flex items-center gap-0.5">
+        Open <ArrowUpRight className="h-3 w-3" />
+      </Link>
+      <span className="text-[10px] text-ink-400 ml-2 italic">drag to move</span>
+      {/* No transition button row - the column header IS the target,
+          via drag-drop. Removes the 'two Opens' confusion. */}
     </div>
   );
 }
 
-function ListView({ items, onTransition }: { items: ChangeRequest[]; onTransition: (id: string, s: Status) => void }) {
+function ListView({
+  items, onTransition, selected, onTogglePick,
+}: {
+  items: ChangeRequest[];
+  onTransition: (id: string, s: Status) => void;
+  selected: Set<string>;
+  onTogglePick: (id: string) => void;
+}) {
   return (
     <div className="space-y-2">
       {items.map(r => {
         const { isJobCard, label, Icon, link } = kindOf(r);
         return (
-          <div key={r.id} className={`card p-4 ${isJobCard ? "border-l-4 border-l-accent-500" : ""}`}>
+          <div key={r.id} className={`card p-4 ${selected.has(r.id) ? "ring-2 ring-accent-300" : ""} ${isJobCard ? "border-l-4 border-l-accent-500" : ""}`}>
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                checked={selected.has(r.id)}
+                onChange={() => onTogglePick(r.id)}
+                className="mt-1 h-4 w-4 rounded border-ink-300"
+              />
+              <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
               <div className="flex items-center gap-3">
                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-700">
@@ -330,6 +434,8 @@ function ListView({ items, onTransition }: { items: ChangeRequest[]; onTransitio
                 <Button variant="outline" size="sm" onClick={() => onTransition(r.id, "rejected")} className="hover:bg-red-50 hover:text-red-700">Reject</Button>
               )}
               {r.status !== "closed" && <Button variant="accent" size="sm" onClick={() => onTransition(r.id, "closed")}>Close</Button>}
+            </div>
+              </div>
             </div>
           </div>
         );
