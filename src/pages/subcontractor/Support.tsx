@@ -17,7 +17,8 @@ function statusBadge(s: ChangeRequest["status"]) {
     seen: "info",
     actioned: "info",
     closed: "success",
-  }[s] as "warn" | "info" | "success";
+    rejected: "danger",
+  }[s] as "warn" | "info" | "success" | "danger";
   return <Badge tone={tone}>{s}</Badge>;
 }
 

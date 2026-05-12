@@ -315,6 +315,33 @@ export const api = {
     request<ChangeRequest>("POST", "/me/change-requests", {
       body: { message },
     }),
+  // Principal: request the office to change a Job Card's status.
+  primaryRequestJobCardStatusChange: (
+    submissionId: string,
+    requestedStatus: "draft" | "submitted" | "cancelled",
+    message: string,
+  ) =>
+    request<ChangeRequest>(
+      "POST",
+      `/me/primary/submissions/${submissionId}/request-status-change`,
+      { body: { requestedStatus, message } },
+    ),
+  // Principal: request the office to remove / move / swap a subcontractor
+  // on a Job Card. 'swap' requires replacementSubcontractorId.
+  primaryRequestJobCardSubChange: (
+    submissionId: string,
+    payload: {
+      action: "remove" | "move" | "swap";
+      affectedSubcontractorId: string;
+      replacementSubcontractorId?: string;
+      message: string;
+    },
+  ) =>
+    request<ChangeRequest>(
+      "POST",
+      `/me/primary/submissions/${submissionId}/request-sub-change`,
+      { body: payload },
+    ),
 
   // -------- admin: subcontractors --------
   adminListSubcontractors: (params: {

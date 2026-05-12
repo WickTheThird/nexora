@@ -59,7 +59,9 @@ export type PaymentStatus =
   | "reversed";
 export type RateUnit = "hour" | "day" | "week" | "fixed";
 export type RctRate = "0" | "20" | "35";
-export type ChangeRequestStatus = "open" | "seen" | "actioned" | "closed";
+export type ChangeRequestStatus = "open" | "seen" | "actioned" | "closed" | "rejected";
+export type ChangeRequestEntityType = "subcontractor" | "primary_submission";
+export type SubChangeAction = "remove" | "move" | "swap";
 export type QuestionnaireStatus =
   | "not_started"
   | "in_progress"
@@ -462,10 +464,29 @@ export interface PaymentRecord {
 
 export interface ChangeRequest {
   id: string;
-  subcontractorId: string;
+  /** Discriminator: 'subcontractor' (legacy sub-side request) or
+   *  'primary_submission' (principal-side request on a Job Card). */
+  entityType: ChangeRequestEntityType;
+  /** Populated when entityType === 'subcontractor'. Nullable for Job
+   *  Card requests. */
+  subcontractorId: string | null;
+  /** Populated when entityType === 'primary_submission'. */
+  primarySubmissionId: string | null;
+  // --- Job Card sub-change fields (entityType === 'primary_submission',
+  // category === 'sub_change') ---
+  subChangeAction: SubChangeAction | null;
+  affectedSubcontractorId: string | null;
+  replacementSubcontractorId: string | null;
+  // --- Job Card status-change field (entityType === 'primary_submission',
+  // category === 'status_change') ---
+  requestedStatus: string | null;
   message: string;
   status: ChangeRequestStatus;
   handledBy: string | null;
+  createdBy: string | null;
+  /** 'erasure' | 'status_change' | 'sub_change' | null */
+  category: string | null;
+  resolutionNote: string | null;
   createdAt: number;
   updatedAt: number;
 }
