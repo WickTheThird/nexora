@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/layout/PortalShell";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
-import { Plus, Trash2, Send, FileSpreadsheet, Edit3, MapPinned, Printer, Save, Calculator, Phone, Mail } from "lucide-react";
+import { Plus, Trash2, Send, FileSpreadsheet, Edit3, MapPinned, Printer, Save, Calculator, Phone, Mail, ArrowLeft } from "lucide-react";
 
 type SiteIdRow = Awaited<ReturnType<typeof api.listMyPrincipalSiteIds>>["items"][number];
 type OperativeRow = Awaited<ReturnType<typeof api.listMyPrimarySubs>>["items"][number];
@@ -404,23 +404,21 @@ export function PrimarySubmitPayment() {
     }
   };
 
-  // Sub-menu (Enagh-style): visual cue for where we are.
-  const subMenu = (
-    <nav className="card p-3 inline-flex gap-2 mb-4 text-sm">
-      <Link to="/primary/account" className="px-3 py-1.5 rounded hover:bg-ink-50 text-ink-700">Details</Link>
-      <Link to="/primary/subcontractors" className="px-3 py-1.5 rounded hover:bg-ink-50 text-ink-700">Subcontractors</Link>
-      <Link to="/primary/submissions" className="px-3 py-1.5 rounded bg-ink-900 text-white">Job Cards</Link>
-      <Link to="/primary/site-ids" className="px-3 py-1.5 rounded hover:bg-ink-50 text-ink-700">Site IDs</Link>
-    </nav>
-  );
-
   return (
     <>
+      {/* Clear single back-link so the user always knows how to escape
+          the wizard. The old sub-menu (Details / Subcontractors / Job
+          Cards / Site IDs) was confusing because it LOOKED like wizard
+          tabs but actually navigated to other primary sections, losing
+          the in-progress Job Card. Replaced with one breadcrumb that
+          goes one level up, plus the sidebar for everything else. */}
+      <Link to="/primary/submissions" className="inline-flex items-center gap-1 text-sm text-ink-600 hover:text-ink-900 mb-4">
+        <ArrowLeft className="h-4 w-4" /> Back to Jobs Posted
+      </Link>
+
       <PageHeader
         title={editDraftId ? "Edit Job Card (Draft)" : "New Job Card"}
       />
-
-      {subMenu}
 
       {/* Top context - Date Ending + Type + Notes (left) and the BC contact help-block (right), Enagh layout */}
       <div className="grid lg:grid-cols-3 gap-4 mb-5">
