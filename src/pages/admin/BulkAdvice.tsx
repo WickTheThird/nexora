@@ -40,6 +40,8 @@ export function BulkAdvice() {
   const [to, setTo] = useState(iso(today));
   const [items, setItems] = useState<PreviewItem[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Search filter for the preview list - narrows by sub name / ref.
+  const [search, setSearch] = useState("");
   const [notify, setNotify] = useState(true);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -338,6 +340,18 @@ export function BulkAdvice() {
             </Button>
           </div>
 
+          {/* Search filter on the preview list. Narrows by sub name
+              or ref. Selection survives the filter (we filter visible
+              rows, not the underlying selected Set). */}
+          <div className="mb-3">
+            <Input
+              label=""
+              placeholder="Filter preview by sub name or ref..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
           <div className="card overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-ink-50 border-b border-ink-100">
@@ -365,7 +379,15 @@ export function BulkAdvice() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((i) => (
+                {items
+                  .filter((i) => {
+                    if (!search.trim()) return true;
+                    const q = search.trim().toLowerCase();
+                    return (i.fullName || "").toLowerCase().includes(q)
+                        || (i.email || "").toLowerCase().includes(q)
+                        || i.subcontractorId.toLowerCase().includes(q);
+                  })
+                  .map((i) => (
                   <tr
                     key={i.subcontractorId}
                     className={`border-b border-ink-100 last:border-b-0 ${i.eligible ? "hover:bg-ink-50/50" : "bg-amber-50/40"}`}

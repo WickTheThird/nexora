@@ -24,6 +24,20 @@ const STATUSES: { value: string; label: string }[] = [
   { value: "rejected", label: "Rejected" },
 ];
 
+// Deterministic per-person background colour for the initials avatar.
+// 12-colour palette tuned to read well on ink-50 row hover. The hash
+// is a tiny djb2 so the same input always picks the same colour.
+const AVATAR_COLOURS = [
+  "#0F1722", "#243042", "#3a4a6a", "#4f6bbf",
+  "#0d7a8a", "#0f8a5a", "#7a8e0d", "#8a7a0d",
+  "#8a4a0d", "#8a0d4a", "#5a0d8a", "#0d3a8a",
+];
+function avatarBg(seed: string): string {
+  let h = 5381;
+  for (let i = 0; i < seed.length; i++) h = ((h << 5) + h + seed.charCodeAt(i)) | 0;
+  return AVATAR_COLOURS[Math.abs(h) % AVATAR_COLOURS.length];
+}
+
 function statusBadge(s: OnboardingStatus) {
   const tone = {
     invited: "neutral",
@@ -237,7 +251,15 @@ export function Subcontractors() {
                   <tr key={s.id} className="border-b border-ink-100 last:border-b-0 hover:bg-ink-50/50">
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-ink-900 text-white grid place-items-center text-[11px] font-bold">
+                        {/* Subtler avatar: hash-derived background colour
+                            so two subs with similar initials don't both
+                            read as solid-black blobs. Picks from a fixed
+                            palette so the same person always gets the
+                            same colour. */}
+                        <div
+                          className="h-8 w-8 rounded-full grid place-items-center text-[11px] font-bold text-white shrink-0"
+                          style={{ backgroundColor: avatarBg(s.fullName || s.email || s.id) }}
+                        >
                           {initials(s.fullName || s.email || "?")}
                         </div>
                         <span className="font-medium text-ink-900">{s.fullName || "·"}</span>
