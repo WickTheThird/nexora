@@ -121,9 +121,12 @@ export function Subcontractors() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, status, primaryId]);
 
-  // Bucket presets matching the Jobs pattern. Each maps to one or more
-  // onboarding_status values. 'All' clears the filter. The narrow
-  // Status select below stays as a power-user escape hatch.
+  // Bucket presets matching the Jobs pattern. Pure client-side
+  // filter so picking a chip just narrows the visible rows - the
+  // server-side `status` select below is an independent power-user
+  // escape hatch. Previously we tried to sync the two and ended up
+  // with the chips falling back to 'All' on every multi-status
+  // selection (regression - this is the fix).
   type Bucket = "all" | "current" | "active" | "archive";
   const BUCKETS: { key: Bucket; label: string; statuses: string[] | null }[] = [
     { key: "all",     label: "All",     statuses: null },
@@ -131,37 +134,23 @@ export function Subcontractors() {
     { key: "active",  label: "Active",  statuses: ["approved","active"] },
     { key: "archive", label: "Archive", statuses: ["rejected"] },
   ];
-  const bucketOf = (st: string): Bucket => {
-    for (const b of BUCKETS) {
-      if (b.statuses && b.statuses.includes(st)) return b.key;
-    }
-    return "all";
-  };
-  // We don't have client-side bucket counts because the list is
-  // paginated server-side. Instead the bucket chip switches the
-  // server-side status filter to a comma-joined list (the API only
-  // takes a single status, so for buckets >1 status we clear status
-  // and bucket client-side; for single-status buckets we use the
-  // server filter directly).
-  const activeBucket: Bucket = status ? bucketOf(status) : "all";
-  const setBucket = (b: Bucket) => {
-    const cfg = BUCKETS.find(x => x.key === b);
-    if (!cfg || !cfg.statuses) { setStatus(""); return; }
-    if (cfg.statuses.length === 1) { setStatus(cfg.statuses[0]); return; }
-    // Multi-status bucket - clear server-side status filter and let
-    // the client filter pass below trim the page. The 'Status' select
-    // already lets the user pick a single one for precision.
-    setStatus("");
-  };
+  const [activeBucket, setActiveBucket] = useState<Bucket>("all");
 
-  // Client-side bucket filter for multi-status buckets where the
-  // server-side `status` is cleared. For single-status buckets the
-  // server already trims.
+  // Client-side bucket filter. The server `status` filter narrows
+  // first; the bucket then narrows what's left.
   const visibleItems = items.filter(s => {
     const cfg = BUCKETS.find(x => x.key === activeBucket);
     if (!cfg || !cfg.statuses) return true;
     return cfg.statuses.includes(s.onboardingStatus);
   });
+  // Bucket counts (off raw items so chips don't lie when the bucket
+  // filter is on - matches the primary Jobs Posted pattern).
+  const bucketCounts: Record<Bucket, number> = {
+    all: items.length,
+    current: items.filter(s => ["invited","in_progress","submitted","under_review","changes_requested"].includes(s.onboardingStatus)).length,
+    active: items.filter(s => ["approved","active"].includes(s.onboardingStatus)).length,
+    archive: items.filter(s => s.onboardingStatus === "rejected").length,
+  };
 
   return (
     <>
@@ -180,12 +169,15 @@ export function Subcontractors() {
           <button
             key={b.key}
             type="button"
-            onClick={() => setBucket(b.key)}
+            onClick={() => setActiveBucket(b.key)}
             className={`px-4 py-2 text-sm font-medium -mb-px border-b-2 whitespace-nowrap transition ${
               activeBucket === b.key ? "border-ink-900 text-ink-900" : "border-transparent text-ink-500 hover:text-ink-800"
             }`}
           >
             {b.label}
+            <span className={`ml-2 text-xs ${activeBucket === b.key ? "text-ink-500" : "text-ink-400"}`}>
+              {bucketCounts[b.key]}
+            </span>
           </button>
         ))}
       </div>

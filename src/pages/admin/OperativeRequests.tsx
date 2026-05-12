@@ -16,11 +16,14 @@ import { Inbox, CheckCircle2, X, Building2 } from "lucide-react";
 
 type Row = Awaited<ReturnType<typeof api.adminListOperativeRequests>>["items"][number];
 
-const STATUSES = [
-  { value: "requested", label: "Awaiting your action" },
-  { value: "approved",  label: "Approved" },
-  { value: "rejected",  label: "Rejected" },
-  { value: "",          label: "All" },
+// Bucket presets matching Subcontractors / Jobs Posted pattern.
+// 'Current' = requested (awaiting BC). 'Archive' = approved or
+// rejected (terminal). Cancelled is rare so it lives in Archive too.
+type Bucket = "all" | "current" | "archive";
+const BUCKETS: { key: Bucket; label: string; statuses: string[] | null }[] = [
+  { key: "all",     label: "All",     statuses: null },
+  { key: "current", label: "Current", statuses: ["requested"] },
+  { key: "archive", label: "Archive", statuses: ["approved","rejected","cancelled"] },
 ];
 
 function statusBadge(s: string) {
@@ -39,20 +42,71 @@ function statusBadge(s: string) {
 export function AdminOperativeRequests() {
   const toast = useToast();
   const [items, setItems] = useState<Row[]>([]);
-  const [filter, setFilter] = useState("requested");
+  const [bucket, setBucket] = useState<Bucket>("current");
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [approving, setApproving] = useState<Row | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [acting, setActing] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
     try {
-      const r = await api.adminListOperativeRequests(filter || undefined);
+      // Fetch all - bucket + search client-side so counts stay honest.
+      const r = await api.adminListOperativeRequests(undefined);
       setItems(r.items);
     } finally {
       setLoading(false);
     }
   };
-  useEffect(() => { refresh(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [filter]);
+  useEffect(() => { refresh(); }, []);
+
+  const counts: Record<Bucket, number> = {
+    all: items.length,
+    current: items.filter(r => r.status === "requested").length,
+    archive: items.filter(r => r.status === "approved" || r.status === "rejected" || r.status === "cancelled").length,
+  };
+
+  const visible = (() => {
+    const cfg = BUCKETS.find(b => b.key === bucket);
+    let rows = cfg && cfg.statuses ? items.filter(r => cfg.statuses!.includes(r.status)) : items;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      rows = rows.filter(r =>
+        (r.name || "").toLowerCase().includes(q) ||
+        (r.email || "").toLowerCase().includes(q) ||
+        (r.mobile || "").toLowerCase().includes(q) ||
+        (r.primaryName || "").toLowerCase().includes(q)
+      );
+    }
+    return rows;
+  })();
+
+  const toggle = (id: string) => setSelected(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+  const selectAllVisible = () => setSelected(new Set(visible.filter(r => r.status === "requested").map(r => r.id)));
+  const clearSelection = () => setSelected(new Set());
+
+  // Bulk-reject with the same reason. Approve in bulk doesn't make
+  // sense (each needs an email), but bulk-reject is straightforward.
+  const bulkReject = async () => {
+    if (selected.size === 0) return;
+    const reason = prompt(`Reason for rejecting ${selected.size} request${selected.size === 1 ? "" : "s"}?`);
+    if (!reason || !reason.trim()) return;
+    setActing(true);
+    let ok = 0, failed = 0;
+    for (const id of selected) {
+      try { await api.adminRejectOperativeRequest(id, reason.trim()); ok++; }
+      catch { failed++; }
+    }
+    toast.success(`Rejected ${ok}.${failed ? ` ${failed} failed.` : ""}`);
+    clearSelection();
+    await refresh();
+    setActing(false);
+  };
 
   const reject = async (row: Row) => {
     const reason = prompt(`Reason for rejecting "${row.name}"? (Sent to the principal)`);
@@ -69,28 +123,62 @@ export function AdminOperativeRequests() {
 
   return (
     <>
-      <PageHeader
-        title="Subcontractor requests"
-        right={
-          <div className="md:w-56">
-            <Select label="" value={filter} options={STATUSES} onChange={(e) => setFilter(e.target.value)} />
+      <PageHeader title="Subcontractor requests" />
+
+      {/* Bucket tabs - All / Current / Archive. */}
+      <div className="flex gap-1 mb-4 border-b border-ink-200 overflow-x-auto">
+        {BUCKETS.map(b => (
+          <button
+            key={b.key}
+            type="button"
+            onClick={() => setBucket(b.key)}
+            className={`px-4 py-2 text-sm font-medium -mb-px border-b-2 whitespace-nowrap transition ${
+              bucket === b.key ? "border-ink-900 text-ink-900" : "border-transparent text-ink-500 hover:text-ink-800"
+            }`}
+          >
+            {b.label}
+            <span className={`ml-2 text-xs ${bucket === b.key ? "text-ink-500" : "text-ink-400"}`}>{counts[b.key]}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="card-padded mb-4">
+        <Input
+          label="Search"
+          placeholder="Name, email, mobile, principal..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
+      {/* Bulk action bar - bulk-reject for now. Approve stays per-row
+          because each needs the operative's email entered. */}
+      {selected.size > 0 && (
+        <div className="rounded-lg bg-ink-900 text-white px-4 py-2 flex items-center justify-between gap-3 mb-3 sticky top-2 z-10">
+          <div className="text-sm"><strong className="tabular-nums">{selected.size}</strong> selected</div>
+          <div className="flex gap-2 items-center">
+            <Button variant="ghost" size="sm" onClick={clearSelection} className="text-white hover:bg-white/10" leftIcon={<X className="h-3.5 w-3.5" />}>Clear</Button>
+            <Button variant="danger" size="sm" onClick={bulkReject} loading={acting} leftIcon={<X className="h-3.5 w-3.5" />}>Reject selected</Button>
           </div>
-        }
-      />
+        </div>
+      )}
 
       {loading ? (
         <div className="skeleton h-64" />
-      ) : items.length === 0 ? (
-        <Empty
-          icon={Inbox}
-          title="Nothing to action"
-          description="When a principal requests a new operative, it'll appear here for you to review and approve."
-        />
+      ) : visible.length === 0 ? (
+        <Empty icon={Inbox} title="Nothing here" description="No subcontractor requests match the bucket / search." />
       ) : (
         <div className="card overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-ink-50 border-b border-ink-100">
               <tr className="text-left text-xs uppercase tracking-wider text-ink-500 font-semibold">
+                <th className="px-3 py-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={visible.filter(v => v.status === "requested").length > 0 && visible.filter(v => v.status === "requested").every(v => selected.has(v.id))}
+                    onChange={(e) => e.target.checked ? selectAllVisible() : clearSelection()}
+                  />
+                </th>
                 <th className="px-5 py-3">Name</th>
                 <th className="px-5 py-3">Mobile / Email</th>
                 <th className="px-5 py-3">Principal</th>
@@ -99,8 +187,13 @@ export function AdminOperativeRequests() {
               </tr>
             </thead>
             <tbody>
-              {items.map((row) => (
-                <tr key={row.id} className="border-b border-ink-100 last:border-b-0 hover:bg-ink-50/50">
+              {visible.map((row) => (
+                <tr key={row.id} className={`border-b border-ink-100 last:border-b-0 hover:bg-ink-50/50 ${selected.has(row.id) ? "bg-accent-50/40" : ""}`}>
+                  <td className="px-3 py-3">
+                    {row.status === "requested" && (
+                      <input type="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} />
+                    )}
+                  </td>
                   <td className="px-5 py-3">
                     <div className="font-medium text-ink-900">{row.name}</div>
                     {row.notes && <div className="text-xs text-ink-500 mt-0.5">{row.notes}</div>}
@@ -120,7 +213,7 @@ export function AdminOperativeRequests() {
                   <td className="px-5 py-3 text-right">
                     {row.status === "requested" && (
                       <div className="flex justify-end gap-1">
-                        <Button variant="outline" size="sm" onClick={() => reject(row)} leftIcon={<X className="h-4 w-4" />}>Reject</Button>
+                        <Button variant="outline" size="sm" onClick={() => reject(row)} leftIcon={<X className="h-4 w-4" />} className="hover:bg-red-50 hover:text-red-700">Reject</Button>
                         <Button variant="accent" size="sm" onClick={() => setApproving(row)} leftIcon={<CheckCircle2 className="h-4 w-4" />}>Approve</Button>
                       </div>
                     )}

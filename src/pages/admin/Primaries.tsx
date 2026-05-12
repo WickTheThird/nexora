@@ -19,18 +19,25 @@ import { exportRowsAsCsv } from "@/lib/csv";
 // from BC up to a primary based on these relationships.
 export function Primaries() {
   const toast = useToast();
+  // Read URL params first so initial state can pull from them
+  // (deep-links from Recent Activity / dashboard quick-adds).
+  const [searchParams] = useSearchParams();
   const [items, setItems] = useState<Primary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showArchived, setShowArchived] = useState(false);
   const [editing, setEditing] = useState<Primary | null>(null);
-  // Auto-open the create modal when navigated with ?new=1 (from the
-  // admin dashboard "New principal" quick-add button).
-  const [searchParams] = useSearchParams();
+  // Bucket tabs matching the Subcontractors / Jobs Posted pattern.
+  const [activeBucket, setActiveBucket] = useState<"all" | "active" | "archive">("active");
+  // Search initialised from URL ?q= so deep links land filtered.
+  const [search, setSearch] = useState(searchParams.get("q") || "");
+  // Auto-open the create modal on ?new=1.
   const [createOpen, setCreateOpen] = useState(searchParams.get("new") === "1");
 
   const refresh = async () => {
     try {
-      const r = await api.adminListPrimaries(showArchived);
+      // Always pull including archived so the bucket chips can switch
+      // client-side without an extra round-trip. Stays cheap because
+      // the principals list is small (< a few hundred typically).
+      const r = await api.adminListPrimaries(true);
       setItems(r.items);
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : "Failed to load principals");
@@ -43,7 +50,7 @@ export function Primaries() {
     setLoading(true);
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showArchived]);
+  }, []);
 
   const archive = async (p: Primary) => {
     if (!confirm(`Archive "${p.name}"? Linked subcontractors keep their reference; the principal is hidden from active lists.`)) return;
@@ -62,14 +69,6 @@ export function Primaries() {
         title="Principals"
         right={
           <div className="flex items-center gap-2">
-            <label className="text-sm text-ink-600 flex items-center gap-2 mr-2">
-              <input
-                type="checkbox"
-                checked={showArchived}
-                onChange={(e) => setShowArchived(e.target.checked)}
-              />
-              Show archived
-            </label>
             <Button
               variant="outline"
               onClick={() => exportRowsAsCsv(`principals-${new Date().toISOString().slice(0,10)}.csv`, items, [
@@ -93,15 +92,61 @@ export function Primaries() {
         }
       />
 
-      {loading ? (
-        <div className="skeleton h-64" />
-      ) : items.length === 0 ? (
-        <Empty
-          icon={Building2}
-          title="No principals yet"
-          description="Add the developers or main contractors that hire BC. You can link each subcontractor to a default principal so consolidated billing knows who to invoice."
+      {/* Bucket tabs - All / Active / Archive. Client-side filter,
+          same pattern as Subcontractors + Jobs Posted pages. */}
+      <div className="flex gap-1 mb-4 border-b border-ink-200 overflow-x-auto">
+        {(["all","active","archive"] as const).map(b => {
+          const count = b === "all"     ? items.length
+                      : b === "active"  ? items.filter(p => !p.archivedAt).length
+                      :                    items.filter(p => !!p.archivedAt).length;
+          return (
+            <button
+              key={b}
+              type="button"
+              onClick={() => setActiveBucket(b)}
+              className={`px-4 py-2 text-sm font-medium -mb-px border-b-2 whitespace-nowrap transition ${
+                activeBucket === b ? "border-ink-900 text-ink-900" : "border-transparent text-ink-500 hover:text-ink-800"
+              }`}
+            >
+              {b === "all" ? "All" : b === "active" ? "Active" : "Archive"}
+              <span className={`ml-2 text-xs ${activeBucket === b ? "text-ink-500" : "text-ink-400"}`}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Search box - free-text across name / contact / VAT / address. */}
+      <div className="card-padded mb-4">
+        <Input
+          label="Search"
+          placeholder="Name, contact, email, VAT, address..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
         />
-      ) : (
+      </div>
+
+      {(() => {
+        const visible = items.filter(p => {
+          if (activeBucket === "active" && p.archivedAt) return false;
+          if (activeBucket === "archive" && !p.archivedAt) return false;
+          if (search.trim()) {
+            const q = search.trim().toLowerCase();
+            const hay = [p.name, p.contactName, p.contactEmail, p.vat, p.address, p.phone].filter(Boolean).join(" ").toLowerCase();
+            if (!hay.includes(q)) return false;
+          }
+          return true;
+        });
+        if (loading) return <div className="skeleton h-64" />;
+        if (visible.length === 0) return (
+          <Empty
+            icon={Building2}
+            title={items.length === 0 ? "No principals yet" : "No principals match"}
+            description={items.length === 0
+              ? "Add the developers or main contractors that hire BC."
+              : "Try a wider bucket or clearing the search."}
+          />
+        );
+        return (
         <div className="card overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-ink-50 border-b border-ink-100">
@@ -115,7 +160,7 @@ export function Primaries() {
               </tr>
             </thead>
             <tbody>
-              {items.map((p) => (
+              {visible.map((p) => (
                 <tr key={p.id} className="border-b border-ink-100 last:border-b-0 hover:bg-ink-50/50">
                   <td className="px-5 py-3">
                     <Link to={`/admin/primaries/${p.id}`} className="font-medium text-ink-900 hover:underline">
@@ -158,7 +203,8 @@ export function Primaries() {
             </tbody>
           </table>
         </div>
-      )}
+        );
+      })()}
 
       <PrimaryModal
         open={createOpen}

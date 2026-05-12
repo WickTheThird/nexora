@@ -172,11 +172,17 @@ function ColumnCard({
                 </div>
                 {r.notes && <p className="text-xs text-ink-500 italic mt-1 line-clamp-2">&ldquo;{r.notes}&rdquo;</p>}
               </div>
+              {/* Deep-link to the specific person, not the section. The
+                  signup_requests row has resultingUserId pointing at the
+                  created entity - we use the email as a search query so
+                  the receiving list lands focused on this person. */}
               <Link
-                to={kind === "primary" ? "/admin/primaries" : "/admin/subcontractors"}
+                to={kind === "primary"
+                  ? `/admin/primaries?q=${encodeURIComponent(r.companyName || r.email)}`
+                  : `/admin/subcontractors?q=${encodeURIComponent(r.email)}`}
                 className="text-ink-500 hover:text-ink-900 inline-flex items-center gap-0.5 text-xs whitespace-nowrap"
               >
-                Manage <ArrowUpRight className="h-3 w-3" />
+                Open <ArrowUpRight className="h-3 w-3" />
               </Link>
             </li>
           ))}
