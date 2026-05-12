@@ -4,7 +4,8 @@ import { api, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { Input, Textarea } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 import { Empty } from "@/components/ui/Empty";
 import { useToast } from "@/components/ui/Toast";
 import { Users, ArrowUpRight, Pencil, Save, X, UserPlus, Clock, AlertTriangle, CheckCircle2, PauseCircle, PlayCircle, Search, Star } from "lucide-react";
@@ -52,25 +53,40 @@ export function PrimarySubcontractors() {
   const [reqNotes, setReqNotes] = useState("");
   const [reqSending, setReqSending] = useState(false);
   const [requests, setRequests] = useState<RequestRow[]>([]);
-  // Favourite subs (Phase 4 marketplace): set of subcontractor IDs the
-  // principal has starred. These get notified FIRST when the principal
-  // posts a public job.
+  // Favourite subs: starred members of the principal's pool. They get
+  // featured notifications when the principal posts a new job.
   const [favSubIds, setFavSubIds] = useState<Set<string>>(new Set());
+  // Subcontractors who applied to JOIN this principal (sub-initiated).
+  // Shown as a banner section mirroring the existing 'BC proposed'
+  // panel - approve / reject inline. Folded in here so we don't have
+  // a separate page for this anymore.
+  const [pendingApplications, setPendingApplications] = useState<
+    import("@/lib/types").VendorListApplication[]
+  >([]);
+  const [appActing, setAppActing] = useState<string | null>(null);
+  const [rejectingApp, setRejectingApp] = useState<{
+    app: import("@/lib/types").VendorListApplication;
+    reason: string;
+  } | null>(null);
 
   const [windowOpen, setWindowOpen] = useState<boolean>(true);
   const [windowText, setWindowText] = useState<string>("Friday 2:30pm – Wednesday 2pm");
 
   const refresh = async () => {
     try {
-      const [s, r, p, fav] = await Promise.all([
+      const [s, r, p, fav, pendingApps] = await Promise.all([
         api.listMyPrimarySubs(),
         api.listMyOperativeRequests(),
         api.getMyPrimary(),
         api.primaryListFavouriteSubs().catch(() => ({ items: [] })),
+        // Sub-initiated 'add me to your pool' requests. Treated as
+        // first-class pending work alongside BC's pairing proposals.
+        api.primaryListVendorListApplications("pending").catch(() => ({ items: [] })),
       ]);
       setItems(s.items);
       setRequests(r.items);
       setFavSubIds(new Set(fav.items.map(f => f.subcontractorId)));
+      setPendingApplications(pendingApps.items);
       if (p.operativeRequestWindow) {
         setWindowOpen(p.operativeRequestWindow.open);
         setWindowText(p.operativeRequestWindow.humanWindow);
@@ -78,6 +94,30 @@ export function PrimarySubcontractors() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const approveApp = async (id: string) => {
+    setAppActing(id);
+    try {
+      await api.primaryApproveVendorListApplication(id);
+      toast.success("Subcontractor approved + added to your pool.");
+      await refresh();
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed");
+    } finally { setAppActing(null); }
+  };
+  const submitReject = async () => {
+    if (!rejectingApp) return;
+    if (!rejectingApp.reason.trim()) { toast.error("Reason required."); return; }
+    setAppActing(rejectingApp.app.id);
+    try {
+      await api.primaryRejectVendorListApplication(rejectingApp.app.id, rejectingApp.reason.trim());
+      toast.success("Application rejected. Sub notified.");
+      setRejectingApp(null);
+      await refresh();
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed");
+    } finally { setAppActing(null); }
   };
 
   const toggleFavourite = async (subId: string) => {
@@ -504,6 +544,55 @@ export function PrimarySubcontractors() {
             />
           )}
 
+          {/* Subcontractors who applied to JOIN your pool (sub-initiated,
+              cross-platform). Approve to add them to your Active list +
+              notify them; reject with a reason. 24h cool-off on the same
+              principal after rejection. */}
+          {pendingApplications.length > 0 && (
+            <section className="rounded-lg border border-amber-200 bg-amber-50/40 p-4">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-amber-700 mb-3 inline-flex items-center gap-2">
+                Subcontractors who want to join your pool
+                <Badge tone="warn">{pendingApplications.length}</Badge>
+              </h2>
+              <div className="space-y-3">
+                {pendingApplications.map((a) => (
+                  <div key={a.id} className="card-padded flex flex-col sm:flex-row sm:items-start justify-between gap-3 bg-white">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-ink-900">
+                        {a.subcontractorName || "Unnamed"}
+                        {a.subcontractorRef && <span className="text-xs text-ink-500 ml-2 font-mono">{a.subcontractorRef}</span>}
+                      </div>
+                      <div className="text-xs text-ink-500 mt-0.5">
+                        {a.subcontractorEmail}{a.trade ? ` · ${a.trade}` : ""}
+                      </div>
+                      {a.message && <p className="text-sm text-ink-700 mt-2 whitespace-pre-wrap">{a.message}</p>}
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setRejectingApp({ app: a, reason: "" })}
+                        disabled={appActing === a.id}
+                        leftIcon={<X className="h-3.5 w-3.5" />}
+                      >
+                        Reject
+                      </Button>
+                      <Button
+                        variant="accent"
+                        size="sm"
+                        onClick={() => approveApp(a.id)}
+                        loading={appActing === a.id}
+                        leftIcon={<CheckCircle2 className="h-3.5 w-3.5" />}
+                      >
+                        Approve
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* Pairing governance: BC has proposed these operatives. Accept
               to add them to your Active list; decline to send back. */}
           {proposed.length > 0 && (
@@ -586,6 +675,30 @@ export function PrimarySubcontractors() {
           </BulkActionBar>
         );
       })()}
+
+      {/* Reject-application modal (sub-initiated 'join my pool' apps).
+          Reason required, shown to the sub. 24h cool-off enforced
+          server-side. */}
+      <Modal
+        open={!!rejectingApp}
+        onClose={() => setRejectingApp(null)}
+        title={rejectingApp ? `Reject ${rejectingApp.app.subcontractorName || "applicant"}?` : ""}
+        description="They get an email + notification. Cool-off: they can re-apply in 24h."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setRejectingApp(null)}>Cancel</Button>
+            <Button variant="danger" onClick={submitReject} loading={!!appActing}>Reject</Button>
+          </>
+        }
+      >
+        <Textarea
+          label="Reason (visible to the sub)"
+          value={rejectingApp?.reason || ""}
+          onChange={(e) => setRejectingApp(rejectingApp ? { ...rejectingApp, reason: e.target.value } : null)}
+          rows={4}
+          placeholder="e.g. We're not taking on new subs at this time."
+        />
+      </Modal>
     </>
   );
 }
