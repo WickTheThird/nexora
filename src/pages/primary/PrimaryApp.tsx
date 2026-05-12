@@ -1,7 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { PortalShell } from "@/components/layout/PortalShell";
-import { LayoutDashboard, Users, FileText, Send, MapPin, MapPinned, User, Plus, ClipboardList, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Users, FileText, Send, MapPin, MapPinned, User, Plus, ClipboardList } from "lucide-react";
 import { api } from "@/lib/api";
 import type { PaletteItem } from "@/components/ui/CommandPalette";
 import { PrimaryDashboard } from "./PrimaryDashboard";
@@ -16,14 +16,11 @@ import { PrincipalSites } from "./PrincipalSites";
 import { PrincipalSiteDetail } from "./PrincipalSiteDetail";
 import { PrincipalSiteIds } from "./PrincipalSiteIds";
 import { PrincipalAccount } from "./PrincipalAccount";
-import { PrimaryJobsPosted, PrimaryPublicJobDetail } from "./PrimaryPublicJobs";
-import { PrimaryVendorList } from "./PrimaryVendorList";
 
 const nav = [
   { to: "/primary", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/primary/account", label: "Account", icon: User },
   { to: "/primary/subcontractors", label: "Subcontractors", icon: Users },
-  { to: "/primary/vendor-list",    label: "Vendor list",    icon: ShieldCheck },
   { to: "/primary/site-ids", label: "Site IDs", icon: MapPinned },
   { to: "/primary/sites", label: "Site activity", icon: MapPin },
   { to: "/primary/submissions", label: "Jobs Posted", icon: Send },
@@ -84,19 +81,17 @@ export function PrimaryApp() {
         <Route path="account" element={<PrincipalAccount />} />
         <Route path="subcontractors" element={<PrimarySubcontractors />} />
         <Route path="subcontractors/:id" element={<PrimarySubDetail />} />
-        <Route path="vendor-list" element={<PrimaryVendorList />} />
         <Route path="site-ids" element={<PrincipalSiteIds />} />
         <Route path="sites" element={<PrincipalSites />} />
         <Route path="sites/:ref" element={<PrincipalSiteDetail />} />
-        {/* Jobs Posted = Job Cards (legacy) + Public Jobs marketplace
-            on one tabbed page. /primary/submissions is the legacy
-            entry-point and stays as a direct deep link for now; the
-            new Jobs Posted page is at /primary/jobs. */}
-        <Route path="submissions" element={<PrimaryJobsPosted />} />
+        {/* One Jobs Posted page - the existing Job Cards list with
+            status buckets + filters. The Phase 4.5 visibility/invitee
+            picker is being folded INTO the New Job Card form (next
+            commit) instead of living in a separate modal/tab. */}
+        <Route path="submissions" element={<PrimarySubmissions />} />
         <Route path="submissions/new" element={<PrimarySubmitPayment />} />
         <Route path="submissions/:id/edit" element={<PrimarySubmitPayment />} />
         <Route path="submissions/:id" element={<PrimarySubmissionDetail />} />
-        <Route path="public-jobs/:id" element={<PrimaryPublicJobDetail />} />
         <Route path="invoices" element={<PrimaryInvoices />} />
         <Route path="invoices/:id" element={<PrimaryInvoiceDetail />} />
       </Routes>

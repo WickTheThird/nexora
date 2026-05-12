@@ -11,7 +11,6 @@ import {
   Clock,
   Briefcase,
   Inbox,
-  Building2,
 } from "lucide-react";
 import { Home } from "./Home";
 import { ProfileEdit } from "./ProfileEdit";
@@ -22,7 +21,6 @@ import { Payments } from "./Payments";
 import { Support } from "./Support";
 import { Timesheets } from "./Timesheets";
 import { SubJobsBoard, SubJobDetail, SubMyApplications } from "./Jobs";
-import { SubVendorLists } from "./VendorLists";
 
 const nav = [
   { to: "/app", label: "Overview", icon: LayoutDashboard, end: true },
@@ -32,8 +30,7 @@ const nav = [
   { to: "/app/questionnaire", label: "Questionnaire", icon: ClipboardCheck },
   { to: "/app/timesheets", label: "Timesheets", icon: Clock },
   { to: "/app/payments", label: "Payments", icon: Wallet },
-  { to: "/app/jobs", label: "Jobs board", icon: Briefcase },
-  { to: "/app/vendor-lists", label: "Vendor lists", icon: Building2 },
+  { to: "/app/jobs", label: "Jobs", icon: Briefcase },
   { to: "/app/applications", label: "My applications", icon: Inbox },
   { to: "/app/support", label: "Support", icon: LifeBuoy },
 ];
@@ -51,7 +48,6 @@ export function SubcontractorApp() {
         <Route path="payments" element={<Payments />} />
         <Route path="jobs" element={<SubJobsBoard />} />
         <Route path="jobs/:id" element={<SubJobDetail />} />
-        <Route path="vendor-lists" element={<SubVendorLists />} />
         <Route path="applications" element={<SubMyApplications />} />
         <Route path="support" element={<Support />} />
       </Routes>
