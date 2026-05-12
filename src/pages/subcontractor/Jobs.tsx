@@ -237,12 +237,14 @@ export function SubMyApplications() {
   );
 }
 
-function StatusBadge({ status }: { status: "pending" | "approved" | "rejected" | "withdrawn" }) {
+function StatusBadge({ status }: { status: import("@/lib/types").JobApplicationStatus }) {
   const map = {
-    pending: { tone: "info", icon: <Clock className="h-3 w-3" /> },
-    approved: { tone: "success", icon: <CheckCircle2 className="h-3 w-3" /> },
-    rejected: { tone: "danger", icon: <XCircle className="h-3 w-3" /> },
+    invited:   { tone: "warn",    icon: <Clock className="h-3 w-3" /> },
+    pending:   { tone: "info",    icon: <Clock className="h-3 w-3" /> },
+    approved:  { tone: "success", icon: <CheckCircle2 className="h-3 w-3" /> },
+    rejected:  { tone: "danger",  icon: <XCircle className="h-3 w-3" /> },
     withdrawn: { tone: "neutral", icon: null as null | React.ReactNode },
+    declined:  { tone: "neutral", icon: <XCircle className="h-3 w-3" /> },
   } as const;
   const m = map[status];
   return <Badge tone={m.tone} icon={m.icon || undefined}>{status}</Badge>;

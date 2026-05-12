@@ -15,15 +15,20 @@ import type {
   OnboardingView,
   Page,
   PaymentRecord,
+  PrincipalDirectoryEntry,
   Primary,
   PrimaryInvoice,
   PrimarySubmission,
   PrimarySubmissionItem,
   PublicJob,
   PublicJobRateUnit,
+  PublicJobVisibility,
   QuestionnaireRecord,
   Subcontractor,
   Timesheet,
+  VendorListApplication,
+  VendorListEntry,
+  VendorListMembership,
 } from "./types";
 
 declare global {
@@ -1132,6 +1137,11 @@ export const api = {
     rateUnit?: PublicJobRateUnit | null;
     startDate?: string | null;
     endDate?: string | null;
+    /** Phase 4.5: defaults to 'invite_only' if omitted. */
+    visibility?: PublicJobVisibility;
+    /** Required for visibility='invite_only'. Must reference subs
+     *  who are approved on the principal's vendor list. */
+    inviteeIds?: string[];
   }) => request<PublicJob>("POST", "/me/primary/public-jobs", { body: data as Json }),
   primaryListPublicJobs: () =>
     request<{ items: PublicJob[] }>("GET", "/me/primary/public-jobs"),
@@ -1179,4 +1189,69 @@ export const api = {
     request<{ items: PublicJob[] }>("GET", `/admin/public-jobs${status ? `?status=${status}` : ""}`),
   adminRemovePublicJob: (id: string, reason: string) =>
     request<{ removed: true }>("POST", `/admin/public-jobs/${id}/remove`, { body: { reason } }),
+
+  // -------- Vendor list (Phase 4.5 procurement) --------
+  // Principal-side
+  primaryListVendorList: (params: { status?: VendorListEntry["status"]; favourite?: boolean } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.status) qs.set("status", params.status);
+    if (params.favourite) qs.set("favourite", "1");
+    const s = qs.toString();
+    return request<{ items: VendorListEntry[] }>("GET", `/me/primary/vendor-list${s ? `?${s}` : ""}`);
+  },
+  primaryAddToVendorList: (subId: string) =>
+    request<{ subcontractorId: string; createdAt: number; status: "approved" }>(
+      "POST", `/me/primary/vendor-list/${subId}`
+    ),
+  primaryRemoveFromVendorList: (subId: string, reason?: string) =>
+    request<{ removed: true }>(
+      "DELETE", `/me/primary/vendor-list/${subId}`,
+      reason ? { body: { reason } } : undefined,
+    ),
+  primaryToggleVendorListFavourite: (subId: string, favourite: boolean) =>
+    request<{ subcontractorId: string; isFavourite: boolean }>(
+      "POST", `/me/primary/vendor-list/${subId}/favourite`, { body: { favourite } }
+    ),
+  primaryListVendorListApplications: (status: VendorListApplication["status"] = "pending") =>
+    request<{ items: VendorListApplication[] }>(
+      "GET", `/me/primary/vendor-list-applications?status=${status}`
+    ),
+  primaryApproveVendorListApplication: (id: string) =>
+    request<VendorListApplication>("POST", `/me/primary/vendor-list-applications/${id}/approve`),
+  primaryRejectVendorListApplication: (id: string, reason: string) =>
+    request<VendorListApplication>(
+      "POST", `/me/primary/vendor-list-applications/${id}/reject`, { body: { reason } }
+    ),
+
+  // Sub-side
+  subListVendorMemberships: () =>
+    request<{ memberships: VendorListMembership[]; applications: VendorListApplication[] }>(
+      "GET", "/me/sub/vendor-lists"
+    ),
+  subBrowsePrincipals: () =>
+    request<{ items: PrincipalDirectoryEntry[] }>("GET", "/me/sub/principals"),
+  subApplyToVendorList: (primaryId: string, message: string) =>
+    request<VendorListApplication>(
+      "POST", "/me/sub/vendor-list-applications", { body: { primaryId, message } }
+    ),
+  subWithdrawVendorListApplication: (id: string) =>
+    request<{ withdrawn: true }>("POST", `/me/sub/vendor-list-applications/${id}/withdraw`),
+
+  // Sub: decline an invite (job_application status='invited' -> 'declined')
+  subDeclineJobInvite: (jobId: string, reason?: string) =>
+    request<{ declined: true }>(
+      "POST", `/me/sub/public-jobs/${jobId}/decline`,
+      reason ? { body: { reason } } : undefined,
+    ),
+
+  // Sub: extended browse - same endpoint, takes bucket + filters
+  subListPublicJobsByBucket: (bucket: "all" | "invited" | "my_lists" | "discover", params: { q?: string; trade?: string } = {}) => {
+    const qs = new URLSearchParams();
+    qs.set("bucket", bucket);
+    if (params.q) qs.set("q", params.q);
+    if (params.trade) qs.set("trade", params.trade);
+    return request<{ items: PublicJob[]; isTrusted: boolean }>(
+      "GET", `/me/sub/public-jobs?${qs.toString()}`
+    );
+  },
 };

@@ -500,10 +500,83 @@ export interface OnboardingView {
   steps: Record<StepKey, StepStatus>;
 }
 
-// -------- Public Jobs marketplace (Phase 4) --------
+// -------- Public Jobs marketplace (Phase 4) + Procurement (Phase 4.5) --------
 export type PublicJobStatus = "open" | "paused" | "closed" | "filled" | "removed";
 export type PublicJobRateUnit = "hour" | "day" | "fixed";
-export type JobApplicationStatus = "pending" | "approved" | "rejected" | "withdrawn";
+/** Procurement visibility model (Phase 4.5):
+ *   invite_only  - principal pre-selects named subs; only they see it
+ *   vendor_list  - visible to every approved sub on the principal's list
+ *   discoverable - visible to all subs who are on AT LEAST ONE
+ *                  principal's approved vendor list (trust gate) */
+export type PublicJobVisibility = "invite_only" | "vendor_list" | "discoverable";
+export type JobApplicationStatus =
+  | "invited"   // principal pre-created on invite-only post; awaiting sub response
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "withdrawn"
+  | "declined"; // sub turned down the invite
+export type VendorListEntryStatus = "pending" | "approved" | "removed";
+export type VendorListApplicationStatus = "pending" | "approved" | "rejected" | "withdrawn";
+
+export interface VendorListEntry {
+  primaryId: string;
+  subcontractorId: string;
+  subcontractorName: string | null;
+  subcontractorRef: string | null;
+  subcontractorEmail: string | null;
+  trade: string | null;
+  rctRate: string | null;
+  onboardingStatus: string | null;
+  status: VendorListEntryStatus;
+  isFavourite: boolean;
+  createdAt: number;
+  approvedAt: number | null;
+  approvedBy: string | null;
+  removedAt: number | null;
+  removedBy: string | null;
+  removedReason: string | null;
+}
+
+export interface VendorListApplication {
+  id: string;
+  primaryId: string;
+  primaryName: string | null;
+  subcontractorId: string;
+  subcontractorName: string | null;
+  subcontractorRef: string | null;
+  subcontractorEmail: string | null;
+  trade: string | null;
+  message: string | null;
+  status: VendorListApplicationStatus;
+  appliedAt: number;
+  decidedAt: number | null;
+  decidedBy: string | null;
+  decidedReason: string | null;
+  nextApplyAllowedAt: number | null;
+}
+
+/** Sub-side membership row in /app/vendor-lists. */
+export interface VendorListMembership {
+  primaryId: string;
+  primaryName: string;
+  status: VendorListEntryStatus;
+  isFavourite: boolean;
+  approvedAt: number | null;
+  removedAt: number | null;
+  removedReason: string | null;
+}
+
+/** Sub-side principal browse row in /app/vendor-lists/discover. */
+export interface PrincipalDirectoryEntry {
+  id: string;
+  name: string;
+  address: string | null;
+  vat: string | null;
+  membershipStatus: VendorListEntryStatus | null;
+  lastApplicationStatus: VendorListApplicationStatus | null;
+  nextApplyAllowedAt: number | null;
+}
 
 export interface PublicJob {
   id: string;
@@ -519,6 +592,7 @@ export interface PublicJob {
   startDate: string | null;
   endDate: string | null;
   status: PublicJobStatus;
+  visibility: PublicJobVisibility;
   createdBy: string | null;
   removedAt: number | null;
   removedReason: string | null;
