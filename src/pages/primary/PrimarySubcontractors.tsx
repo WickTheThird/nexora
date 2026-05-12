@@ -344,10 +344,9 @@ export function PrimarySubcontractors() {
     <>
       <PageHeader
         title="Subcontractors"
-        description="Workers operating under your contract via BC Construction. Click a row to see their hours and billing activity. Edit standard rate to auto-populate it on new job cards."
         right={
           <Button variant="accent" onClick={() => setReqOpen(o => !o)} leftIcon={<UserPlus className="h-4 w-4" />}>
-            Request new operative
+            Request new subcontractor
           </Button>
         }
       />
@@ -468,7 +467,7 @@ export function PrimarySubcontractors() {
           {proposed.length > 0 && (
             <section className="rounded-lg border border-accent-200 bg-accent-50/40 p-4">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-accent-700 mb-3 inline-flex items-center gap-2">
-                BC proposed these operatives - your call
+                BC proposed these subcontractors - your call
                 <Badge tone="warn">{proposed.length}</Badge>
               </h2>
               <div className="space-y-3">

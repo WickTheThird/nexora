@@ -66,7 +66,7 @@ export function PrincipalAccount() {
       const html = r.kind === "signed" ? r.contract.renderedHtml : r.template.bodyHtml;
       const banner = r.kind === "signed"
         ? `<div class="banner">Signed on ${new Date(r.signedAt).toLocaleDateString("en-IE")}${r.signedBy ? ` by ${r.signedBy}` : ""}.</div>`
-        : `<div class="banner banner-amber">Preview - this is the active contract template. Operatives sign individually as part of their onboarding.</div>`;
+        : `<div class="banner banner-amber">Preview - this is the active contract template. Subcontractors sign individually as part of their onboarding.</div>`;
       const w = window.open("", "_blank", "noopener,noreferrer,width=900,height=1100");
       if (!w) { toast.error("Pop-up blocker prevented opening the contract."); return; }
       w.document.open();
@@ -100,7 +100,6 @@ export function PrincipalAccount() {
     <>
       <PageHeader
         title="Account"
-        description="Your company details on file with BC Construction. Some fields you can edit yourself; others are managed by BC - use 'Request changes' to update those."
       />
 
       <form onSubmit={save} className="space-y-6 max-w-3xl">

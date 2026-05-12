@@ -71,7 +71,6 @@ export function PrincipalSiteIds() {
     <>
       <PageHeader
         title="Site IDs"
-        description="Add every Revenue-registered SIN number for your projects. They become the dropdown options on every payment submission."
       />
       <p className="text-sm text-ink-500 mb-6 max-w-3xl">
         SIN codes are issued by the Revenue Commissioners when a contract is registered on{" "}

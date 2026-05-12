@@ -128,7 +128,6 @@ export function PrimaryDashboard() {
     <>
       <PageHeader
         title={primary ? primary.name : "Welcome"}
-        description="Your portal - read-only view of subcontractors working under your contract and invoices BC Construction has issued to you."
         right={primary ? (
           <div className="flex gap-2">
             <Button variant="outline" onClick={openChangesRequest} leftIcon={<MessagesSquare className="h-4 w-4" />}>
@@ -174,7 +173,7 @@ export function PrimaryDashboard() {
           <div className="grid sm:grid-cols-3 gap-4 mb-8">
             {[
               { to: "/primary/account",         label: "Manage Account",  desc: "Company details, accountant, contract", Icon: BookUser },
-              { to: "/primary/subcontractors",  label: "Operatives",      desc: "Active, incomplete, request new",       Icon: HardHat },
+              { to: "/primary/subcontractors",  label: "Subcontractors",  desc: "Active, incomplete, request new",       Icon: HardHat },
               { to: "/primary/submissions/new", label: "New Job Card",    desc: "Submit hours for this period",          Icon: ClipboardList },
             ].map(({ to, label, desc, Icon }) => (
               <Link

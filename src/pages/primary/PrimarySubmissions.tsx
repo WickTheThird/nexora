@@ -47,7 +47,6 @@ export function PrimarySubmissions() {
     <>
       <PageHeader
         title="Job Cards"
-        description="Payment data you've sent to BC. Each Job Card is reviewed and processed into payment advices for your operatives. Drafts are editable; submitted Job Cards are locked."
         right={
           <Link to="/primary/submissions/new">
             <Button variant="accent" leftIcon={<Plus className="h-4 w-4" />}>New Job Card</Button>
@@ -61,7 +60,7 @@ export function PrimarySubmissions() {
         <Empty
           icon={Send}
           title="No Job Cards yet"
-          description="Send your first Job Card to BC and they'll create payment advices for your operatives."
+          description="Send your first Job Card to BC and they'll create payment advices for your subcontractors."
         />
       ) : (
         <div className="card overflow-hidden">

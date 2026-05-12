@@ -30,7 +30,6 @@ export function PrimaryInvoices() {
     <>
       <PageHeader
         title="Invoices"
-        description="Invoices BC Construction has issued to you. Click any row for the full breakdown."
       />
 
       {loading ? (

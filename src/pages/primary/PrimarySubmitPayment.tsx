@@ -408,7 +408,7 @@ export function PrimarySubmitPayment() {
   const subMenu = (
     <nav className="card p-3 inline-flex gap-2 mb-4 text-sm">
       <Link to="/primary/account" className="px-3 py-1.5 rounded hover:bg-ink-50 text-ink-700">Details</Link>
-      <Link to="/primary/subcontractors" className="px-3 py-1.5 rounded hover:bg-ink-50 text-ink-700">Operatives</Link>
+      <Link to="/primary/subcontractors" className="px-3 py-1.5 rounded hover:bg-ink-50 text-ink-700">Subcontractors</Link>
       <Link to="/primary/submissions" className="px-3 py-1.5 rounded bg-ink-900 text-white">Job Cards</Link>
       <Link to="/primary/site-ids" className="px-3 py-1.5 rounded hover:bg-ink-50 text-ink-700">Site IDs</Link>
     </nav>
@@ -418,7 +418,6 @@ export function PrimarySubmitPayment() {
     <>
       <PageHeader
         title={editDraftId ? "Edit Job Card (Draft)" : "New Job Card"}
-        description={`Job Card Details - Created by ${principalName || "your company"}. Auto-listed your active operatives below; fill Qty + Site for anyone who worked this period.`}
       />
 
       {subMenu}
@@ -471,7 +470,7 @@ export function PrimarySubmitPayment() {
           onClick={() => setTab("manual")}
           className={`px-4 py-2 text-sm font-medium -mb-px border-b-2 inline-flex items-center gap-2 ${tab === "manual" ? "border-ink-900 text-ink-900" : "border-transparent text-ink-500 hover:text-ink-700"}`}
         >
-          <Edit3 className="h-4 w-4" /> Operatives roster
+          <Edit3 className="h-4 w-4" /> Subcontractor roster
         </button>
         <button
           type="button"
@@ -527,7 +526,7 @@ export function PrimarySubmitPayment() {
               const sin = e.target.value;
               if (!sin) return;
               setRows(prev => prev.map(r => r.siteAddress ? r : { ...r, siteAddress: sin }));
-              toast.success(`Site ${sin} applied to operatives without a site`);
+              toast.success(`Site ${sin} applied to subcontractors without a site`);
               e.target.value = "";
             }}
           >
@@ -574,7 +573,7 @@ export function PrimarySubmitPayment() {
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={11} className="px-5 py-10 text-center text-sm text-ink-500">
-                  You don&apos;t have any active operatives yet. <Link to="/primary/subcontractors" className="text-ink-900 underline font-medium">Request your first operative</Link> to start filling Job Cards.
+                  You don&apos;t have any active subcontractors yet. <Link to="/primary/subcontractors" className="text-ink-900 underline font-medium">Request your first subcontractor</Link> to start filling Job Cards.
                 </td>
               </tr>
             ) : rows.map((row, i) => {
@@ -769,7 +768,7 @@ export function PrimarySubmitPayment() {
         </table>
         {operatives.length > 0 && (
           <>
-            <div className="pb-section-title">Operatives reference</div>
+            <div className="pb-section-title">Subcontractor reference</div>
             <table>
               <thead><tr><th style={{ width: "20%" }}>Sub code</th><th style={{ width: "55%" }}>Name</th><th style={{ width: "25%" }}>Standard rate</th></tr></thead>
               <tbody>

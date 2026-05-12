@@ -44,7 +44,6 @@ export function PrincipalSites() {
     <>
       <PageHeader
         title="Sites"
-        description="Aggregated view of every site where your subcontractors have logged hours. Click any site for the per-sub breakdown."
       />
 
       {loading ? (

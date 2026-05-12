@@ -94,11 +94,14 @@ export function NotificationBell() {
         )}
       </button>
       {open && (
-        // Default (mobile/tablet header): open DOWNWARD below the bell.
-        // Desktop (lg+): bell lives at the BOTTOM of the fixed sidebar, so
-        // opening downward renders off-screen. Flip to UPWARD (bottom-full
-        // + mb-2) on lg+ so the panel stays inside the viewport.
-        <div className="absolute right-0 mt-2 lg:mt-0 lg:bottom-full lg:mb-2 w-80 sm:w-96 bg-white rounded-lg shadow-2xl border border-ink-100 z-50 overflow-hidden">
+        // Default (mobile/tablet header): open DOWN-LEFT from bell.
+        // Desktop (lg+): bell sits at the BOTTOM of the fixed left
+        // sidebar - we anchor to the RIGHT of the bell so the panel
+        // pops into the main content area instead of clipping off the
+        // left edge of the viewport. bottom-0 keeps the panel's BOTTOM
+        // aligned with the bell, so its content grows UPWARD into the
+        // viewport rather than below it.
+        <div className="absolute right-0 mt-2 lg:right-auto lg:left-full lg:ml-2 lg:bottom-0 lg:mt-0 lg:mb-0 w-80 sm:w-96 bg-white rounded-lg shadow-2xl border border-ink-100 z-50 overflow-hidden">
           <div className="px-4 py-3 border-b border-ink-100 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-ink-900">Notifications</h3>
             {unreadCount > 0 && (
