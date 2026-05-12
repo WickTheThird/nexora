@@ -70,8 +70,7 @@ export function AdminOperativeRequests() {
   return (
     <>
       <PageHeader
-        title="Operative requests"
-        description="New operatives requested by your principals. Approving creates the Subcontractor account and returns a one-time temp password to share."
+        title="Subcontractor requests"
         right={
           <div className="md:w-56">
             <Select label="" value={filter} options={STATUSES} onChange={(e) => setFilter(e.target.value)} />

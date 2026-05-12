@@ -32,7 +32,7 @@ const nav = [
   { to: "/admin/primaries", label: "Principals", icon: Building2 },
   { to: "/admin/subcontractors", label: "Subcontractors", icon: Users },
   { to: "/admin/primary-submissions", label: "Submissions", icon: Inbox },
-  { to: "/admin/operative-requests", label: "Operative Requests", icon: Inbox },
+  { to: "/admin/operative-requests", label: "Subcontractor Requests", icon: Inbox },
   { to: "/admin/signup-requests", label: "Recent Signups", icon: Inbox },
   { to: "/admin/bulk-advice", label: "Bulk Advice", icon: Send },
   { to: "/admin/templates", label: "Contract Templates", icon: FileText },
@@ -76,7 +76,7 @@ export function AdminApp() {
         ];
         const actionItems: PaletteItem[] = [
           { id: "act-bulk-advice", label: "Bulk advice", hint: "Issue payment advices in batch", category: "actions", icon: Send, to: "/admin/bulk-advice" },
-          { id: "act-op-requests", label: "Operative requests inbox", hint: "Pending principals' new-operative requests", category: "actions", icon: Inbox, to: "/admin/operative-requests" },
+          { id: "act-op-requests", label: "Subcontractor requests inbox", hint: "Pending principals' new-subcontractor requests", category: "actions", icon: Inbox, to: "/admin/operative-requests" },
           { id: "act-submissions", label: "Submissions inbox", hint: "Pending Job Cards from principals", category: "actions", icon: Inbox, to: "/admin/primary-submissions" },
         ];
         setItems([...peopleItems, ...actionItems]);
