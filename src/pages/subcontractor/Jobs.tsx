@@ -17,18 +17,26 @@ import { useToast } from "@/components/ui/Toast";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { Search, Briefcase, Send, Star, Clock, CheckCircle2, XCircle } from "lucide-react";
 
+type Bucket = "invited" | "my_lists" | "discover" | "all";
+
 export function SubJobsBoard() {
   const toast = useToast();
   const [items, setItems] = useState<PublicJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [applying, setApplying] = useState<PublicJob | null>(null);
+  const [bucket, setBucket] = useState<Bucket>("all");
+  const [isTrusted, setIsTrusted] = useState(true);
 
-  const refresh = async (qOverride?: string) => {
+  const refresh = async (qOverride?: string, bucketOverride?: Bucket) => {
     setLoading(true);
     try {
-      const r = await api.subListPublicJobs({ q: (qOverride ?? q) || undefined });
+      const r = await api.subListPublicJobsByBucket(
+        bucketOverride ?? bucket,
+        { q: (qOverride ?? q) || undefined },
+      );
       setItems(r.items);
+      setIsTrusted(r.isTrusted);
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : "Failed to load");
     } finally {
@@ -36,11 +44,44 @@ export function SubJobsBoard() {
     }
   };
 
-  useEffect(() => { refresh(""); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { refresh("", bucket); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [bucket]);
+
+  const buckets: { key: Bucket; label: string }[] = [
+    { key: "all",      label: "All" },
+    { key: "invited",  label: "Invited" },
+    { key: "my_lists", label: "From my principals" },
+    { key: "discover", label: "Discover" },
+  ];
 
   return (
     <>
       <PageHeader title="Jobs board" />
+
+      {/* Procurement-model tabs (Phase 4.5). Subs see four buckets:
+          - All: union of the three below
+          - Invited: principal pre-invited me (need to accept / decline)
+          - From my principals: vendor-list jobs from principals I'm on
+          - Discover: discoverable jobs from principals I'm NOT on */}
+      <div className="flex gap-1 mb-4 border-b border-ink-200 overflow-x-auto">
+        {buckets.map(b => (
+          <button
+            key={b.key}
+            type="button"
+            onClick={() => setBucket(b.key)}
+            className={`px-4 py-2 text-sm font-medium -mb-px border-b-2 whitespace-nowrap transition ${
+              bucket === b.key ? "border-ink-900 text-ink-900" : "border-transparent text-ink-500 hover:text-ink-800"
+            }`}
+          >
+            {b.label}
+          </button>
+        ))}
+      </div>
+
+      {bucket === "discover" && !isTrusted && (
+        <div className="rounded-md bg-amber-50 border border-amber-200 p-3 mb-4 text-sm text-amber-900">
+          <strong>Discover is locked.</strong> Apply to join at least one principal's vendor list to unlock discoverable jobs across the platform.
+        </div>
+      )}
 
       <div className="card-padded mb-5 flex gap-2 items-end">
         <div className="flex-1">
@@ -60,8 +101,18 @@ export function SubJobsBoard() {
       ) : items.length === 0 ? (
         <Empty
           icon={Briefcase}
-          title="No open jobs"
-          description="There are no open public jobs right now. We'll notify you when a new one is posted."
+          title={
+            bucket === "invited"  ? "No invitations"
+            : bucket === "my_lists" ? "No open jobs from your principals"
+            : bucket === "discover" ? (isTrusted ? "Nothing in Discover right now" : "Locked")
+            : "No open jobs"
+          }
+          description={
+            bucket === "invited"  ? "When a principal invites you directly, the invitation appears here."
+            : bucket === "my_lists" ? "Principals you're on the vendor list for will post jobs visible here."
+            : bucket === "discover" && !isTrusted ? "You need to be approved on at least one principal's vendor list to see discoverable jobs."
+            : "We'll notify you when a new one is posted."
+          }
         />
       ) : (
         <div className="grid gap-3">
@@ -70,13 +121,16 @@ export function SubJobsBoard() {
               <div className="flex items-start gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    {j.myApplicationStatus === "invited" && (
+                      <Badge tone="warn">Invited</Badge>
+                    )}
                     {j.isFavourite && (
                       <Badge tone="warn" icon={<Star className="h-3 w-3 fill-current" />}>Featured for you</Badge>
                     )}
                     <h3 className="font-semibold text-ink-900">{j.title}</h3>
                   </div>
                   <div className="text-xs text-ink-500 mb-2">
-                    {j.primaryName} {j.jobRef && <>· <span className="font-mono">{j.jobRef}</span></>}
+                    {j.primaryName} {j.jobRef && <>· <span className="font-mono">{j.jobRef}</span></>} · <VisibilityHint v={j.visibility} />
                   </div>
                   {j.brief && <p className="text-sm text-ink-700 line-clamp-3 mb-2">{j.brief}</p>}
                   <div className="text-xs text-ink-500 flex gap-3 flex-wrap">
@@ -87,7 +141,7 @@ export function SubJobsBoard() {
                   </div>
                 </div>
                 <div className="shrink-0">
-                  <ApplyButton job={j} onClickApply={() => setApplying(j)} />
+                  <ApplyButton job={j} onClickApply={() => setApplying(j)} onAfterDecline={() => refresh()} />
                 </div>
               </div>
             </div>
@@ -104,7 +158,42 @@ export function SubJobsBoard() {
   );
 }
 
-function ApplyButton({ job, onClickApply }: { job: PublicJob; onClickApply: () => void }) {
+function ApplyButton({
+  job, onClickApply, onAfterDecline,
+}: {
+  job: PublicJob;
+  onClickApply: () => void;
+  onAfterDecline?: () => void;
+}) {
+  const toast = useToast();
+  if (job.myApplicationStatus === "invited") {
+    // Procurement model: principal pre-invited this sub. They can
+    // Accept (turns into an Apply with a message) OR Decline (locked
+    // out of this specific job, principal sees the decline).
+    return (
+      <div className="flex gap-2 items-center">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={async () => {
+            if (!window.confirm("Decline this invitation?")) return;
+            try {
+              await api.subDeclineJobInvite(job.id);
+              toast.success("Invitation declined.");
+              onAfterDecline?.();
+            } catch (e) {
+              toast.error(e instanceof ApiError ? e.message : "Failed");
+            }
+          }}
+        >
+          Decline
+        </Button>
+        <Button variant="accent" leftIcon={<Send className="h-4 w-4" />} onClick={onClickApply}>
+          Accept
+        </Button>
+      </div>
+    );
+  }
   if (job.myApplicationStatus === "pending") {
     return <Badge tone="info" icon={<Clock className="h-3 w-3" />}>Applied</Badge>;
   }
@@ -114,6 +203,9 @@ function ApplyButton({ job, onClickApply }: { job: PublicJob; onClickApply: () =
   if (job.myApplicationStatus === "rejected") {
     return <Badge tone="danger" icon={<XCircle className="h-3 w-3" />}>Not accepted</Badge>;
   }
+  if (job.myApplicationStatus === "declined") {
+    return <Badge tone="neutral">Declined</Badge>;
+  }
   return (
     <Button variant="accent" leftIcon={<Send className="h-4 w-4" />} onClick={onClickApply}>
       Apply
@@ -121,17 +213,29 @@ function ApplyButton({ job, onClickApply }: { job: PublicJob; onClickApply: () =
   );
 }
 
+function VisibilityHint({ v }: { v: PublicJob["visibility"] }) {
+  if (v === "invite_only") return <span>Invite only</span>;
+  if (v === "vendor_list") return <span>Open to vendor list</span>;
+  return <span>Discoverable</span>;
+}
+
 function ApplyModal({ job, onClose, onApplied }: { job: PublicJob | null; onClose: () => void; onApplied: () => Promise<void> }) {
   const toast = useToast();
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // When the sub already has an 'invited' application row, hitting
+  // 'Apply' really means 'Accept the invitation'. Same API call, just
+  // friendlier copy in the modal.
+  const isAccept = job?.myApplicationStatus === "invited";
 
   const submit = async () => {
     if (!job) return;
     setSubmitting(true);
     try {
       await api.subApplyToJob(job.id, message.trim());
-      toast.success("Application sent. The principal will be notified.");
+      toast.success(isAccept
+        ? "Invitation accepted. The principal will follow up."
+        : "Application sent. The principal will be notified.");
       setMessage("");
       await onApplied();
     } catch (e) {
@@ -145,13 +249,19 @@ function ApplyModal({ job, onClose, onApplied }: { job: PublicJob | null; onClos
     <Modal
       open={!!job}
       onClose={onClose}
-      title={job ? `Apply to: ${job.title}` : "Apply"}
-      description={job ? `${job.primaryName} will see your message and your subcontractor profile.` : ""}
+      title={job
+        ? (isAccept ? `Accept invitation: ${job.title}` : `Apply to: ${job.title}`)
+        : "Apply"}
+      description={job
+        ? (isAccept
+            ? `${job.primaryName} invited you directly. Send a short note and they'll be in touch.`
+            : `${job.primaryName} will see your message and your subcontractor profile.`)
+        : ""}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button variant="accent" onClick={submit} loading={submitting} leftIcon={<Send className="h-4 w-4" />}>
-            Send application
+            {isAccept ? "Accept invitation" : "Send application"}
           </Button>
         </>
       }

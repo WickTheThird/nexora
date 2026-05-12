@@ -399,8 +399,15 @@ export function PrimaryPublicJobDetail() {
   if (loading) return <div className="skeleton h-64" />;
   if (!job) return <Empty icon={ArrowLeft} title="Not found" description="That job does not exist." />;
 
+  // Phase 4.5 splits applications by lifecycle stage:
+  //   invited: principal pre-invited but sub hasn't accepted or
+  //            declined yet (only exists for invite-only jobs)
+  //   pending: sub is actively applying (came in via accept-invite
+  //            OR self-apply on vendor_list/discoverable jobs)
+  //   decided: terminal (approved/rejected/withdrawn/declined)
+  const invited = apps.filter(a => a.status === "invited");
   const pending = apps.filter(a => a.status === "pending");
-  const decided = apps.filter(a => a.status !== "pending");
+  const decided = apps.filter(a => !["invited", "pending"].includes(a.status));
 
   return (
     <>
@@ -430,6 +437,11 @@ export function PrimaryPublicJobDetail() {
       <div className="card-padded mb-6">
         <div className="flex items-center gap-2 flex-wrap mb-3">
           <StatusBadge status={job.status} />
+          <Badge tone="info">
+            {job.visibility === "invite_only" ? "Invite only"
+             : job.visibility === "vendor_list" ? "Vendor list"
+             : "Discoverable"}
+          </Badge>
           {job.trade && <Badge tone="neutral">{job.trade}</Badge>}
           {job.location && <Badge tone="neutral">{job.location}</Badge>}
           {job.payRateMinor && job.rateUnit && (
@@ -439,6 +451,33 @@ export function PrimaryPublicJobDetail() {
         </div>
         {job.brief && <p className="text-sm text-ink-700 whitespace-pre-wrap">{job.brief}</p>}
       </div>
+
+      {/* Invitees (Phase 4.5): for invite_only jobs, the principal
+          pre-selected named subs at post time. Each gets a row here
+          showing whether they've responded yet. Read-only - the
+          principal acts on them once the sub accepts (moves to
+          'pending' bucket below). */}
+      {invited.length > 0 && (
+        <>
+          <h2 className="text-lg font-semibold text-ink-900 mb-3 inline-flex items-center gap-2">
+            Invited <Badge tone="info">{invited.length}</Badge>
+          </h2>
+          <div className="space-y-2 mb-6">
+            {invited.map((a) => (
+              <div key={a.id} className="card p-4 flex items-center gap-4 opacity-90">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-ink-800">
+                    {a.subcontractorName || "(unnamed)"}
+                    {a.subcontractorRef && <span className="text-xs text-ink-500 ml-2 font-mono">{a.subcontractorRef}</span>}
+                  </div>
+                  <div className="text-xs text-ink-500 mt-0.5">Invited {fmtDate(a.appliedAt)} - awaiting response</div>
+                </div>
+                <Badge tone="warn">Awaiting</Badge>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       <h2 className="text-lg font-semibold text-ink-900 mb-3 inline-flex items-center gap-2">
         Pending applications <Badge tone="warn">{pending.length}</Badge>
