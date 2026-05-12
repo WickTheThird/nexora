@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { Input, Select } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
 import { Plus, Trash2, Send, FileSpreadsheet, Edit3, MapPinned, Printer, Save, Calculator, Phone, Mail, ArrowLeft } from "lucide-react";
 
@@ -443,51 +443,55 @@ export function PrimarySubmitPayment() {
       {/* Top context - Date Ending + Type + Notes (left) and the BC contact help-block (right), Enagh layout */}
       <div className="grid lg:grid-cols-3 gap-4 mb-5">
         <div className="lg:col-span-2 card-padded">
-          <div className="grid sm:grid-cols-4 gap-3">
-            <div>
-              <label className="text-xs uppercase tracking-wider text-ink-500 font-semibold">Job Card Type</label>
-              <select
-                className="mt-2 w-full px-3 py-2 text-sm rounded-md border border-ink-200 focus:border-ink-900 outline-none bg-white"
-                value={jobCardType}
-                onChange={(e) => setJobCardType(e.target.value as JobCardType)}
-              >
-                <option value="weekly">Weekly (1 week)</option>
-                <option value="fortnightly">Fortnightly (2 weeks)</option>
-                <option value="monthly">Monthly (4 weeks)</option>
-              </select>
-            </div>
-            <Input label="Date Ending" type="date" value={dateEnding} onChange={(e) => setDateEnding(e.target.value)} />
-            <Input label="Period start (auto)" type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
-            <div>
-              {/* Card-wide default RCT rate. Picking one here fills the
-                  RCT dropdown on every row that hasn't been manually
-                  overridden. Saves the principal from setting the same
-                  rate on each line when their whole crew is on the same
-                  band. */}
-              <label className="text-xs uppercase tracking-wider text-ink-500 font-semibold">RCT rate (default)</label>
-              <select
-                className="mt-2 w-full px-3 py-2 text-sm rounded-md border border-ink-200 focus:border-ink-900 outline-none bg-white"
-                value={defaultRctRate}
-                onChange={(e) => {
-                  const v = e.target.value as "" | "0" | "20" | "35";
-                  setDefaultRctRate(v);
-                  // Cascade to every row that's still at its initial value
-                  // or empty. Rows the principal has explicitly changed
-                  // away from the default are left alone.
-                  setRows(prev => prev.map(r => (
-                    (r.rctRate === "" || r.rctRate === defaultRctRate)
-                      ? { ...r, rctRate: v }
-                      : r
-                  )));
-                }}
-                title="Applied to every row that hasn't been manually overridden"
-              >
-                <option value="">- pick -</option>
-                <option value="0">0%</option>
-                <option value="20">20%</option>
-                <option value="35">35%</option>
-              </select>
-            </div>
+          {/* Top context row. Layout order matches reading order:
+              type -> start date -> end date -> RCT default. Every
+              control uses the same Select/Input wrapper so the labels
+              + input heights align pixel-perfect. */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <Select
+              label="Job Card Type"
+              value={jobCardType}
+              onChange={(e) => setJobCardType(e.target.value as JobCardType)}
+              options={[
+                { value: "weekly",      label: "Weekly (1 week)" },
+                { value: "fortnightly", label: "Fortnightly (2 weeks)" },
+                { value: "monthly",     label: "Monthly (4 weeks)" },
+              ]}
+            />
+            <Input
+              label="Start date (auto)"
+              type="date"
+              value={periodStart}
+              onChange={(e) => setPeriodStart(e.target.value)}
+            />
+            <Input
+              label="End date"
+              type="date"
+              value={dateEnding}
+              onChange={(e) => setDateEnding(e.target.value)}
+            />
+            {/* Card-wide default RCT rate. Picking one cascades to
+                every row that hasn't been manually overridden. */}
+            <Select
+              label="RCT rate (default)"
+              value={defaultRctRate}
+              onChange={(e) => {
+                const v = e.target.value as "" | "0" | "20" | "35";
+                setDefaultRctRate(v);
+                setRows(prev => prev.map(r => (
+                  (r.rctRate === "" || r.rctRate === defaultRctRate)
+                    ? { ...r, rctRate: v }
+                    : r
+                )));
+              }}
+              title="Applied to every row that hasn't been manually overridden"
+              options={[
+                { value: "",   label: "- pick -" },
+                { value: "0",  label: "0%" },
+                { value: "20", label: "20%" },
+                { value: "35", label: "35%" },
+              ]}
+            />
           </div>
           <div className="mt-3">
             <label className="text-xs uppercase tracking-wider text-ink-500 font-semibold">Notes (optional)</label>
