@@ -580,14 +580,13 @@ export function PrimarySubmitPayment() {
               <th className="px-3 py-2 text-right">Gross</th>
               <th className="px-3 py-2">RCT</th>
               <th className="px-3 py-2">Site ID</th>
-              <th className="px-3 py-2">Job #</th>
               <th className="px-3 py-2 w-8"></th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={12} className="px-5 py-10 text-center text-sm text-ink-500">
+                <td colSpan={11} className="px-5 py-10 text-center text-sm text-ink-500">
                   You don&apos;t have any active subcontractors yet. <Link to="/primary/subcontractors" className="text-ink-900 underline font-medium">Request your first subcontractor</Link> to start filling Job Cards.
                 </td>
               </tr>
@@ -666,7 +665,12 @@ export function PrimarySubmitPayment() {
                       </button>
                     </div>
                   </td>
-                  <td className="px-2 py-2"><input className="w-24 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none" value={row.jobNumber} onChange={(ev) => updateRow(i, "jobNumber", ev.target.value)} placeholder="IE1136" /></td>
+                  {/* Per-line "Job #" field intentionally hidden from the
+                      UI: the per-Job-Card JOB-NNNN ref is auto-generated
+                      and stored on the submission row; the per-line job
+                      number was confusing principals into entering it
+                      manually. The DB column stays so legacy data is
+                      preserved; we just don't expose the input. */}
                   <td className="px-2 py-2 text-right">
                     {!isAuto && (
                       <button type="button" onClick={() => removeRow(i)} className="text-ink-400 hover:text-red-600" title="Remove ad-hoc row">
@@ -780,22 +784,21 @@ export function PrimarySubmitPayment() {
         <table>
           <thead>
             <tr>
-              <th style={{ width: "11%" }}>Sub code</th>
-              <th style={{ width: "16%" }}>Name</th>
-              <th style={{ width: "9%" }}>Job #</th>
-              <th style={{ width: "16%" }}>Site</th>
-              <th style={{ width: "7%" }}>Qty</th>
-              <th style={{ width: "8%" }}>Rate</th>
-              <th style={{ width: "8%" }}>Material</th>
-              <th style={{ width: "8%" }}>Extras</th>
-              <th style={{ width: "9%" }}>Gross</th>
+              <th style={{ width: "12%" }}>Sub code</th>
+              <th style={{ width: "20%" }}>Name</th>
+              <th style={{ width: "18%" }}>Site</th>
+              <th style={{ width: "8%" }}>Qty</th>
+              <th style={{ width: "9%" }}>Rate</th>
+              <th style={{ width: "9%" }}>Material</th>
+              <th style={{ width: "9%" }}>Extras</th>
+              <th style={{ width: "10%" }}>Gross</th>
               <th style={{ width: "8%" }}>Notes</th>
             </tr>
           </thead>
           <tbody>
             {Array.from({ length: 15 }).map((_, i) => (
               <tr key={i} style={{ height: "22pt" }}>
-                <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+                <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
                 <td className="num">&nbsp;</td><td className="num">&nbsp;</td>
                 <td className="num">&nbsp;</td><td className="num">&nbsp;</td>
                 <td className="num">&nbsp;</td><td>&nbsp;</td>

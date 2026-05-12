@@ -208,6 +208,101 @@ This is the user's flagship feature for this round. Confirmed scope:
 
 ---
 
+## Phase 4.5 - Procurement model rework (2026-05-12)
+
+After Phase 4 shipped as a "public board" marketplace, we pivoted to
+match how construction procurement actually works: closed,
+invitation-driven, gated by a per-principal vendor list. The
+"public board" idea was naive for this industry - low trust, low
+compliance, low adoption.
+
+### Locked decisions
+
+- **Default visibility = hybrid pick-list.** When posting, the
+  principal selects WHO can see/apply: specific named subs, all
+  favourites, all approved vendor-list subs, or "discoverable".
+  No accidental public posts.
+- **Vendor list is the trust gate.** A sub must be on at least one
+  principal's vendor list (status='approved') before they can see
+  any Discoverable jobs at all.
+- **Discoverable apply** auto-creates BOTH a vendor-list application
+  AND a job application in one click. Principal sees both in their
+  inbox.
+- **Sub mobility:** subs can apply to multiple principals' vendor
+  lists. They can be on multiple. They cannot "switch" - they
+  accumulate.
+- **Favourites tier within the vendor list:** an `is_favourite`
+  flag on the vendor-list row, used for "notify these first" on
+  invite-only / open-to-list posts (priority badge in notifications).
+
+### Schema changes
+
+- **Rename `primary_favourite_subs` -> `principal_vendor_list`** (table
+  name stays for backward compat, semantics expand). Add columns:
+  - `status TEXT NOT NULL DEFAULT 'approved'` ('pending', 'approved',
+    'removed')
+  - `is_favourite INTEGER NOT NULL DEFAULT 0`
+  - `approved_at INTEGER`, `approved_by TEXT REFERENCES users(id)`
+  - `removed_at INTEGER`, `removed_by TEXT REFERENCES users(id)`
+  - `removed_reason TEXT`
+  - Backfill: existing rows -> status='approved', is_favourite=1
+    (they were already curated as favourites under the old model).
+
+- **New table `vendor_list_applications`**: sub-initiated request
+  to join a principal's vendor list.
+  - id, primary_id, subcontractor_id, message, status (pending /
+    approved / rejected / withdrawn), applied_at, decided_at,
+    decided_by, decided_reason, next_apply_allowed_at (24h cool-off
+    on the SAME principal after rejection).
+  - UNIQUE (primary_id, subcontractor_id).
+
+- **public_jobs gets `visibility` column**:
+  - `'invite_only'` (default): only the named invitees can see/apply
+  - `'vendor_list'`: any approved sub on the principal's list
+  - `'discoverable'`: visible to all subs who are on AT LEAST ONE
+    principal's vendor list (the platform-wide trust gate)
+  - Backfill existing rows to 'discoverable' so they don't disappear.
+
+- **job_applications.status gets two new values**: `'invited'` (row
+  pre-created by principal at post time, sub hasn't responded yet)
+  and `'declined'` (sub declined the invite). Pending/approved/
+  rejected/withdrawn flow unchanged.
+
+### Sub-side UX changes
+
+- `/app/jobs` becomes a tabbed page:
+  - **Invited to me** (status='invited' applications waiting on me to
+    accept or decline)
+  - **From my principals** (vendor_list-visible jobs from principals
+    where I'm approved; I self-apply)
+  - **Discover** (discoverable jobs platform-wide; clicking apply
+    auto-creates a vendor-list app too)
+- New `/app/vendor-lists` page: who I'm on, who I've applied to,
+  ability to browse principals + apply to join.
+
+### Principal-side UX changes
+
+- New `/primary/vendor-list` page: my approved subs, pending
+  applications, removed history. Each row has favourite-toggle +
+  remove action.
+- Post-job form gets a **visibility picker**: invite-only (pick
+  names from vendor list, with quick "all favourites" / "all
+  approved" shortcuts), open to vendor list, discoverable.
+- Job detail page shows the invitee list (with their
+  accept/decline/no-response status) alongside the active
+  applications.
+
+### Implementation order (this session)
+
+1. Schema migrations (rename + new table + new columns)
+2. Worker endpoints (CRUD for vendor list + applications, visibility-
+   aware job listing on both principal and sub sides)
+3. Frontend types + api client
+4. Sub portal: tabbed jobs board + vendor lists page
+5. Principal portal: vendor list page + visibility picker on post
+
+---
+
 ## Outstanding open questions
 
 (All previously open items are now answered. New ones will be added
