@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { api } from "@/lib/api";
-import type { PrimarySubmission, PrimarySubmissionStatus } from "@/lib/types";
+import { api, ApiError } from "@/lib/api";
+import type { PrimarySubmission, PrimarySubmissionStatus, JobCardType } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Empty } from "@/components/ui/Empty";
-import { Send, ArrowUpRight, Plus } from "lucide-react";
+import { Input, Select } from "@/components/ui/Input";
+import { useToast } from "@/components/ui/Toast";
+import { Send, ArrowUpRight, Plus, Search, X, Edit3 } from "lucide-react";
 
 // Enagh-parity status buckets. Maps our 5 statuses into 4 user-facing
 // tabs:
@@ -43,20 +45,46 @@ function statusBadge(s: PrimarySubmissionStatus) {
 }
 
 export function PrimarySubmissions() {
+  const toast = useToast();
   const [items, setItems] = useState<PrimarySubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [bucket, setBucket] = useState<Bucket>("all");
+  // Filtering layer (ON TOP of bucket): free-text search across Job NR
+  // + notes, plus a type filter. Keeps the bucket count badges
+  // honest by computing counts off raw items, not the filter result.
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<"" | JobCardType>("");
+  // Per-row inline action state.
+  const [acting, setActing] = useState<string | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await api.listMySubmissions();
-        setItems(r.items);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+  const refresh = async () => {
+    setLoading(true);
+    try {
+      const r = await api.listMySubmissions();
+      setItems(r.items);
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { refresh(); }, []);
+
+  // Inline 'Submit to BC' for drafts - skip the detour through the
+  // detail page. Confirms first because submission is irreversible.
+  const submitDraft = async (s: PrimarySubmission) => {
+    if (!window.confirm(
+      `Submit ${s.jobRef || "this draft"} to BC?\n\nThis locks the Job Card - it can't be edited after.`
+    )) return;
+    setActing(s.id);
+    try {
+      await api.submitMyDraftSubmission(s.id);
+      toast.success(`${s.jobRef || "Job Card"} submitted to BC.`);
+      await refresh();
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Submit failed");
+    } finally {
+      setActing(null);
+    }
+  };
 
   // Bucket counts feed the chip badges so the principal sees workload
   // at a glance ('Submitted (3)') without opening each tab.
@@ -72,9 +100,25 @@ export function PrimarySubmissions() {
 
   const filtered = useMemo(() => {
     const b = BUCKETS.find(x => x.key === bucket);
-    if (!b || b.statuses == null) return items;
-    return items.filter(it => b.statuses!.includes(it.status));
-  }, [items, bucket]);
+    let rows = b && b.statuses != null
+      ? items.filter(it => b.statuses!.includes(it.status))
+      : items;
+    if (typeFilter) {
+      rows = rows.filter(it => it.jobCardType === typeFilter);
+    }
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      rows = rows.filter(it =>
+        (it.jobRef || "").toLowerCase().includes(q) ||
+        (it.notes || "").toLowerCase().includes(q) ||
+        (it.invoiceNumber || "").toLowerCase().includes(q)
+      );
+    }
+    return rows;
+  }, [items, bucket, typeFilter, search]);
+
+  const filtersActive = !!(typeFilter || search.trim());
+  const clearFilters = () => { setTypeFilter(""); setSearch(""); };
 
   return (
     <>
@@ -108,6 +152,42 @@ export function PrimarySubmissions() {
             </span>
           </button>
         ))}
+      </div>
+
+      {/* Filter row - free-text search across Job NR / notes / invoice
+          ID + a Job Card Type select. Filters compose with the bucket
+          above; counts on the chips stay tied to raw data so the
+          bucket badges don't lie when a search is active. */}
+      <div className="card-padded mb-4 grid grid-cols-1 sm:grid-cols-[1fr_220px_auto] gap-3 items-end">
+        <Input
+          label="Search"
+          placeholder="Job NR, notes, invoice ID..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          // Lucide icons can't slot into the Input wrapper directly so we
+          // rely on the input's label + placeholder pattern.
+        />
+        <Select
+          label="Type"
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value as "" | JobCardType)}
+          options={[
+            { value: "",            label: "All types" },
+            { value: "weekly",      label: "Weekly (1 week)" },
+            { value: "fortnightly", label: "Fortnightly (2 weeks)" },
+            { value: "monthly",     label: "Monthly (4 weeks)" },
+          ]}
+        />
+        <div className="flex items-center gap-2 h-[42px]">
+          {filtersActive && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} leftIcon={<X className="h-3.5 w-3.5" />}>
+              Clear
+            </Button>
+          )}
+          <div className="text-xs text-ink-500 inline-flex items-center gap-1">
+            <Search className="h-3.5 w-3.5" /> {filtered.length} of {items.length}
+          </div>
+        </div>
       </div>
 
       {loading ? (
@@ -156,9 +236,39 @@ export function PrimarySubmissions() {
                   </td>
                   <td className="px-5 py-3">{statusBadge(s.status)}</td>
                   <td className="px-5 py-3 text-right">
-                    <Link to={`/primary/submissions/${s.id}`} className="btn-ghost !py-1.5 inline-flex">
-                      View <ArrowUpRight className="h-4 w-4" />
-                    </Link>
+                    <div className="inline-flex items-center gap-1">
+                      {/* Quick row actions: principals shouldn't have to
+                          drill into a Job Card just to submit a draft.
+                          'Edit' opens the draft form directly; 'Submit'
+                          confirms then locks it in place. For non-draft
+                          rows we just show the View link - changing
+                          status from submitted/processing requires a
+                          status-change request which lives on the
+                          detail page. */}
+                      {s.status === "draft" && (
+                        <>
+                          <Link
+                            to={`/primary/submissions/${s.id}/edit`}
+                            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded text-ink-600 hover:text-ink-900 hover:bg-ink-100"
+                            title="Edit this draft"
+                          >
+                            <Edit3 className="h-3.5 w-3.5" /> Edit
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => submitDraft(s)}
+                            disabled={acting === s.id}
+                            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded text-ink-700 hover:text-white hover:bg-ink-900 disabled:opacity-50"
+                            title="Submit to BC (locks the Job Card)"
+                          >
+                            <Send className="h-3.5 w-3.5" /> Submit
+                          </button>
+                        </>
+                      )}
+                      <Link to={`/primary/submissions/${s.id}`} className="btn-ghost !py-1.5 inline-flex">
+                        View <ArrowUpRight className="h-4 w-4" />
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}
