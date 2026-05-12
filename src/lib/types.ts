@@ -331,6 +331,11 @@ export interface OperativeRequest {
 
 export interface PrimarySubmission {
   id: string;
+  /** Per-principal sequential reference, e.g. JOB-0012. Auto-generated
+   *  at submission time. This is the identifier the principal sees in
+   *  every UI surface; the UUID `id` stays as the internal key. Older
+   *  rows backfilled by the 2026-05 migration. */
+  jobRef: string | null;
   primaryId: string;
   submittedBy: string | null;
   status: PrimarySubmissionStatus;

@@ -53,7 +53,6 @@ export function AdminPrimarySubmissions() {
     <>
       <PageHeader
         title="Principal submissions"
-        description="Payment data sent in by your principals. Process to spawn payment advices for the matched subcontractors."
         right={
           <div className="md:w-56">
             <Select
@@ -79,6 +78,7 @@ export function AdminPrimarySubmissions() {
           <table className="w-full text-sm">
             <thead className="bg-ink-50 border-b border-ink-100">
               <tr className="text-left text-xs uppercase tracking-wider text-ink-500 font-semibold">
+                <th className="px-5 py-3">Job NR</th>
                 <th className="px-5 py-3">Submitted</th>
                 <th className="px-5 py-3">Period</th>
                 <th className="px-5 py-3">Source</th>
@@ -91,6 +91,7 @@ export function AdminPrimarySubmissions() {
             <tbody>
               {items.map((s) => (
                 <tr key={s.id} className="border-b border-ink-100 last:border-b-0 hover:bg-ink-50/50">
+                  <td className="px-5 py-3 font-mono text-xs text-ink-900 font-semibold">{s.jobRef || <span className="text-ink-400">-</span>}</td>
                   <td className="px-5 py-3 text-ink-900">{fmtDate(s.submittedAt)}</td>
                   <td className="px-5 py-3 text-ink-700">
                     {s.periodStart && s.periodEnd ? `${s.periodStart} → ${s.periodEnd}` : <span className="text-ink-400">-</span>}

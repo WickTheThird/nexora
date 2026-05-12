@@ -79,7 +79,7 @@ export function PrimarySubmissionDetail() {
   return (
     <>
       <PageHeader
-        title={`Submission ${submission.id.slice(0, 8)}`}
+        title={submission.jobRef || `Job ${submission.id.slice(0, 8)}`}
         description={isDraft
           ? `Draft - not yet sent to BC. Last saved ${new Date(submission.submittedAt).toLocaleString("en-IE")}`
           : `Submitted ${new Date(submission.submittedAt).toLocaleString("en-IE")}`}

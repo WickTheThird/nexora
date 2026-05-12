@@ -91,7 +91,7 @@ export function AdminPrimarySubmissionDetail() {
   return (
     <>
       <PageHeader
-        title={`Submission ${submission.id.slice(0, 8)}`}
+        title={submission.jobRef || `Submission ${submission.id.slice(0, 8)}`}
         description={`From ${primary.name} · ${new Date(submission.submittedAt).toLocaleString("en-IE")}`}
         right={
           canAction ? (

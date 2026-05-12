@@ -67,6 +67,7 @@ export function PrimarySubmissions() {
           <table className="w-full text-sm">
             <thead className="bg-ink-50 border-b border-ink-100">
               <tr className="text-left text-xs uppercase tracking-wider text-ink-500 font-semibold">
+                <th className="px-5 py-3">Job NR</th>
                 <th className="px-5 py-3">Date Ending</th>
                 <th className="px-5 py-3">Type</th>
                 <th className="px-5 py-3">Period</th>
@@ -80,6 +81,7 @@ export function PrimarySubmissions() {
             <tbody>
               {items.map((s) => (
                 <tr key={s.id} className="border-b border-ink-100 last:border-b-0 hover:bg-ink-50/50">
+                  <td className="px-5 py-3 font-mono text-xs text-ink-900 font-semibold">{s.jobRef || <span className="text-ink-400">-</span>}</td>
                   <td className="px-5 py-3 text-ink-900 font-medium">{fmtDate(s.dateEnding)}</td>
                   <td className="px-5 py-3 text-ink-700 capitalize">{s.jobCardType || "-"}</td>
                   <td className="px-5 py-3 text-ink-600 text-xs">
