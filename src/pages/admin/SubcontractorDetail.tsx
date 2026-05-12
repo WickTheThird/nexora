@@ -6,6 +6,7 @@ import type {
   ContractRecord,
   DocumentRecord,
   PaymentRecord,
+  Primary,
   QuestionnaireRecord,
   Subcontractor,
 } from "@/lib/types";
@@ -211,7 +212,7 @@ export function SubcontractorDetail() {
         </div>
       </div>
 
-      {tab === "overview" && <OverviewTab sub={sub} bank={bank} />}
+      {tab === "overview" && <OverviewTab sub={sub} bank={bank} onRefresh={refreshSub} />}
       {tab === "documents" && <DocumentsTab subId={id} />}
       {tab === "contract" && (
         <ContractTab
@@ -354,9 +355,91 @@ function fieldRow(label: string, value: string | null | undefined) {
   );
 }
 
-function OverviewTab({ sub, bank }: { sub: Subcontractor; bank: BankDetails | null }) {
+function OverviewTab({
+  sub, bank, onRefresh,
+}: {
+  sub: Subcontractor;
+  bank: BankDetails | null;
+  onRefresh: () => Promise<void>;
+}) {
+  // Operations card: change-of-status + principal reassign live here
+  // so admin doesn't have to bounce out to a separate modal. The
+  // header status badges are still read-only; this is where actual
+  // mutation happens.
+  const toast = useToast();
+  const [primaries, setPrimaries] = useState<Primary[]>([]);
+  const [savingPrimary, setSavingPrimary] = useState(false);
+  const [savingStatus, setSavingStatus] = useState(false);
+  useEffect(() => {
+    api.adminListPrimaries().then(r => setPrimaries(r.items)).catch(() => { /* non-fatal */ });
+  }, []);
+  const currentPrimary = primaries.find(p => p.id === sub.primaryId);
+
+  const changePrincipal = async (newId: string) => {
+    const target = newId || null;
+    if (target === sub.primaryId) return;
+    setSavingPrimary(true);
+    try {
+      await api.adminPatchSubcontractor(sub.id, { primaryId: target } as Partial<Subcontractor>);
+      toast.success(target ? `Linked to ${primaries.find(p => p.id === target)?.name || "principal"}.` : "Unlinked from principal.");
+      await onRefresh();
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed");
+    } finally { setSavingPrimary(false); }
+  };
+
+  const changeStatus = async (newStatus: string) => {
+    if (newStatus === sub.onboardingStatus) return;
+    setSavingStatus(true);
+    try {
+      await api.adminPatchSubcontractor(sub.id, { onboardingStatus: newStatus as Subcontractor["onboardingStatus"] });
+      toast.success(`Status set to ${newStatus.replace(/_/g, " ")}.`);
+      await onRefresh();
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed");
+    } finally { setSavingStatus(false); }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Quick operations - principal reassign + manual status flip.
+          Lets admin tweak the two most-touched fields without
+          drilling into the precise approve/reject buttons in the
+          header. */}
+      <div className="card-padded bg-ink-50/40">
+        <h3 className="font-semibold text-ink-900 mb-5">Operations</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <Select
+            label="Principal (editable)"
+            value={sub.primaryId || ""}
+            disabled={savingPrimary}
+            onChange={(e) => changePrincipal(e.target.value)}
+            options={[
+              { value: "", label: "- Unlinked -" },
+              ...primaries.filter(p => !p.archivedAt).map(p => ({ value: p.id, label: p.name })),
+            ]}
+            hint={currentPrimary ? `Currently linked to ${currentPrimary.name}` : "Not on any principal's wing yet"}
+          />
+          <Select
+            label="Status (editable)"
+            value={sub.onboardingStatus}
+            disabled={savingStatus}
+            onChange={(e) => changeStatus(e.target.value)}
+            options={[
+              { value: "invited",           label: "Invited" },
+              { value: "in_progress",       label: "In progress" },
+              { value: "submitted",         label: "Submitted" },
+              { value: "under_review",      label: "Under review" },
+              { value: "changes_requested", label: "Changes requested" },
+              { value: "approved",          label: "Approved" },
+              { value: "active",            label: "Active" },
+              { value: "rejected",          label: "Rejected" },
+            ]}
+            hint="Use the precise Approve / Reject / Request-changes buttons in the header for audited transitions."
+          />
+        </div>
+      </div>
+
       <div className="card-padded">
         <h3 className="font-semibold text-ink-900 mb-5">Personal</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
