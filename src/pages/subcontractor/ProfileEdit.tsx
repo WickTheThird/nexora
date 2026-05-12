@@ -170,8 +170,16 @@ export function ProfileEdit() {
           <Input label="Phone" value={sub.tel || ""} onChange={(e) => setS("tel", e.target.value)} disabled={!editable} />
           <Input label="Mobile" value={sub.mob || ""} onChange={(e) => setS("mob", e.target.value)} disabled={!editable} />
           {/* PPS sits under Personal - tax-side identity, not job-
-              related. Same layout as the admin Sub Detail page. */}
-          <Input label="PPS number" value={sub.ppsNumber || ""} onChange={(e) => setS("ppsNumber", e.target.value.toUpperCase())} disabled={!editable} hint="Encrypted at rest" />
+              related. Required + must be unique across the platform
+              (worker enforces). Stored encrypted at rest. */}
+          <Input
+            label="PPS number"
+            required
+            value={sub.ppsNumber || ""}
+            onChange={(e) => setS("ppsNumber", e.target.value.toUpperCase())}
+            disabled={!editable}
+            hint="Required. Unique across the platform. Encrypted at rest."
+          />
         </div>
       </section>
 
