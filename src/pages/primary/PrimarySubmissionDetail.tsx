@@ -100,7 +100,7 @@ export function PrimarySubmissionDetail() {
         ) : undefined}
       />
       <Link to="/primary/submissions" className="inline-flex items-center gap-1 text-sm text-ink-600 hover:text-ink-900 mb-6">
-        <ArrowLeft className="h-4 w-4" /> Back to submissions
+        <ArrowLeft className="h-4 w-4" /> Back to Jobs Posted
       </Link>
 
       <div className="grid md:grid-cols-4 gap-4 mb-8">

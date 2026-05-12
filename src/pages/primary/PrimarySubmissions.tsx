@@ -46,7 +46,7 @@ export function PrimarySubmissions() {
   return (
     <>
       <PageHeader
-        title="Job Cards"
+        title="Jobs Posted"
         right={
           <Link to="/primary/submissions/new">
             <Button variant="accent" leftIcon={<Plus className="h-4 w-4" />}>New Job Card</Button>

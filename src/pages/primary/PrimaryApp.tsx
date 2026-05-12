@@ -23,7 +23,7 @@ const nav = [
   { to: "/primary/subcontractors", label: "Subcontractors", icon: Users },
   { to: "/primary/site-ids", label: "Site IDs", icon: MapPinned },
   { to: "/primary/sites", label: "Site activity", icon: MapPin },
-  { to: "/primary/submissions", label: "Submissions", icon: Send },
+  { to: "/primary/submissions", label: "Jobs Posted", icon: Send },
   { to: "/primary/invoices", label: "Invoices", icon: FileText },
 ];
 
@@ -66,7 +66,7 @@ export function PrimaryApp() {
         }));
         const actionItems: PaletteItem[] = [
           { id: "act-new-jc", label: "New Job Card", hint: "Submit hours for this period", category: "actions", icon: Plus, to: "/primary/submissions/new" },
-          { id: "act-job-cards", label: "View Job Cards", hint: "All submissions, draft + locked", category: "actions", icon: ClipboardList, to: "/primary/submissions" },
+          { id: "act-job-cards", label: "Jobs Posted", hint: "All Job Cards, draft + locked", category: "actions", icon: ClipboardList, to: "/primary/submissions" },
         ];
         setItems([...peopleItems, ...siteItems, ...actionItems]);
       } catch { /* non-fatal - palette still has the page list */ }
