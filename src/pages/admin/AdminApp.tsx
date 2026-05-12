@@ -14,6 +14,7 @@ import {
   Settings as SettingsIcon,
   Briefcase,
   Activity,
+  Zap,
 } from "lucide-react";
 import { Dashboard } from "./Dashboard";
 import { Subcontractors } from "./Subcontractors";
@@ -29,6 +30,7 @@ import { Templates } from "./Templates";
 import { ChangeRequests } from "./ChangeRequests";
 import { Settings } from "./Settings";
 import { AdminJobs } from "./Jobs";
+import { AdminActions } from "./Actions";
 
 // Sidebar restructured into three logical groups (Dashboard | Core records |
 // Workflow inboxes | Settings). The group labels are encoded as `groupBefore`
@@ -46,7 +48,8 @@ const nav = [
   { to: "/admin/change-requests", label: "Change Requests", icon: MessagesSquare },
   { to: "/admin/signup-requests", label: "Recent Activity", icon: Activity },
   // Actions
-  { to: "/admin/bulk-advice", label: "Advice", icon: Send, groupBefore: "Actions" },
+  { to: "/admin/actions", label: "Actions", icon: Zap, groupBefore: "Actions" },
+  { to: "/admin/bulk-advice", label: "Advice", icon: Send },
   { to: "/admin/templates", label: "Contract Templates", icon: FileText },
   // Misc
   { to: "/admin/settings", label: "Settings", icon: SettingsIcon, groupBefore: "Setup" },
@@ -111,6 +114,7 @@ export function AdminApp() {
         <Route path="subcontractors" element={<Subcontractors />} />
         <Route path="subcontractors/:id" element={<SubcontractorDetail />} />
         <Route path="jobs" element={<AdminJobs />} />
+        <Route path="actions" element={<AdminActions />} />
         <Route path="bulk-advice" element={<BulkAdvice />} />
         <Route path="templates" element={<Templates />} />
         <Route path="change-requests" element={<ChangeRequests />} />
