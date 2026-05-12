@@ -12,6 +12,7 @@ import { Link } from "react-router-dom";
 import { api, ApiError } from "@/lib/api";
 import type { ChangeRequest } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
+import { getHelp } from "@/lib/helpContent";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
@@ -161,6 +162,7 @@ export function ChangeRequests() {
     <>
       <PageHeader
         title="Change Requests"
+        help={getHelp("changeRequests")}
         right={
           // View toggle. Chip pair to match the kanban / list pattern
           // we'll re-use elsewhere (Advice, Subs requests, etc.).

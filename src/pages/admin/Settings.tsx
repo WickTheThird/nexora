@@ -3,6 +3,7 @@ import { api, ApiError } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import type { AppSettings } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
+import { getHelp } from "@/lib/helpContent";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Save } from "lucide-react";
@@ -68,7 +69,7 @@ export function Settings() {
   if (loading) {
     return (
       <>
-        <PageHeader title="Settings" />
+        <PageHeader title="Settings" help={getHelp("settings")} />
         <div className="skeleton h-64" />
       </>
     );
@@ -79,6 +80,7 @@ export function Settings() {
       <PageHeader
         title="Settings"
         description="Operational settings used by the portal. Your company details appear on every generated invoice."
+        help={getHelp("settings")}
         right={
           <Button variant="accent" onClick={() => save()} loading={saving} leftIcon={<Save className="h-4 w-4" />}>
             Save

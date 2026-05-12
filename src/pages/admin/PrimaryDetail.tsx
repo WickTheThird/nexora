@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { api, ApiError } from "@/lib/api";
 import type { Primary, PrimaryInvoice, PrimarySubmission, Subcontractor } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
+import { getHelp } from "@/lib/helpContent";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
@@ -137,6 +138,7 @@ export function PrimaryDetail() {
     <>
       <PageHeader
         title={primary.name}
+        help={getHelp("primaryDetail")}
         right={
           <div className="flex gap-2 items-end">
             <div className="w-40">

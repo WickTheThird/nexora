@@ -14,6 +14,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { ContractTemplate, Subcontractor } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
+import { getHelp } from "@/lib/helpContent";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
@@ -216,6 +217,7 @@ export function Templates() {
     <>
       <PageHeader
         title="Contract Templates"
+        help={getHelp("templates")}
         right={
           <Button variant="accent" onClick={() => setCreateOpen(true)} leftIcon={<FilePlus className="h-4 w-4"/>}>
             New template

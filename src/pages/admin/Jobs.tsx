@@ -9,6 +9,7 @@ import { Link } from "react-router-dom";
 import { api, ApiError } from "@/lib/api";
 import type { PrimarySubmission, PublicJob } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
+import { getHelp } from "@/lib/helpContent";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Empty } from "@/components/ui/Empty";
@@ -139,6 +140,7 @@ export function AdminJobs() {
     <>
       <PageHeader
         title="Jobs"
+        help={getHelp("jobs")}
         right={
           <Button variant="outline" onClick={exportCsv} leftIcon={<Download className="h-4 w-4" />}>
             Download CSV

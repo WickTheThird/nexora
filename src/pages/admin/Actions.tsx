@@ -16,6 +16,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { ChangeRequest, Primary, PrimarySubmission, Subcontractor } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
+import { getHelp } from "@/lib/helpContent";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
@@ -379,7 +380,7 @@ export function AdminActions() {
 
   return (
     <>
-      <PageHeader title="Actions" />
+      <PageHeader title="Actions" help={getHelp("actions")} />
 
       <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_320px] gap-4 items-start">
         {/* ---- Step 1: Audience picker ---- */}

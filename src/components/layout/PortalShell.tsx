@@ -6,6 +6,7 @@ import { LogOut, ChevronRight, Search, HelpCircle } from "lucide-react";
 import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import { CommandPalette, type PaletteItem } from "@/components/ui/CommandPalette";
 import { NotificationBell } from "@/components/ui/NotificationBell";
+import { HelpButton } from "@/components/ui/HelpButton";
 
 export interface NavItem {
   to: string;
@@ -262,10 +263,16 @@ export function PageHeader({
   title,
   description,
   right,
+  help,
 }: {
   title: string;
   description?: string;
   right?: ReactNode;
+  /** Optional contextual help. If provided, a ? button is rendered in
+   *  the right slot (before any other actions); clicking opens a modal
+   *  with this content. Per-page copy describing what cards/rows mean
+   *  and what the admin (or user) can do here. */
+  help?: ReactNode;
 }) {
   // Mobile: stack vertically with the action buttons full-width below
   // the heading. Desktop: keep title left, actions right.
@@ -279,8 +286,9 @@ export function PageHeader({
           <p className="text-sm sm:text-base text-ink-500 mt-1 sm:mt-1.5 max-w-2xl">{description}</p>
         )}
       </div>
-      {right && (
-        <div className="flex-shrink-0 flex flex-wrap gap-2">
+      {(right || help) && (
+        <div className="flex-shrink-0 flex flex-wrap gap-2 items-center">
+          {help && <HelpButton title={`${title} · Help`}>{help}</HelpButton>}
           {right}
         </div>
       )}

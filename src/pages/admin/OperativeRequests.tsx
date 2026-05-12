@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/layout/PortalShell";
+import { getHelp } from "@/lib/helpContent";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Empty } from "@/components/ui/Empty";
@@ -123,7 +124,7 @@ export function AdminOperativeRequests() {
 
   return (
     <>
-      <PageHeader title="Subcontractor requests" />
+      <PageHeader title="Subcontractor requests" help={getHelp("operativeRequests")} />
 
       {/* Bucket tabs - All / Current / Archive. */}
       <div className="flex gap-1 mb-4 border-b border-ink-200 overflow-x-auto">

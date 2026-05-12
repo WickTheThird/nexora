@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api, ApiError } from "@/lib/api";
 import type { PrimarySubmission, PrimarySubmissionStatus } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
+import { getHelp } from "@/lib/helpContent";
 import { Badge } from "@/components/ui/Badge";
 import { Empty } from "@/components/ui/Empty";
 import { Button } from "@/components/ui/Button";
@@ -114,7 +115,7 @@ export function AdminPrimarySubmissions() {
 
   return (
     <>
-      <PageHeader title="Principal submissions" />
+      <PageHeader title="Principal submissions" help={getHelp("submissions")} />
 
       {/* Bucket tabs - All / Current / Drafts / Archive. */}
       <div className="flex gap-1 mb-4 border-b border-ink-200 overflow-x-auto">

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/layout/PortalShell";
+import { getHelp } from "@/lib/helpContent";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Empty } from "@/components/ui/Empty";
@@ -441,7 +442,7 @@ export function BulkAdvice() {
 
   return (
     <>
-      <PageHeader title="Advice" />
+      <PageHeader title="Advice" help={getHelp("advice")} />
 
       {/* View tabs ----------------------------------------------------- */}
       <div className="flex gap-1 mb-5 border-b border-ink-200">

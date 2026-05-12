@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { api, ApiError } from "@/lib/api";
 import type { OnboardingStatus, Primary, Subcontractor } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
+import { getHelp } from "@/lib/helpContent";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
@@ -156,6 +157,7 @@ export function Subcontractors() {
     <>
       <PageHeader
         title="Subcontractors"
+        help={getHelp("subcontractors")}
         right={
           <Button variant="accent" onClick={() => setCreateOpen(true)} leftIcon={<UserPlus className="h-4 w-4" />}>
             New subcontractor

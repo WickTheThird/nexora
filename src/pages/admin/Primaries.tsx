@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { api, ApiError } from "@/lib/api";
 import type { Primary } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
+import { getHelp } from "@/lib/helpContent";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -67,6 +68,7 @@ export function Primaries() {
     <>
       <PageHeader
         title="Principals"
+        help={getHelp("primaries")}
         right={
           <div className="flex items-center gap-2">
             <Button

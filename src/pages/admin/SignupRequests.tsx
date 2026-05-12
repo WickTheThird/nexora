@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/layout/PortalShell";
+import { getHelp } from "@/lib/helpContent";
 import { Badge } from "@/components/ui/Badge";
 import { Empty } from "@/components/ui/Empty";
 import { Input, Select } from "@/components/ui/Input";
@@ -87,7 +88,7 @@ export function AdminSignupRequests() {
 
   return (
     <>
-      <PageHeader title="Recent activity" />
+      <PageHeader title="Recent activity" help={getHelp("signupRequests")} />
 
       <div className="card-padded mb-4 grid grid-cols-1 sm:grid-cols-[1fr_220px] gap-3 items-end">
         <Input

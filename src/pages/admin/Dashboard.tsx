@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import type { ChangeRequest, Subcontractor } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
+import { getHelp } from "@/lib/helpContent";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Users, Building2, FileText, Wallet, MessagesSquare, ArrowUpRight, Send, UserPlus, Plus } from "lucide-react";
@@ -88,6 +89,7 @@ export function Dashboard() {
     <>
       <PageHeader
         title="Dashboard"
+        help={getHelp("dashboard")}
         right={
           <>
             <Button
