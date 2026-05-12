@@ -118,6 +118,10 @@ export function PrimarySubmitPayment() {
   const [periodStart, setPeriodStart] = useState(iso(today));
   const [periodEnd, setPeriodEnd] = useState(iso(today));
   const [notes, setNotes] = useState("");
+  // Job-Card-wide default RCT rate. Hidden behind the visible top
+  // dropdown; when set, it gets applied to every row that hasn't been
+  // overridden manually.
+  const [defaultRctRate, setDefaultRctRate] = useState<"" | "0" | "20" | "35">("");
 
   useEffect(() => {
     const w = deriveWindow(jobCardType, dateEnding);
@@ -439,7 +443,7 @@ export function PrimarySubmitPayment() {
       {/* Top context - Date Ending + Type + Notes (left) and the BC contact help-block (right), Enagh layout */}
       <div className="grid lg:grid-cols-3 gap-4 mb-5">
         <div className="lg:col-span-2 card-padded">
-          <div className="grid sm:grid-cols-3 gap-3">
+          <div className="grid sm:grid-cols-4 gap-3">
             <div>
               <label className="text-xs uppercase tracking-wider text-ink-500 font-semibold">Job Card Type</label>
               <select
@@ -454,6 +458,36 @@ export function PrimarySubmitPayment() {
             </div>
             <Input label="Date Ending" type="date" value={dateEnding} onChange={(e) => setDateEnding(e.target.value)} />
             <Input label="Period start (auto)" type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
+            <div>
+              {/* Card-wide default RCT rate. Picking one here fills the
+                  RCT dropdown on every row that hasn't been manually
+                  overridden. Saves the principal from setting the same
+                  rate on each line when their whole crew is on the same
+                  band. */}
+              <label className="text-xs uppercase tracking-wider text-ink-500 font-semibold">RCT rate (default)</label>
+              <select
+                className="mt-2 w-full px-3 py-2 text-sm rounded-md border border-ink-200 focus:border-ink-900 outline-none bg-white"
+                value={defaultRctRate}
+                onChange={(e) => {
+                  const v = e.target.value as "" | "0" | "20" | "35";
+                  setDefaultRctRate(v);
+                  // Cascade to every row that's still at its initial value
+                  // or empty. Rows the principal has explicitly changed
+                  // away from the default are left alone.
+                  setRows(prev => prev.map(r => (
+                    (r.rctRate === "" || r.rctRate === defaultRctRate)
+                      ? { ...r, rctRate: v }
+                      : r
+                  )));
+                }}
+                title="Applied to every row that hasn't been manually overridden"
+              >
+                <option value="">- pick -</option>
+                <option value="0">0%</option>
+                <option value="20">20%</option>
+                <option value="35">35%</option>
+              </select>
+            </div>
           </div>
           <div className="mt-3">
             <label className="text-xs uppercase tracking-wider text-ink-500 font-semibold">Notes (optional)</label>
