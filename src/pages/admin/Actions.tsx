@@ -32,7 +32,24 @@ import {
 
 type Audience = "subs" | "principals" | "sub_requests" | "submissions" | "change_requests" | "payments";
 
-type Target = { id: string; label: string; sub: string };
+type Target = {
+  id: string;
+  label: string;
+  sub: string;
+  /** Structured fields for composable filters (principal / status / site / ...). */
+  meta?: Record<string, string | null | undefined>;
+};
+
+// Schema for one filter input on the Targets pane. `kind: "select"` uses
+// exact-value match (e.g. principalId); `kind: "text"` uses case-insensitive
+// substring match (e.g. siteRef contains "site-7").
+type FilterDef = {
+  key: string;
+  label: string;
+  kind: "select" | "text";
+  options?: Array<{ value: string; label: string }>;
+  placeholder?: string;
+};
 
 type ActionDef = {
   key: string;
@@ -163,6 +180,10 @@ export function AdminActions() {
   const [loading, setLoading] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
+  // Per-audience filter values, keyed by FilterDef.key. Empty/undefined
+  // means "no filter on this key". State is per-audience so switching
+  // audiences doesn't carry stale filters across.
+  const [filters, setFilters] = useState<Record<string, string>>({});
 
   // Selected actions form an ordered chain. Each step also carries
   // its payload (principalId / reason / status) so the user can
@@ -176,12 +197,87 @@ export function AdminActions() {
     api.adminListPrimaries().then(r => setPrincipalsList(r.items)).catch(() => { /* non-fatal */ });
   }, []);
 
+  // Available filters per audience. Recomputed when principalsList loads
+  // so the "Principal" select can render its options.
+  const filterDefs: FilterDef[] = useMemo(() => {
+    const principalOpts = [
+      { value: "", label: "All principals" },
+      ...principalsList.filter((p) => !p.archivedAt).map((p) => ({ value: p.id, label: p.name })),
+    ];
+    if (audience === "subs") {
+      return [
+        { key: "primaryId", label: "Principal", kind: "select", options: principalOpts },
+        {
+          key: "onboardingStatus", label: "Onboarding", kind: "select",
+          options: [
+            { value: "", label: "Any status" },
+            ...STATUS_OPTIONS_SUBS,
+          ],
+        },
+      ];
+    }
+    if (audience === "sub_requests") {
+      return [
+        { key: "primaryId", label: "Principal", kind: "select", options: principalOpts },
+      ];
+    }
+    if (audience === "submissions") {
+      return [
+        { key: "primaryId", label: "Principal", kind: "select", options: principalOpts },
+        {
+          key: "status", label: "Status", kind: "select",
+          options: [
+            { value: "", label: "Any status" },
+            { value: "submitted", label: "Submitted" },
+            { value: "processed", label: "Processed" },
+            { value: "rejected", label: "Rejected" },
+          ],
+        },
+        { key: "jobRef", label: "Job ref contains", kind: "text", placeholder: "JOB-0012" },
+      ];
+    }
+    if (audience === "change_requests") {
+      return [
+        {
+          key: "entityType", label: "Entity", kind: "select",
+          options: [
+            { value: "", label: "Any entity" },
+            { value: "subcontractor", label: "Subcontractor" },
+            { value: "primary_submission", label: "Job Card" },
+          ],
+        },
+      ];
+    }
+    if (audience === "payments") {
+      return [
+        { key: "primaryId", label: "Principal", kind: "select", options: principalOpts },
+        {
+          key: "status", label: "Status", kind: "select",
+          options: [
+            { value: "", label: "Any status" },
+            { value: "advised", label: "Advised" },
+            { value: "invoiced", label: "Invoiced" },
+          ],
+        },
+        { key: "siteRef", label: "Site ref contains", kind: "text", placeholder: "site-7" },
+        { key: "invoiceNumber", label: "Invoice no. contains", kind: "text", placeholder: "INV-..." },
+      ];
+    }
+    return [];
+  }, [audience, principalsList]);
+
+  const setFilter = (key: string, value: string) =>
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  const clearFilters = () => setFilters({});
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+
   // Load targets whenever the audience changes.
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setPicked(new Set());
     setChain([]);
+    setFilters({}); // reset filters on audience switch
     (async () => {
       try {
         const list = await fetchTargets(audience);
@@ -197,10 +293,28 @@ export function AdminActions() {
   }, [audience]);
 
   const visible = useMemo(() => {
-    if (!search.trim()) return targets;
-    const q = search.trim().toLowerCase();
-    return targets.filter(t => t.label.toLowerCase().includes(q) || (t.sub || "").toLowerCase().includes(q));
-  }, [targets, search]);
+    let arr = targets;
+    // Search across label + sub.
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      arr = arr.filter(
+        (t) => t.label.toLowerCase().includes(q) || (t.sub || "").toLowerCase().includes(q),
+      );
+    }
+    // Composable per-audience filters. Select filters use exact-value
+    // match on meta[key]; text filters use case-insensitive substring.
+    for (const def of filterDefs) {
+      const val = filters[def.key];
+      if (!val) continue;
+      arr = arr.filter((t) => {
+        const m = t.meta?.[def.key];
+        if (m == null) return false;
+        if (def.kind === "select") return String(m) === val;
+        return String(m).toLowerCase().includes(val.toLowerCase());
+      });
+    }
+    return arr;
+  }, [targets, search, filters, filterDefs]);
 
   const togglePick = (id: string) => setPicked(prev => {
     const next = new Set(prev);
@@ -306,10 +420,53 @@ export function AdminActions() {
           </div>
           <Input
             label=""
-            placeholder="Filter..."
+            placeholder="Search by name, email, ref..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+
+          {/* Composable per-audience filters. Each def gets its own input
+              so admins can stack 'principal X' + 'status Y' + 'site Z'. */}
+          {filterDefs.length > 0 && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="text-[11px] uppercase tracking-wider text-ink-500 font-semibold">
+                  Filters {activeFilterCount > 0 && <span className="text-ink-900">· {activeFilterCount} active</span>}
+                </div>
+                {activeFilterCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="text-[11px] text-ink-500 hover:text-ink-900"
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
+              <div className="grid sm:grid-cols-2 gap-2">
+                {filterDefs.map((def) =>
+                  def.kind === "select" ? (
+                    <Select
+                      key={def.key}
+                      label={def.label}
+                      value={filters[def.key] || ""}
+                      onChange={(e) => setFilter(def.key, e.target.value)}
+                      options={def.options || []}
+                    />
+                  ) : (
+                    <Input
+                      key={def.key}
+                      label={def.label}
+                      value={filters[def.key] || ""}
+                      onChange={(e) => setFilter(def.key, e.target.value)}
+                      placeholder={def.placeholder}
+                    />
+                  ),
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="mt-3 max-h-[480px] overflow-y-auto border border-ink-200 rounded-md divide-y divide-ink-100">
             {loading ? (
               <div className="p-4 text-sm text-ink-500">Loading…</div>
@@ -456,6 +613,11 @@ async function fetchTargets(audience: Audience): Promise<Target[]> {
       id: s.id,
       label: s.fullName || s.email || s.id.slice(0, 8),
       sub: [s.subcontractorRef, s.email, s.onboardingStatus].filter(Boolean).join(" · "),
+      meta: {
+        primaryId: s.primaryId || "",
+        onboardingStatus: s.onboardingStatus,
+        subcontractorRef: s.subcontractorRef || "",
+      },
     }));
   }
   if (audience === "principals") {
@@ -464,22 +626,31 @@ async function fetchTargets(audience: Audience): Promise<Target[]> {
       id: p.id,
       label: p.name,
       sub: [p.contactName, p.contactEmail, p.vat].filter(Boolean).join(" · "),
+      meta: { vat: p.vat || "" },
     }));
   }
   if (audience === "sub_requests") {
     const r = await api.adminListOperativeRequests("requested");
-    return r.items.map(req => ({
+    return r.items.map((req) => ({
       id: req.id,
       label: req.name,
       sub: [req.email, req.mobile, req.primaryName].filter(Boolean).join(" · "),
+      meta: { primaryId: req.primaryId || "" },
     }));
   }
   if (audience === "submissions") {
-    const r = await api.adminListPrimarySubmissions("submitted");
+    // Pull all statuses so the status filter actually has something to
+    // narrow; default visible set still leans submitted via the filter.
+    const r = await api.adminListPrimarySubmissions();
     return r.items.map((s: PrimarySubmission) => ({
       id: s.id,
       label: s.jobRef || s.id.slice(0, 8),
-      sub: `${s.itemCount} item(s) · gross ${(s.totalGrossMinor / 100).toFixed(2)} EUR`,
+      sub: `${s.itemCount} item(s) · gross ${(s.totalGrossMinor / 100).toFixed(2)} EUR · ${s.status}`,
+      meta: {
+        primaryId: s.primaryId || "",
+        status: s.status,
+        jobRef: s.jobRef || "",
+      },
     }));
   }
   if (audience === "change_requests") {
@@ -488,6 +659,10 @@ async function fetchTargets(audience: Audience): Promise<Target[]> {
       id: c.id,
       label: c.entityType === "primary_submission" ? `Job Card request · ${c.requestedStatus || c.subChangeAction || ""}` : "Sub support",
       sub: c.message.slice(0, 80),
+      meta: {
+        entityType: c.entityType,
+        status: c.status,
+      },
     }));
   }
   if (audience === "payments") {
@@ -504,6 +679,13 @@ async function fetchTargets(audience: Audience): Promise<Target[]> {
         ` · gross ${(p.grossMinor / 100).toFixed(2)} ${p.currency}` +
         ` · net ${(p.netMinor / 100).toFixed(2)} ${p.currency}` +
         (p.paymentDate ? ` · ${p.paymentDate}` : ""),
+      meta: {
+        primaryId: p.primaryId || "",
+        status: p.status,
+        siteRef: p.siteRef || "",
+        invoiceNumber: p.invoiceNumber || "",
+        subcontractorId: p.subcontractorId,
+      },
     }));
   }
   return [];
