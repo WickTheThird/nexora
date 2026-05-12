@@ -106,9 +106,9 @@ export function Help() {
           <Section id="overview" title="The 3-tier model">
             <p>Three kinds of accounts use the portal, each with their own login + workspace:</p>
             <ul className="space-y-2 list-disc pl-5">
-              <li><strong>Subcontractor</strong> (operative) — the person doing the work on site. They get paid by BC.</li>
-              <li><strong>Principal</strong> (developer / main contractor) — the company that hires BC to manage operatives. They pay BC monthly.</li>
-              <li><strong>Admin</strong> (BC Construction) — the back office that processes Job Cards, issues advices, and reconciles with Revenue.</li>
+              <li><strong>Subcontractor</strong> (operative) - the person doing the work on site. They get paid by BC.</li>
+              <li><strong>Principal</strong> (developer / main contractor) - the company that hires BC to manage operatives. They pay BC monthly.</li>
+              <li><strong>Admin</strong> (BC Construction) - the back office that processes Job Cards, issues advices, and reconciles with Revenue.</li>
             </ul>
             <p>Money flows: <strong>Principal → BC → Subcontractor</strong>. Job Cards flow up; payment advices flow down.</p>
           </Section>
@@ -120,13 +120,13 @@ export function Help() {
               <Step n={2} title="Receive welcome email with temp password" body="Sign in. You'll be prompted to set a real password on first sign-in." />
               <Step n={3} title="Complete your profile" body="My Details: full address, DOB, PPSN. Bank Details: IBAN + BIC. Until BC approves your profile + bank, you can't be paid." />
               <Step n={4} title="Upload your documents" body="Photographic ID, Safe Pass card, CSCS, Manual Handling, etc. Each is reviewed by an admin." />
-              <Step n={5} title="Fill the questionnaire" body="Compliance declarations — confirms you understand you're self-employed under RCT." />
+              <Step n={5} title="Fill the questionnaire" body="Compliance declarations - confirms you understand you're self-employed under RCT." />
               <Step n={6} title="Sign your contract" body="Once your profile is reviewed and approved, BC generates a contract. You read and sign it digitally." />
               <p className="font-medium text-ink-800 pt-4">Once active:</p>
               <ul className="space-y-2 list-disc pl-5">
                 <li>Your principal submits a Job Card with your hours each week.</li>
                 <li>BC processes it and creates a <strong>Payment Advice</strong> for you (visible on /app/payments).</li>
-                <li>You click <strong>Generate Invoice</strong> on the advice — that's the legal billing document.</li>
+                <li>You click <strong>Generate Invoice</strong> on the advice - that's the legal billing document.</li>
                 <li>BC pays you. Status flips to Paid.</li>
                 <li>At year-end you can download an <strong>RCT summary (Form 11)</strong> for your own self-assessment return.</li>
               </ul>
@@ -146,11 +146,11 @@ export function Help() {
               <Step n={4} title="BC processes" body="You'll get a notification when BC has issued advices. An invoice for the principal-side fee is auto-generated." />
               <p className="font-medium text-ink-800 pt-4">Other day-to-day:</p>
               <ul className="space-y-2 list-disc pl-5">
-                <li><strong>Request a new operative</strong> — Subcontractors page, top-right. BC approves and they're added under your account.</li>
-                <li><strong>Edit standard rate</strong> — pencil icon on each row of the Active list. Changes take effect on the next Job Card.</li>
-                <li><strong>Mark in-active</strong> — when an operative leaves your site. Closed bucket; reactivate later if they return.</li>
-                <li><strong>View / Print Contract</strong> — on your Account page.</li>
-                <li><strong>Changes Request</strong> — top-right of home, opens a mailto: to BC.</li>
+                <li><strong>Request a new operative</strong> - Subcontractors page, top-right. BC approves and they're added under your account.</li>
+                <li><strong>Edit standard rate</strong> - pencil icon on each row of the Active list. Changes take effect on the next Job Card.</li>
+                <li><strong>Mark in-active</strong> - when an operative leaves your site. Closed bucket; reactivate later if they return.</li>
+                <li><strong>View / Print Contract</strong> - on your Account page.</li>
+                <li><strong>Changes Request</strong> - top-right of home, opens a mailto: to BC.</li>
               </ul>
             </Section>
           )}
@@ -159,16 +159,16 @@ export function Help() {
             <Section id="admin" title="Admin flow (BC Construction)">
               <p>Admin is the operations hub. Every admin page has its own ? button in the top-right with page-specific help. The high-level inbox flow:</p>
               <ul className="space-y-2 list-disc pl-5">
-                <li><strong>Recent Activity</strong> — review self-serve signups; approve creates the account + sends welcome email.</li>
-                <li><strong>Subcontractor requests</strong> — principals asking to add new operatives. Approve creates the user.</li>
-                <li><strong>Subcontractors</strong> — review profiles, approve onboarding, generate contracts, manage RCT rates. Buckets: All / Current / Active / Archive.</li>
-                <li><strong>Principals</strong> — manage principal accounts. Invite primary users, issue invoices, manage site IDs.</li>
-                <li><strong>Submissions</strong> — Job Cards from principals. Process to spawn payment advices for matched operatives and auto-generate the principal-side invoice.</li>
-                <li><strong>Advice</strong> — Kanban (Open → Previewed → Sent → Paid) of payment advices. Per-card or bulk send/mark-paid. Also CSV import + from-timesheets flow.</li>
-                <li><strong>Change requests</strong> — Kanban (Open → Seen → Closed) of inbound change requests from subs and principals. Drag cards to move.</li>
-                <li><strong>Templates</strong> — WYSIWYG contract templates. Send per-template to a multi-select of subs.</li>
-                <li><strong>Actions</strong> — cross-action bulk runner. Compose audience + filters + action chain to run e.g. "approve all submitted subs for principal X". Includes a Payments audience for bulk mark-paid.</li>
-                <li><strong>Settings</strong> — VAT rate, admin fees, invoice template, "Latest News" panel content, Changes Request email target.</li>
+                <li><strong>Recent Activity</strong> - review self-serve signups; approve creates the account + sends welcome email.</li>
+                <li><strong>Subcontractor requests</strong> - principals asking to add new operatives. Approve creates the user.</li>
+                <li><strong>Subcontractors</strong> - review profiles, approve onboarding, generate contracts, manage RCT rates. Buckets: All / Current / Active / Archive.</li>
+                <li><strong>Principals</strong> - manage principal accounts. Invite primary users, issue invoices, manage site IDs.</li>
+                <li><strong>Submissions</strong> - Job Cards from principals. Process to spawn payment advices for matched operatives and auto-generate the principal-side invoice.</li>
+                <li><strong>Advice</strong> - Kanban (Open → Previewed → Sent → Paid) of payment advices. Per-card or bulk send/mark-paid. Also CSV import + from-timesheets flow.</li>
+                <li><strong>Change requests</strong> - Kanban (Open → Seen → Closed) of inbound change requests from subs and principals. Drag cards to move.</li>
+                <li><strong>Templates</strong> - WYSIWYG contract templates. Send per-template to a multi-select of subs.</li>
+                <li><strong>Actions</strong> - cross-action bulk runner. Compose audience + filters + action chain to run e.g. "approve all submitted subs for principal X". Includes a Payments audience for bulk mark-paid.</li>
+                <li><strong>Settings</strong> - VAT rate, admin fees, invoice template, "Latest News" panel content, Changes Request email target.</li>
               </ul>
             </Section>
           )}
@@ -177,19 +177,19 @@ export function Help() {
           <Section id="shortcuts" title="Keyboard shortcuts">
             <p>Designed for Excel-fluent users. Same patterns as VS Code, Slack, Spotlight.</p>
             <ul className="space-y-2 list-disc pl-5">
-              <li><kbd className="font-mono bg-ink-100 px-2 py-0.5 rounded text-xs">⌘K</kbd> / <kbd className="font-mono bg-ink-100 px-2 py-0.5 rounded text-xs">Ctrl+K</kbd> — opens Quick Search. Find anyone (operative, principal, site) by typing a few letters.</li>
-              <li><kbd className="font-mono bg-ink-100 px-2 py-0.5 rounded text-xs">↑</kbd> / <kbd className="font-mono bg-ink-100 px-2 py-0.5 rounded text-xs">↓</kbd> — navigate results in any picker.</li>
-              <li><kbd className="font-mono bg-ink-100 px-2 py-0.5 rounded text-xs">Enter</kbd> — open the highlighted item.</li>
-              <li><kbd className="font-mono bg-ink-100 px-2 py-0.5 rounded text-xs">Esc</kbd> — close any dialog or picker.</li>
+              <li><kbd className="font-mono bg-ink-100 px-2 py-0.5 rounded text-xs">⌘K</kbd> / <kbd className="font-mono bg-ink-100 px-2 py-0.5 rounded text-xs">Ctrl+K</kbd> - opens Quick Search. Find anyone (operative, principal, site) by typing a few letters.</li>
+              <li><kbd className="font-mono bg-ink-100 px-2 py-0.5 rounded text-xs">↑</kbd> / <kbd className="font-mono bg-ink-100 px-2 py-0.5 rounded text-xs">↓</kbd> - navigate results in any picker.</li>
+              <li><kbd className="font-mono bg-ink-100 px-2 py-0.5 rounded text-xs">Enter</kbd> - open the highlighted item.</li>
+              <li><kbd className="font-mono bg-ink-100 px-2 py-0.5 rounded text-xs">Esc</kbd> - close any dialog or picker.</li>
             </ul>
           </Section>
 
           {/* TAX */}
           <Section id="tax" title="Irish tax (RCT + VAT) in plain English">
             <p>Construction services in Ireland are subject to two regimes that interact:</p>
-            <p><strong>RCT (Relevant Contracts Tax)</strong> — Revenue assigns each subcontractor a rate (0%, 20% or 35%) based on their compliance history. Before each payment, the principal contractor (BC, in this case) submits a Payment Notification to ROS and Revenue returns an RCTDA (Authorisation) telling BC how much to withhold. The withheld amount goes to Revenue; the rest goes to the operative.</p>
-            <p><strong>VAT reverse-charge</strong> — On RCT-eligible work, the operative invoices BC <em>without</em> VAT. BC self-accounts for the 13.5% in their VAT3 return. Every payment advice and operative invoice we generate carries Revenue's mandated wording: <em>&ldquo;VAT on this supply to be accounted for by the Principal Contractor.&rdquo;</em></p>
-            <p><strong>Form 11</strong> — Operatives file an annual self-assessment to reclaim withheld RCT against their final tax bill. The portal generates a year-end RCT summary they can attach.</p>
+            <p><strong>RCT (Relevant Contracts Tax)</strong> - Revenue assigns each subcontractor a rate (0%, 20% or 35%) based on their compliance history. Before each payment, the principal contractor (BC, in this case) submits a Payment Notification to ROS and Revenue returns an RCTDA (Authorisation) telling BC how much to withhold. The withheld amount goes to Revenue; the rest goes to the operative.</p>
+            <p><strong>VAT reverse-charge</strong> - On RCT-eligible work, the operative invoices BC <em>without</em> VAT. BC self-accounts for the 13.5% in their VAT3 return. Every payment advice and operative invoice we generate carries Revenue's mandated wording: <em>&ldquo;VAT on this supply to be accounted for by the Principal Contractor.&rdquo;</em></p>
+            <p><strong>Form 11</strong> - Operatives file an annual self-assessment to reclaim withheld RCT against their final tax bill. The portal generates a year-end RCT summary they can attach.</p>
           </Section>
 
           <div className="pt-6 mt-12 border-t border-ink-200">
