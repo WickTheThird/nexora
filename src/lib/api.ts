@@ -582,6 +582,10 @@ export const api = {
   },
   adminReviewTimesheet: (id: string, status: "approved" | "rejected") =>
     request<Timesheet>("POST", `/admin/timesheets/${id}/review`, { body: { status } }),
+  adminCreateSubTimesheet: (
+    subId: string,
+    data: { workDate: string; hours: number; siteRef?: string; notes?: string; approved?: boolean },
+  ) => request<Timesheet>("POST", `/admin/subcontractors/${subId}/timesheets`, { body: data as Json }),
   adminGeneratePaymentFromPeriod: (subId: string, from: string, to: string) =>
     request<PaymentRecord>(
       "POST",

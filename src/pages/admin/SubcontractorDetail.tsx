@@ -35,6 +35,7 @@ import {
   MessageSquareWarning,
   Download,
   UserX,
+  Plus,
 } from "lucide-react";
 
 type Tab = "overview" | "documents" | "contract" | "questionnaire" | "timesheets" | "payments";
@@ -572,9 +573,29 @@ function DocumentsTab({ subId }: { subId: string }) {
               </a>
               {d.reviewStatus === "pending" && (
                 <>
-                  <Button variant="outline" onClick={() => { setReviewing({ doc: d, status: "rejected" }); setNote(""); }}>Reject</Button>
+                  {/* Request re-upload = reject with a default note.
+                      Saves the admin from typing the same 'please
+                      re-upload this' message every time. */}
+                  <Button
+                    variant="outline"
+                    onClick={() => { setReviewing({ doc: d, status: "rejected" }); setNote(`Please re-upload this ${d.documentType.replace(/_/g, " ")}. The current file is unclear / out of date / wrong type.`); }}
+                  >
+                    Request re-upload
+                  </Button>
+                  <Button variant="outline" onClick={() => { setReviewing({ doc: d, status: "rejected" }); setNote(""); }} className="hover:bg-red-50 hover:text-red-700">Reject</Button>
                   <Button variant="accent" onClick={() => { setReviewing({ doc: d, status: "approved" }); setNote(""); }}>Approve</Button>
                 </>
+              )}
+              {/* Approved docs can be sent back for re-upload too
+                  (e.g. insurance renewed annually). */}
+              {d.reviewStatus === "approved" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setReviewing({ doc: d, status: "rejected" }); setNote(`This ${d.documentType.replace(/_/g, " ")} needs a refresh - please re-upload the current version.`); }}
+                >
+                  Request re-upload
+                </Button>
               )}
             </div>
           </div>
@@ -795,6 +816,34 @@ function TimesheetsTab({ subId, sub }: { subId: string; sub: Subcontractor }) {
   const [genFrom, setGenFrom] = useState(from);
   const [genTo, setGenTo] = useState(to);
   const [generating, setGenerating] = useState(false);
+  // Manual timesheet entry (admin types it on the sub's behalf -
+  // covers cases where the clock-in/out flow wasn't used).
+  const [addOpen, setAddOpen] = useState(false);
+  const [addDate, setAddDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [addHours, setAddHours] = useState("8");
+  const [addSite, setAddSite] = useState("");
+  const [addNotes, setAddNotes] = useState("");
+  const [adding, setAdding] = useState(false);
+  const addTimesheet = async () => {
+    const hours = parseFloat(addHours) || 0;
+    if (!addDate || hours <= 0) { toast.error("Date + hours > 0 required."); return; }
+    setAdding(true);
+    try {
+      await api.adminCreateSubTimesheet(subId, {
+        workDate: addDate,
+        hours,
+        siteRef: addSite.trim() || undefined,
+        notes: addNotes.trim() || undefined,
+        approved: true,
+      });
+      toast.success("Timesheet added (status: approved).");
+      setAddOpen(false);
+      setAddSite(""); setAddNotes("");
+      await refresh();
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed");
+    } finally { setAdding(false); }
+  };
 
   const refresh = async () => {
     const r = await api.adminListSubTimesheets(subId, {
@@ -885,6 +934,13 @@ function TimesheetsTab({ subId, sub }: { subId: string; sub: Subcontractor }) {
               disabled={items.length === 0}
             >
               CSV
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setAddOpen(true)}
+              leftIcon={<Plus className="h-4 w-4" />}
+            >
+              Add timesheet
             </Button>
             <Button
               variant="accent"
@@ -1000,6 +1056,32 @@ function TimesheetsTab({ subId, sub }: { subId: string; sub: Subcontractor }) {
               Subcontractor has no contracted rate set. Add one on the Payments tab first.
             </div>
           )}
+        </div>
+      </Modal>
+
+      {/* Manual timesheet entry. Admin sometimes needs to type hours
+          on a sub's behalf (clock-in flow unreliable / offline crew /
+          retroactive entry). Row lands as 'approved' so it flows into
+          the next 'Generate payment from period' run. */}
+      <Modal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        title="Add timesheet (manual)"
+        description="For when clock-in/out wasn't used. Row is auto-approved so it flows into the next payment run."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setAddOpen(false)}>Cancel</Button>
+            <Button variant="accent" onClick={addTimesheet} loading={adding}>Add</Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Input label="Work date" type="date" value={addDate} onChange={(e) => setAddDate(e.target.value)} />
+            <Input label="Hours" type="number" step="0.25" min="0" max="24" value={addHours} onChange={(e) => setAddHours(e.target.value)} />
+          </div>
+          <Input label="Site reference (optional)" value={addSite} onChange={(e) => setAddSite(e.target.value)} placeholder="e.g. DUB48662N" />
+          <Textarea label="Notes (optional)" value={addNotes} onChange={(e) => setAddNotes(e.target.value)} rows={3} placeholder="What did they do, anything to flag for payroll, etc." />
         </div>
       </Modal>
     </>
