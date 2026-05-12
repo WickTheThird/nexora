@@ -450,6 +450,10 @@ function OverviewTab({
           {fieldRow("Mobile", sub.mob)}
           {fieldRow("Date of birth", sub.dob)}
           {fieldRow("Place of birth", sub.placeOfBirth)}
+          {/* PPS lives under Personal here (tax-side identity field,
+              not job-related). Matches the layout on the operative's
+              own My Details page + the New Subcontractor modal. */}
+          {fieldRow("PPS number", sub.ppsNumber)}
         </div>
       </div>
       <div className="card-padded">
@@ -466,7 +470,6 @@ function OverviewTab({
         <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
           {fieldRow("Work type", sub.workType)}
           {fieldRow("Nature of services", sub.natureOfServices)}
-          {fieldRow("PPS number", sub.ppsNumber)}
           {fieldRow("VAT registered", sub.vatRegistered ? "Yes" : "No")}
           {fieldRow("VAT number", sub.vatNumber)}
           {fieldRow(

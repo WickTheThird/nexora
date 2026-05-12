@@ -169,6 +169,9 @@ export function ProfileEdit() {
           <Input label="Email" type="email" value={sub.email || ""} onChange={(e) => setS("email", e.target.value)} disabled={!editable} />
           <Input label="Phone" value={sub.tel || ""} onChange={(e) => setS("tel", e.target.value)} disabled={!editable} />
           <Input label="Mobile" value={sub.mob || ""} onChange={(e) => setS("mob", e.target.value)} disabled={!editable} />
+          {/* PPS sits under Personal - tax-side identity, not job-
+              related. Same layout as the admin Sub Detail page. */}
+          <Input label="PPS number" value={sub.ppsNumber || ""} onChange={(e) => setS("ppsNumber", e.target.value.toUpperCase())} disabled={!editable} hint="Encrypted at rest" />
         </div>
       </section>
 
@@ -190,7 +193,6 @@ export function ProfileEdit() {
         <p className="text-sm text-ink-500 mb-6">The services you provide.</p>
         <div className="grid sm:grid-cols-2 gap-4">
           <Input label="Work type / trade" value={sub.workType || ""} onChange={(e) => setS("workType", e.target.value)} disabled={!editable} />
-          <Input label="PPS number" value={sub.ppsNumber || ""} onChange={(e) => setS("ppsNumber", e.target.value)} disabled={!editable} hint="Encrypted at rest" />
           <div className="sm:col-span-2">
             <Input label="Nature of services" value={sub.natureOfServices || ""} onChange={(e) => setS("natureOfServices", e.target.value)} disabled={!editable} />
           </div>
