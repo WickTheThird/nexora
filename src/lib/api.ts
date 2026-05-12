@@ -521,6 +521,21 @@ export const api = {
   // Status flips to 'paid'.
   adminMarkPaymentPaid: (paymentId: string) =>
     request<PaymentRecord>("POST", `/admin/payments/${paymentId}/mark-paid`),
+  // Global payment listing for the Advice kanban. Joins subcontractor name.
+  adminListPayments: (params: { status?: string; from?: string; to?: string; limit?: number } = {}) => {
+    const q = new URLSearchParams();
+    if (params.status) q.set("status", params.status);
+    if (params.from) q.set("from", params.from);
+    if (params.to) q.set("to", params.to);
+    if (params.limit) q.set("limit", String(params.limit));
+    return request<{
+      items: Array<PaymentRecord & {
+        subcontractorName: string | null;
+        subcontractorEmail: string | null;
+        subcontractorRef: string | null;
+      }>;
+    }>("GET", "/admin/payments" + (q.toString() ? `?${q}` : ""));
+  },
 
   // -------- admin: templates --------
   adminCreateTemplate: (name: string, bodyHtml: string) =>
