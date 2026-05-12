@@ -23,14 +23,14 @@ import { Empty } from "@/components/ui/Empty";
 import { useToast } from "@/components/ui/Toast";
 import {
   Users, Building2, Inbox, Briefcase, MessagesSquare, CheckCircle2,
-  X, Send, Trash2, ArrowRight, Play, ListChecks, Layers,
+  X, Trash2, ArrowRight, Play, ListChecks, Layers, CreditCard,
 } from "lucide-react";
 
 // ------------------------------------------------------------------
 // Domain
 // ------------------------------------------------------------------
 
-type Audience = "subs" | "principals" | "sub_requests" | "submissions" | "change_requests";
+type Audience = "subs" | "principals" | "sub_requests" | "submissions" | "change_requests" | "payments";
 
 type Target = { id: string; label: string; sub: string };
 
@@ -117,6 +117,15 @@ const ACTIONS: ActionDef[] = [
     run: async (id) => { await api.adminProcessPrimarySubmission(id); },
   },
 
+  // ---- Payment / Advice actions ----
+  {
+    key: "mark_payment_paid",
+    label: "Mark payment as paid",
+    description: "Only invoiced payments can be marked paid (sub must have generated their invoice first). Advised-only rows will fail.",
+    audiences: ["payments"],
+    run: async (id) => { await api.adminMarkPaymentPaid(id); },
+  },
+
   // ---- Change-request actions ----
   {
     key: "close_change_request",
@@ -140,6 +149,7 @@ const AUDIENCE_META: Record<Audience, { label: string; icon: React.ComponentType
   sub_requests:    { label: "Subcontractor requests", icon: Inbox,          hint: "Bulk-reject pending requests." },
   submissions:     { label: "Job Card submissions",   icon: Briefcase,      hint: "Bulk-process submitted Job Cards." },
   change_requests: { label: "Change requests",        icon: MessagesSquare, hint: "Bulk-close + mark seen." },
+  payments:        { label: "Payments (advice)",      icon: CreditCard,     hint: "Mark advised/invoiced payments as paid." },
 };
 
 // ------------------------------------------------------------------
@@ -478,6 +488,22 @@ async function fetchTargets(audience: Audience): Promise<Target[]> {
       id: c.id,
       label: c.entityType === "primary_submission" ? `Job Card request · ${c.requestedStatus || c.subChangeAction || ""}` : "Sub support",
       sub: c.message.slice(0, 80),
+    }));
+  }
+  if (audience === "payments") {
+    // Show advised + invoiced payments; "paid" excluded since there's no
+    // further action available on the Actions page.
+    const r = await api.adminListPayments({ status: "advised,invoiced", limit: 300 });
+    return r.items.map((p) => ({
+      id: p.id,
+      label:
+        (p.subcontractorName || p.subcontractorEmail || "(no name)") +
+        (p.invoiceNumber ? ` · ${p.invoiceNumber}` : ""),
+      sub:
+        `${p.status}` +
+        ` · gross ${(p.grossMinor / 100).toFixed(2)} ${p.currency}` +
+        ` · net ${(p.netMinor / 100).toFixed(2)} ${p.currency}` +
+        (p.paymentDate ? ` · ${p.paymentDate}` : ""),
     }));
   }
   return [];
