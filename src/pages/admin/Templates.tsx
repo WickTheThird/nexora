@@ -1,21 +1,21 @@
-// Contract templates - rich-ish editor + bulk-send.
+// Contract templates - WYSIWYG editor + bulk-send.
 //
-// Editor: formatting toolbar above the body textarea so admins don't
-// have to memorise HTML tags. Buttons wrap the current selection in
-// the corresponding tag (Bold / Italic / Heading / List / Page break).
-// Merge variables are pickable chips below. Live preview to the
-// right via dangerouslySetInnerHTML.
+// Editor: contentEditable div, no visible HTML tags. Toolbar buttons
+// run document.execCommand under the hood so admins see formatted text
+// (bold / heading / list) - never markup. Merge variables drop in as
+// {{token}} text. A fullscreen toggle lets long agreements be edited
+// without scrolling inside the modal.
 //
 // Bulk-send: per-template 'Send to subs' button opens a multi-select
-// modal of approved subcontractors. Submit fires the existing single-
-// sub generate-contract endpoint N times in parallel.
+// modal of approved subcontractors. Submit fires the single-sub
+// generate-contract endpoint N times in parallel.
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { ContractTemplate, Subcontractor } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { Button } from "@/components/ui/Button";
-import { Input, Textarea } from "@/components/ui/Input";
+import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { Empty } from "@/components/ui/Empty";
 import { Modal } from "@/components/ui/Modal";
@@ -23,7 +23,7 @@ import { useToast } from "@/components/ui/Toast";
 import { fmtDateTime } from "@/lib/format";
 import {
   FilePlus, FileText, Bold, Italic, Underline, Heading1, Heading2,
-  List, ListOrdered, Minus, Type, Send,
+  List, ListOrdered, Minus, Type, Send, Maximize2, Minimize2, X,
 } from "lucide-react";
 
 const PLACEHOLDERS = [
@@ -40,43 +40,6 @@ const SAMPLE = `<h1>Subcontractor Services Agreement</h1>
 <h2>2. Signature</h2>
 <p>By signing below, the Subcontractor confirms they have read and agreed to this agreement.</p>`;
 
-// Wrap the current textarea selection in the given tag pair.
-// Falls back to appending the wrapper at the cursor if nothing
-// is selected.
-function wrapSelection(
-  ref: HTMLTextAreaElement | null,
-  openTag: string,
-  closeTag: string,
-  setBody: (b: string) => void,
-) {
-  if (!ref) return;
-  const { selectionStart: s, selectionEnd: e, value } = ref;
-  const before = value.slice(0, s);
-  const sel = value.slice(s, e) || "text";
-  const after = value.slice(e);
-  setBody(before + openTag + sel + closeTag + after);
-  // Restore caret roughly after the wrapped content.
-  requestAnimationFrame(() => {
-    ref.focus();
-    ref.setSelectionRange(s + openTag.length, s + openTag.length + sel.length);
-  });
-}
-
-function insertAtCaret(
-  ref: HTMLTextAreaElement | null,
-  text: string,
-  setBody: (b: string) => void,
-) {
-  if (!ref) return;
-  const { selectionStart: s, value } = ref;
-  const next = value.slice(0, s) + text + value.slice(ref.selectionEnd);
-  setBody(next);
-  requestAnimationFrame(() => {
-    ref.focus();
-    ref.setSelectionRange(s + text.length, s + text.length);
-  });
-}
-
 export function Templates() {
   const toast = useToast();
   const [items, setItems] = useState<ContractTemplate[]>([]);
@@ -87,7 +50,41 @@ export function Templates() {
   const [creating, setCreating] = useState(false);
   const [preview, setPreview] = useState<ContractTemplate | null>(null);
   const [sending, setSending] = useState<ContractTemplate | null>(null);
-  const bodyRef = useRef<HTMLTextAreaElement | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+
+  // contentEditable is uncontrolled - we initialise its innerHTML once on
+  // mount (and after fullscreen remount) from bodyHtmlRef, then push every
+  // input back into the body state so the live preview updates.
+  const editorRef = useRef<HTMLDivElement | null>(null);
+  const bodyHtmlRef = useRef(body);
+  useEffect(() => { bodyHtmlRef.current = body; }, [body]);
+
+  const setEditorEl = useCallback((el: HTMLDivElement | null) => {
+    editorRef.current = el;
+    if (el && el.innerHTML === "") {
+      el.innerHTML = bodyHtmlRef.current;
+    }
+  }, []);
+
+  const syncBody = () => {
+    if (editorRef.current) setBody(editorRef.current.innerHTML);
+  };
+
+  const exec = (cmd: string, value?: string) => {
+    if (!editorRef.current) return;
+    editorRef.current.focus();
+    // execCommand is deprecated but the only zero-dependency way to drive a
+    // contentEditable. Works across all currently shipping browsers.
+    document.execCommand(cmd, false, value);
+    syncBody();
+  };
+
+  const insertMergeVar = (token: string) => {
+    if (!editorRef.current) return;
+    editorRef.current.focus();
+    document.execCommand("insertText", false, token);
+    syncBody();
+  };
 
   const refresh = async () => {
     const r = await api.adminListTemplates();
@@ -101,10 +98,15 @@ export function Templates() {
   const create = async () => {
     setCreating(true);
     try {
-      await api.adminCreateTemplate(name.trim(), body);
+      // Pull latest HTML straight from the editor in case the most recent
+      // keystroke hasn't propagated to state yet.
+      const html = editorRef.current?.innerHTML ?? body;
+      await api.adminCreateTemplate(name.trim(), html);
       setCreateOpen(false);
+      setFullscreen(false);
       setName("standard");
       setBody(SAMPLE);
+      bodyHtmlRef.current = SAMPLE;
       await refresh();
       toast.success("Template created");
     } catch (e) {
@@ -113,6 +115,102 @@ export function Templates() {
       setCreating(false);
     }
   };
+
+  const closeCreate = () => {
+    setCreateOpen(false);
+    setFullscreen(false);
+  };
+
+  // The editor body content - shared between the modal and the fullscreen
+  // overlay so toggling doesn't duplicate JSX. `key` on the editable div
+  // forces a clean remount on fullscreen toggle (so its innerHTML is reset
+  // from the up-to-date bodyHtmlRef).
+  const editorBody = (
+    <div className={fullscreen ? "grid lg:grid-cols-2 gap-6 h-full min-h-0" : "grid md:grid-cols-2 gap-4"}>
+      <div className={`space-y-4 ${fullscreen ? "flex flex-col min-h-0" : ""}`}>
+        <Input
+          label="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          hint="Creating a new version for the same name supersedes the previous active version."
+        />
+
+        <div className={fullscreen ? "flex-1 flex flex-col min-h-0" : ""}>
+          <div className="label">Body</div>
+          <div className="flex flex-wrap gap-1 mb-2 p-1 bg-ink-50 border border-ink-200 rounded-md">
+            <ToolbarBtn icon={Bold} label="Bold (Ctrl+B)" onClick={() => exec("bold")} />
+            <ToolbarBtn icon={Italic} label="Italic (Ctrl+I)" onClick={() => exec("italic")} />
+            <ToolbarBtn icon={Underline} label="Underline (Ctrl+U)" onClick={() => exec("underline")} />
+            <div className="w-px bg-ink-200 mx-1" />
+            <ToolbarBtn icon={Heading1} label="Heading 1" onClick={() => exec("formatBlock", "<h1>")} />
+            <ToolbarBtn icon={Heading2} label="Heading 2" onClick={() => exec("formatBlock", "<h2>")} />
+            <ToolbarBtn icon={Type} label="Paragraph" onClick={() => exec("formatBlock", "<p>")} />
+            <div className="w-px bg-ink-200 mx-1" />
+            <ToolbarBtn icon={List} label="Bullet list" onClick={() => exec("insertUnorderedList")} />
+            <ToolbarBtn icon={ListOrdered} label="Numbered list" onClick={() => exec("insertOrderedList")} />
+            <ToolbarBtn icon={Minus} label="Divider" onClick={() => exec("insertHorizontalRule")} />
+            <div className="flex-1" />
+            <ToolbarBtn
+              icon={fullscreen ? Minimize2 : Maximize2}
+              label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
+              onClick={() => {
+                // Sync state from the live editor BEFORE we unmount it,
+                // otherwise the unmount drops the latest edits.
+                syncBody();
+                if (editorRef.current) bodyHtmlRef.current = editorRef.current.innerHTML;
+                setFullscreen((v) => !v);
+              }}
+            />
+          </div>
+          <div
+            key={fullscreen ? "fs" : "modal"}
+            ref={setEditorEl}
+            contentEditable
+            suppressContentEditableWarning
+            onInput={syncBody}
+            onBlur={syncBody}
+            className={
+              "prose prose-ink prose-sm max-w-none input bg-white whitespace-pre-wrap " +
+              (fullscreen ? "flex-1 min-h-0 overflow-auto" : "min-h-[24rem] max-h-[60vh] overflow-auto")
+            }
+          />
+        </div>
+
+        <div>
+          <div className="label">Click to insert merge variable</div>
+          <div className="flex flex-wrap gap-1.5">
+            {PLACEHOLDERS.map((p) => (
+              <button
+                type="button"
+                key={p}
+                className="px-1.5 py-0.5 bg-ink-100 text-ink-700 rounded text-xs hover:bg-ink-200 font-mono"
+                onClick={() => insertMergeVar(`{{${p}}}`)}
+              >
+                {`{{${p}}}`}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className={fullscreen ? "flex flex-col min-h-0" : ""}>
+        <div className="label">Preview</div>
+        <div
+          className={
+            "card p-4 prose prose-ink prose-sm max-w-none overflow-auto " +
+            (fullscreen ? "flex-1 min-h-0" : "max-h-[60vh]")
+          }
+          dangerouslySetInnerHTML={{ __html: body }}
+        />
+      </div>
+    </div>
+  );
+
+  const footerButtons = (
+    <>
+      <Button variant="ghost" onClick={closeCreate}>Cancel</Button>
+      <Button variant="accent" onClick={create} loading={creating}>Create template</Button>
+    </>
+  );
 
   return (
     <>
@@ -153,84 +251,38 @@ export function Templates() {
         </div>
       )}
 
-      <Modal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        width="xl"
-        title="Create template"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button variant="accent" onClick={create} loading={creating}>Create template</Button>
-          </>
-        }
-      >
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-4">
-            <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} hint="Creating a new version for the same name supersedes the previous active version." />
+      {/* Create modal (default, non-fullscreen state). */}
+      {createOpen && !fullscreen && (
+        <Modal
+          open
+          onClose={closeCreate}
+          width="xl"
+          title="Create template"
+          footer={footerButtons}
+        >
+          {editorBody}
+        </Modal>
+      )}
 
-            {/* Formatting toolbar - all buttons wrap the current
-                selection in the corresponding HTML tag. No external
-                editor library so the bundle stays slim. */}
-            <div>
-              <div className="label">Body</div>
-              <div className="flex flex-wrap gap-1 mb-2 p-1 bg-ink-50 border border-ink-200 rounded-md">
-                <ToolbarBtn icon={Bold} label="Bold (Ctrl+B)" onClick={() => wrapSelection(bodyRef.current, "<strong>", "</strong>", setBody)} />
-                <ToolbarBtn icon={Italic} label="Italic" onClick={() => wrapSelection(bodyRef.current, "<em>", "</em>", setBody)} />
-                <ToolbarBtn icon={Underline} label="Underline" onClick={() => wrapSelection(bodyRef.current, "<u>", "</u>", setBody)} />
-                <div className="w-px bg-ink-200 mx-1" />
-                <ToolbarBtn icon={Heading1} label="Heading 1" onClick={() => wrapSelection(bodyRef.current, "<h1>", "</h1>", setBody)} />
-                <ToolbarBtn icon={Heading2} label="Heading 2" onClick={() => wrapSelection(bodyRef.current, "<h2>", "</h2>", setBody)} />
-                <ToolbarBtn icon={Type} label="Paragraph" onClick={() => wrapSelection(bodyRef.current, "<p>", "</p>", setBody)} />
-                <div className="w-px bg-ink-200 mx-1" />
-                <ToolbarBtn icon={List} label="Bullet list" onClick={() => wrapSelection(bodyRef.current, "<ul>\n  <li>", "</li>\n</ul>", setBody)} />
-                <ToolbarBtn icon={ListOrdered} label="Numbered list" onClick={() => wrapSelection(bodyRef.current, "<ol>\n  <li>", "</li>\n</ol>", setBody)} />
-                <ToolbarBtn icon={Minus} label="Page break / divider" onClick={() => insertAtCaret(bodyRef.current, "\n<hr />\n", setBody)} />
-              </div>
-              <textarea
-                ref={bodyRef}
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                rows={18}
-                className="input font-mono text-xs"
-                onKeyDown={(e) => {
-                  // Ctrl/Cmd+B and Ctrl/Cmd+I shortcuts so the editor
-                  // feels remotely like a word processor.
-                  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
-                    e.preventDefault();
-                    wrapSelection(bodyRef.current, "<strong>", "</strong>", setBody);
-                  }
-                  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "i") {
-                    e.preventDefault();
-                    wrapSelection(bodyRef.current, "<em>", "</em>", setBody);
-                  }
-                }}
-              />
-            </div>
-
-            <div>
-              <div className="label">Click to insert merge variable</div>
-              <div className="flex flex-wrap gap-1.5">
-                {PLACEHOLDERS.map((p) => (
-                  <button
-                    type="button"
-                    key={p}
-                    className="px-1.5 py-0.5 bg-ink-100 text-ink-700 rounded text-xs hover:bg-ink-200 font-mono"
-                    onClick={() => insertAtCaret(bodyRef.current, `{{${p}}}`, setBody)}
-                  >
-                    {`{{${p}}}`}
-                  </button>
-                ))}
-              </div>
-            </div>
+      {/* Fullscreen editor - bypasses the Modal width cap. */}
+      {createOpen && fullscreen && (
+        <div className="fixed inset-0 z-50 bg-white flex flex-col">
+          <div className="px-6 py-4 border-b border-ink-100 flex items-center justify-between gap-4">
+            <h2 className="text-lg font-semibold text-ink-900">Create template</h2>
+            <button
+              onClick={closeCreate}
+              className="text-ink-400 hover:text-ink-700 rounded-md p-1 hover:bg-ink-100 transition"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
-          <div>
-            <div className="label">Preview</div>
-            <div className="card p-4 max-h-[60vh] overflow-auto prose prose-ink prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: body }} />
+          <div className="flex-1 overflow-auto p-6 min-h-0">{editorBody}</div>
+          <div className="p-4 border-t border-ink-100 bg-ink-50/50 flex justify-end gap-2">
+            {footerButtons}
           </div>
         </div>
-      </Modal>
+      )}
 
       <Modal
         open={!!preview}
@@ -261,6 +313,7 @@ function ToolbarBtn({
   return (
     <button
       type="button"
+      onMouseDown={(e) => e.preventDefault() /* keep selection in the editor */}
       onClick={onClick}
       title={label}
       className="h-7 w-7 grid place-items-center rounded text-ink-600 hover:bg-white hover:text-ink-900 transition"
