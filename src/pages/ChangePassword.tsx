@@ -30,7 +30,14 @@ export function ChangePassword() {
     setLoading(true);
     try {
       await changePassword(current, next);
-      nav(me?.role === "admin" ? "/admin" : "/app");
+      // Route by role. Send primaries to /primary, admins to /admin,
+      // everyone else (subs) to /app. The bare "/app" fallback used to
+      // bounce primaries because the role guard on /app rejects them.
+      const target =
+        me?.role === "admin"   ? "/admin"   :
+        me?.role === "primary" ? "/primary" :
+        "/app";
+      nav(target);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Failed to change password");
     } finally {
