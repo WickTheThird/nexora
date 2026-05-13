@@ -1,5 +1,9 @@
+import { useEffect, useState } from "react";
 import { Route, Routes } from "react-router-dom";
 import { PortalShell } from "@/components/layout/PortalShell";
+import { BottomNav, type BottomTab } from "@/components/ui/BottomNav";
+import { StickyClockButton } from "@/components/ui/StickyClockButton";
+import { api } from "@/lib/api";
 import {
   LayoutDashboard,
   User,
@@ -11,6 +15,7 @@ import {
   Clock,
   Briefcase,
   Inbox,
+  Menu,
 } from "lucide-react";
 import { Home } from "./Home";
 import { ProfileEdit } from "./ProfileEdit";
@@ -39,6 +44,31 @@ const nav = [
 ];
 
 export function SubcontractorApp() {
+  // Pending Job Card line-count drives a badge on the bottom-nav tab so
+  // subs can see "I have something to respond to" without opening the page.
+  const [pendingJobCards, setPendingJobCards] = useState(0);
+  const refreshPending = async () => {
+    try {
+      const r = await api.listMyJobCards();
+      let n = 0;
+      for (const g of r.items) n += g.pendingItemCount;
+      setPendingJobCards(n);
+    } catch {
+      /* non-fatal */
+    }
+  };
+  useEffect(() => { refreshPending(); }, []);
+
+  // Five bottom tabs - the most-used pages for an active sub. "More"
+  // overflows to the existing hamburger menu in PortalShell.
+  const bottomTabs: BottomTab[] = [
+    { to: "/app", label: "Home", icon: LayoutDashboard, end: true },
+    { to: "/app/job-cards", label: "Jobs", icon: Briefcase, badge: pendingJobCards },
+    { to: "/app/timesheets", label: "Hours", icon: Clock },
+    { to: "/app/payments", label: "Pay", icon: Wallet },
+    { to: "/app/profile", label: "More", icon: Menu },
+  ];
+
   return (
     <PortalShell title="Subcontractor portal" nav={nav}>
       <Routes>
@@ -60,6 +90,11 @@ export function SubcontractorApp() {
         <Route path="applications" element={<SubMyApplications />} />
         <Route path="support" element={<Support />} />
       </Routes>
+      {/* Mobile-only: persistent clock FAB + bottom tab bar. The
+          existing hamburger top header in PortalShell still works for
+          the routes that don't have a bottom tab. */}
+      <StickyClockButton onChange={refreshPending} />
+      <BottomNav tabs={bottomTabs} />
     </PortalShell>
   );
 }
