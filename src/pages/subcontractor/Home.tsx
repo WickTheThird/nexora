@@ -6,6 +6,7 @@ import { useToast } from "@/components/ui/Toast";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/layout/PortalShell";
+import { PushOptInCard } from "@/components/ui/PushOptInCard";
 import type {
   OnboardingStatus,
   OnboardingView,
@@ -144,6 +145,10 @@ export function Home() {
         title={`Welcome, ${greeting}`}
         description="Complete each step below to finish your onboarding."
       />
+
+      {/* Web push opt-in card (renders only when supported AND not yet
+          subscribed AND VAPID keys are configured). */}
+      <PushOptInCard />
 
       {/* Clock in/out widget */}
       <div className="card p-5 mb-6 flex items-center gap-4 flex-wrap">

@@ -290,6 +290,22 @@ export const api = {
       body: { signedName, agreed: true, signaturePng },
     }),
 
+  // -------- Web push (any role) --------
+  // Fetch the VAPID public key the client uses when subscribing.
+  // Returns null when push isn't configured server-side.
+  getPushPublicKey: () =>
+    request<{ publicKey: string | null }>("GET", "/me/push/public-key"),
+  // Register a PushSubscription with the server. Body shape mirrors
+  // the W3C PushSubscription.toJSON() output.
+  subscribePush: (subscription: PushSubscriptionJSON) =>
+    request<{ id: string }>("POST", "/me/push/subscribe", {
+      body: subscription as unknown as Record<string, unknown>,
+    }),
+  unsubscribePush: (endpoint: string) =>
+    request<{ ok: true }>("DELETE", "/me/push/subscribe", {
+      body: { endpoint },
+    }),
+
   // -------- Job Cards (sub-side) --------
   // Submissions where this sub appears on at least one line, with their
   // own lines + per-line acceptance state.
