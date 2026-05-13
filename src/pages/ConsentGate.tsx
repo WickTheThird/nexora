@@ -21,7 +21,15 @@ export function ConsentGate() {
     try {
       await api.acceptPrivacy(PRIVACY_VERSION);
       await refresh();
-      nav(me?.role === "admin" ? "/admin" : "/app");
+      // Route to the right portal home. Primaries land on /primary,
+      // admins on /admin, everyone else (subs) on /app. Bare /app was
+      // previously sending freshly-signed-up principals into the sub
+      // portal where the role guard immediately bounced them back.
+      const target =
+        me?.role === "admin" ? "/admin" :
+        me?.role === "primary" ? "/primary" :
+        "/app";
+      nav(target);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Failed to record consent");
     } finally {
