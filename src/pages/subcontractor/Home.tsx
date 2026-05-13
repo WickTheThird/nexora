@@ -27,6 +27,8 @@ import {
   ArrowRight,
   Play,
   Square,
+  Briefcase,
+  ChevronRight,
 } from "lucide-react";
 
 const stepMeta: Record<StepKey, { label: string; icon: React.ComponentType<{className?: string}>; href: string; hint: string }> = {
@@ -75,6 +77,8 @@ export function Home() {
   const [active, setActive] = useState<Timesheet | null>(null);
   const [clocking, setClocking] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Count of Job Card line-items the sub hasn't yet responded to.
+  const [pendingJobCardLines, setPendingJobCardLines] = useState(0);
 
   const refreshClock = async () => {
     try { setActive(await api.getMyActiveClock()); } catch { /* ignore */ }
@@ -84,15 +88,19 @@ export function Home() {
     let mounted = true;
     (async () => {
       try {
-        const [ob, p, ac] = await Promise.all([
+        const [ob, p, ac, jc] = await Promise.all([
           api.getMyOnboarding(),
           api.getMyProfile(),
           api.getMyActiveClock().catch(() => null),
+          api.listMyJobCards().catch(() => ({ items: [] as Awaited<ReturnType<typeof api.listMyJobCards>>["items"] })),
         ]);
         if (!mounted) return;
         setOnboarding(ob);
         setProfile({ fullName: p.subcontractor.fullName });
         setActive(ac);
+        let pending = 0;
+        for (const g of jc.items) pending += g.pendingItemCount;
+        setPendingJobCardLines(pending);
       } catch {
         /* noop */
       } finally {
@@ -171,6 +179,28 @@ export function Home() {
           View timesheets
         </Link>
       </div>
+
+      {/* Job Cards awaiting my response. Surfaced prominently so subs
+          notice when a principal has named them in a new submission. */}
+      {pendingJobCardLines > 0 && (
+        <Link
+          to="/app/job-cards"
+          className="card p-5 mb-6 flex items-center gap-4 bg-amber-50 border-amber-200 hover:bg-amber-100/70 transition"
+        >
+          <div className="h-10 w-10 rounded-full bg-amber-200 text-amber-900 grid place-items-center shrink-0">
+            <Briefcase className="h-5 w-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-ink-900">
+              {pendingJobCardLines} Job Card line{pendingJobCardLines === 1 ? "" : "s"} awaiting your response
+            </div>
+            <div className="text-xs text-ink-600 mt-0.5">
+              Review your hours and accept or dispute each line. Tap to open.
+            </div>
+          </div>
+          <ChevronRight className="h-5 w-5 text-amber-700 shrink-0" />
+        </Link>
+      )}
 
       {/* Status hero */}
       <div className="card-padded bg-ink-950 text-white mb-8 relative overflow-hidden">

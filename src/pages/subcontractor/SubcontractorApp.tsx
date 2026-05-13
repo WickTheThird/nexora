@@ -22,6 +22,7 @@ import { Payments } from "./Payments";
 import { Support } from "./Support";
 import { Timesheets } from "./Timesheets";
 import { SubJobsBoard, SubJobDetail, SubMyApplications } from "./Jobs";
+import { JobCards } from "./JobCards";
 
 const nav = [
   { to: "/app", label: "Overview", icon: LayoutDashboard, end: true },
@@ -31,7 +32,8 @@ const nav = [
   { to: "/app/questionnaire", label: "Questionnaire", icon: ClipboardCheck },
   { to: "/app/timesheets", label: "Timesheets", icon: Clock },
   { to: "/app/payments", label: "Payments", icon: Wallet },
-  { to: "/app/jobs", label: "Jobs", icon: Briefcase },
+  { to: "/app/job-cards", label: "Job Cards", icon: Briefcase },
+  { to: "/app/jobs", label: "Jobs marketplace", icon: Inbox },
   { to: "/app/applications", label: "My applications", icon: Inbox },
   { to: "/app/support", label: "Support", icon: LifeBuoy },
 ];
@@ -52,6 +54,7 @@ export function SubcontractorApp() {
         <Route path="questionnaire" element={<Questionnaire />} />
         <Route path="timesheets" element={<Timesheets />} />
         <Route path="payments" element={<Payments />} />
+        <Route path="job-cards" element={<JobCards />} />
         <Route path="jobs" element={<SubJobsBoard />} />
         <Route path="jobs/:id" element={<SubJobDetail />} />
         <Route path="applications" element={<SubMyApplications />} />

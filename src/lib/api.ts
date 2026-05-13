@@ -290,6 +290,56 @@ export const api = {
       body: { signedName, agreed: true, signaturePng },
     }),
 
+  // -------- Job Cards (sub-side) --------
+  // Submissions where this sub appears on at least one line, with their
+  // own lines + per-line acceptance state.
+  listMyJobCards: () =>
+    request<{
+      items: Array<{
+        submissionId: string;
+        primaryId: string;
+        primaryName: string | null;
+        jobRef: string | null;
+        jobCardType: string | null;
+        periodStart: string | null;
+        periodEnd: string | null;
+        dateEnding: string | null;
+        status: string;
+        submittedAt: number | null;
+        processedAt: number | null;
+        totalItemCount: number;
+        totalGrossMinor: number;
+        myGrossMinor: number;
+        myItemCount: number;
+        pendingItemCount: number;
+        responseLocked: boolean;
+        items: Array<{
+          id: string;
+          submissionId: string;
+          subcontractorId: string | null;
+          jobNumber: string | null;
+          siteAddress: string | null;
+          quantity: number;
+          rateMinor: number;
+          grossMinor: number;
+          notes: string | null;
+          rctRate: "0" | "20" | "35" | null;
+          subAcceptedAt: number | null;
+          subDeclinedAt: number | null;
+          subDeclineReason: string | null;
+        }>;
+      }>;
+    }>("GET", "/me/job-cards"),
+  respondToJobCardItem: (
+    submissionId: string,
+    itemId: string,
+    action: "accept" | "decline",
+    reason?: string,
+  ) =>
+    request<unknown>("POST", `/me/job-cards/${submissionId}/items/${itemId}/respond`, {
+      body: { action, ...(reason ? { reason } : {}) },
+    }),
+
   // -------- documents --------
   listMyDocuments: () =>
     request<{ items: DocumentRecord[] }>("GET", "/me/documents"),
