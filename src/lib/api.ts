@@ -276,6 +276,15 @@ export const api = {
 
   // -------- contracts --------
   getMyContract: () => request<ContractRecord>("GET", "/me/contracts/current"),
+  // Full history for the signed-in sub; each row carries an extra
+  // templateName for display. Sorted newest first by the worker.
+  listMyContracts: () =>
+    request<{ items: Array<ContractRecord & { templateName: string | null }> }>(
+      "GET",
+      "/me/contracts",
+    ),
+  getMyContractById: (id: string) =>
+    request<ContractRecord>("GET", `/me/contracts/${id}`),
   signMyContract: (signedName: string, signaturePng?: string) =>
     request<ContractRecord>("POST", "/me/contracts/current/sign", {
       body: { signedName, agreed: true, signaturePng },

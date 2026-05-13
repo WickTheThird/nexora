@@ -15,6 +15,7 @@ import {
 import { Home } from "./Home";
 import { ProfileEdit } from "./ProfileEdit";
 import { Contract } from "./Contract";
+import { Contracts } from "./Contracts";
 import { Documents } from "./Documents";
 import { Questionnaire } from "./Questionnaire";
 import { Payments } from "./Payments";
@@ -25,7 +26,7 @@ import { SubJobsBoard, SubJobDetail, SubMyApplications } from "./Jobs";
 const nav = [
   { to: "/app", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/app/profile", label: "My Details", icon: User },
-  { to: "/app/contract", label: "Contract", icon: FileText },
+  { to: "/app/contracts", label: "Contracts", icon: FileText },
   { to: "/app/documents", label: "Documents", icon: FolderUp },
   { to: "/app/questionnaire", label: "Questionnaire", icon: ClipboardCheck },
   { to: "/app/timesheets", label: "Timesheets", icon: Clock },
@@ -41,7 +42,12 @@ export function SubcontractorApp() {
       <Routes>
         <Route index element={<Home />} />
         <Route path="profile" element={<ProfileEdit />} />
+        {/* Legacy "single contract" route - kept so old deep-links keep
+            working. The new list is /app/contracts and detail is
+            /app/contracts/:id. */}
         <Route path="contract" element={<Contract />} />
+        <Route path="contracts" element={<Contracts />} />
+        <Route path="contracts/:id" element={<Contract />} />
         <Route path="documents" element={<Documents />} />
         <Route path="questionnaire" element={<Questionnaire />} />
         <Route path="timesheets" element={<Timesheets />} />

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api, ApiError, brandName } from "@/lib/api";
 import type { PaymentRecord, Subcontractor, BankDetails } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
@@ -7,8 +7,9 @@ import { Empty } from "@/components/ui/Empty";
 import { useToast } from "@/components/ui/Toast";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { IncomeSummary } from "@/components/payments/IncomeSummary";
+import { FilterBar, presetToRange, type DatePreset } from "@/components/ui/FilterBar";
 import { fmtDate, fmtMoney } from "@/lib/format";
-import { Download, Wallet, ChevronDown, FileText, CheckCircle2, FileBarChart } from "lucide-react";
+import { Download, Wallet, FileText, CheckCircle2, FileBarChart } from "lucide-react";
 
 // Lazy-load PDF code (jsPDF + html2canvas) only when the user clicks Download.
 const loadPdf = () => import("@/lib/pdf");
@@ -49,7 +50,16 @@ export function Payments() {
   const [bank, setBank] = useState<BankDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [visibleCount, setVisibleCount] = useState(25);
+
+  // ----- Filter state -----
+  // Status pill: "all" | "advised" | "invoiced" | "paid".
+  // Server returns legacy "processed" which we treat as advised.
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
+  const [datePreset, setDatePreset] = useState<DatePreset>("all");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
+  const [sortMode, setSortMode] = useState<string>("date_desc");
 
   const refresh = async () => {
     const [allPayments, p] = await Promise.all([
@@ -137,7 +147,57 @@ export function Payments() {
     }
   };
 
-  const visible = items.slice(0, visibleCount);
+  // Pre-compute counts for each status pill so the badges show numbers
+  // even before the user filters.
+  const counts = useMemo(() => {
+    const c = { all: items.length, advised: 0, invoiced: 0, paid: 0 };
+    for (const p of items) {
+      if (p.status === "advised" || p.status === "processed") c.advised++;
+      else if (p.status === "invoiced") c.invoiced++;
+      else if (p.status === "paid") c.paid++;
+    }
+    return c;
+  }, [items]);
+
+  // Filter + sort the payment list. All client-side - the server already
+  // returns the sub's complete payment list.
+  const visible = useMemo(() => {
+    const { from, to } = presetToRange(datePreset, dateFrom, dateTo);
+    const fromTs = from ? new Date(`${from}T00:00:00Z`).getTime() : null;
+    const toTs = to ? new Date(`${to}T23:59:59Z`).getTime() : null;
+    const q = search.trim().toLowerCase();
+
+    const filtered = items.filter((p) => {
+      // Status pill
+      if (statusFilter === "advised" && !(p.status === "advised" || p.status === "processed")) return false;
+      if (statusFilter === "invoiced" && p.status !== "invoiced") return false;
+      if (statusFilter === "paid" && p.status !== "paid") return false;
+      // Date range
+      if (fromTs !== null || toTs !== null) {
+        const t = p.paymentDate ? new Date(p.paymentDate).getTime() : NaN;
+        if (!Number.isFinite(t)) return false;
+        if (fromTs !== null && t < fromTs) return false;
+        if (toTs !== null && t > toTs) return false;
+      }
+      // Free-text: invoice number, RCT auth number, reference, site ref
+      if (q) {
+        const hay = [
+          p.invoiceNumber, p.rctAuthNumber, p.reference, p.siteRef,
+        ].filter(Boolean).join(" ").toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+
+    filtered.sort((a, b) => {
+      if (sortMode === "date_asc") return (a.paymentDate || "").localeCompare(b.paymentDate || "");
+      if (sortMode === "amount_desc") return (b.netMinor || 0) - (a.netMinor || 0);
+      if (sortMode === "amount_asc") return (a.netMinor || 0) - (b.netMinor || 0);
+      // default: date_desc
+      return (b.paymentDate || "").localeCompare(a.paymentDate || "");
+    });
+    return filtered;
+  }, [items, statusFilter, search, datePreset, dateFrom, dateTo, sortMode]);
 
   // Year-end Form 11 helper. Years derived from the dates we actually have
   // payment records for (descending), so the dropdown only ever shows years
@@ -149,7 +209,8 @@ export function Payments() {
   useEffect(() => { if (selectedYear == null && taxYears.length) setSelectedYear(taxYears[0]); }, [taxYears, selectedYear]);
 
   const downloadRctSummary = async () => {
-    if (!selectedYear || !sub) return;
+    if (!selectedYear) { toast.error("Pick a tax year first"); return; }
+    if (!sub) { toast.error("Profile still loading. Try again in a second."); return; }
     try {
       const { downloadRctSummaryPdf } = await loadPdf();
       downloadRctSummaryPdf({
@@ -169,7 +230,11 @@ export function Payments() {
       });
       toast.success(`RCT summary for ${selectedYear} downloaded`);
     } catch (e) {
-      toast.error("Failed to generate summary");
+      // Surface the actual error rather than swallowing it - the prior
+      // generic toast hid the underlying jsPDF / autotable failure.
+      console.error("[RCT summary]", e);
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error(`RCT summary failed: ${msg.slice(0, 120)}`);
     }
   };
 
@@ -217,6 +282,38 @@ export function Payments() {
                 description="When the principal proposes a payment for your approved hours, it will appear here for you to invoice."
               />
             ) : (
+              <>
+              <FilterBar
+                pills={[
+                  { value: "all",      label: "All",                 count: counts.all },
+                  { value: "advised",  label: "Awaiting my invoice", count: counts.advised },
+                  { value: "invoiced", label: "Invoiced",            count: counts.invoiced },
+                  { value: "paid",     label: "Paid",                count: counts.paid },
+                ]}
+                activePill={statusFilter}
+                onPillChange={setStatusFilter}
+                searchValue={search}
+                searchPlaceholder="Search invoice number, RCT auth, reference..."
+                onSearchChange={setSearch}
+                datePreset={datePreset}
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                onDateChange={(preset, from, to) => {
+                  setDatePreset(preset);
+                  if (preset === "custom") {
+                    setDateFrom(from || "");
+                    setDateTo(to || "");
+                  }
+                }}
+                sortOptions={[
+                  { value: "date_desc",   label: "Newest first" },
+                  { value: "date_asc",    label: "Oldest first" },
+                  { value: "amount_desc", label: "Highest amount" },
+                  { value: "amount_asc",  label: "Lowest amount" },
+                ]}
+                sortValue={sortMode}
+                onSortChange={setSortMode}
+              />
               <div className="card overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -316,18 +413,13 @@ export function Payments() {
                     </tbody>
                   </table>
                 </div>
-                {items.length > visibleCount && (
-                  <div className="p-4 border-t border-ink-100 flex justify-center">
-                    <Button
-                      variant="outline"
-                      onClick={() => setVisibleCount((n) => n + 25)}
-                      leftIcon={<ChevronDown className="h-4 w-4" />}
-                    >
-                      Show more ({items.length - visibleCount} remaining)
-                    </Button>
+                {visible.length === 0 && (
+                  <div className="p-6 text-center text-sm text-ink-500 border-t border-ink-100">
+                    No payments match the current filter.
                   </div>
                 )}
               </div>
+              </>
             )}
           </div>
         </>

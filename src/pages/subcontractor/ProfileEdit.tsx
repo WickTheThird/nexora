@@ -1,12 +1,13 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
-import type { BankDetails, Subcontractor } from "@/lib/types";
+import type { BankDetails, ChangeRequest, Subcontractor } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
-import { Input, Checkbox } from "@/components/ui/Input";
+import { Input, Textarea, Checkbox } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/layout/PortalShell";
-import { Save, Send, Lock } from "lucide-react";
+import { fmtDateTime } from "@/lib/format";
+import { Save, Send, Lock, MessageSquarePlus, Clock } from "lucide-react";
 
 const EDITABLE: Subcontractor["onboardingStatus"][] = [
   "invited",
@@ -23,17 +24,53 @@ export function ProfileEdit() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Sub-initiated "request changes from admin" - free-form message that
+  // creates a change_request entry visible in the admin Change Requests
+  // inbox. Mostly used when the profile is locked.
+  const [changeReqs, setChangeReqs] = useState<ChangeRequest[]>([]);
+  const [crMessage, setCrMessage] = useState("");
+  const [crBusy, setCrBusy] = useState(false);
+
+  const loadChangeReqs = async () => {
+    try {
+      const r = await api.listMyChangeRequests();
+      setChangeReqs(r.items);
+    } catch {
+      /* non-fatal: side panel */
+    }
+  };
+
   useEffect(() => {
     (async () => {
       try {
         const p = await api.getMyProfile();
         setSub(p.subcontractor);
         setBank(p.bank);
+        await loadChangeReqs();
       } finally {
         setLoading(false);
       }
     })();
   }, []);
+
+  const submitChangeRequest = async () => {
+    const msg = crMessage.trim();
+    if (msg.length < 4) {
+      toast.error("Tell us briefly what needs changing");
+      return;
+    }
+    setCrBusy(true);
+    try {
+      await api.postMyChangeRequest(msg);
+      toast.success("Your request was sent to the office.");
+      setCrMessage("");
+      await loadChangeReqs();
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Could not send request");
+    } finally {
+      setCrBusy(false);
+    }
+  };
 
   const editable = sub ? EDITABLE.includes(sub.onboardingStatus) : false;
 
@@ -253,6 +290,63 @@ export function ProfileEdit() {
           <Button type="button" variant="accent" loading={submitting} onClick={submit} leftIcon={<Send className="h-4 w-4" />}>Submit for review</Button>
         </div>
       )}
+
+      {/* Sub-initiated "request changes" panel. Visible always - it's
+          especially useful when the form is locked (the sub can't
+          edit, so they ask the office to unlock or to fix something
+          on their behalf). Posts to /me/change-requests which already
+          notifies all admins. */}
+      <section className="card-padded">
+        <h2 className="text-base font-semibold text-ink-900 mb-1 inline-flex items-center gap-2">
+          <MessageSquarePlus className="h-4 w-4 text-ink-500" />
+          Request changes from the office
+        </h2>
+        <p className="text-sm text-ink-500 mb-4">
+          Need to update a locked field, fix a typo, or flag something the office needs to know? Send a quick note and BC will get back to you.
+        </p>
+        <Textarea
+          label=""
+          rows={3}
+          placeholder="e.g. My address changed - new address is..."
+          value={crMessage}
+          onChange={(e) => setCrMessage(e.target.value)}
+          maxLength={1000}
+        />
+        <div className="mt-3 flex items-center justify-between">
+          <span className="text-xs text-ink-400">{crMessage.length}/1000</span>
+          <Button
+            type="button"
+            variant="accent"
+            onClick={submitChangeRequest}
+            loading={crBusy}
+            disabled={crMessage.trim().length < 4}
+            leftIcon={<Send className="h-4 w-4" />}
+          >
+            Send request
+          </Button>
+        </div>
+
+        {changeReqs.length > 0 && (
+          <div className="mt-6">
+            <h3 className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-2">Your recent requests</h3>
+            <div className="divide-y divide-ink-100 border border-ink-100 rounded-md">
+              {changeReqs.slice(0, 5).map((cr) => (
+                <div key={cr.id} className="px-3 py-2.5 flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm text-ink-800 line-clamp-2">{cr.message}</div>
+                    <div className="text-[11px] text-ink-400 mt-1 inline-flex items-center gap-1">
+                      <Clock className="h-3 w-3" /> {fmtDateTime(cr.createdAt)}
+                    </div>
+                  </div>
+                  <Badge tone={cr.status === "closed" ? "success" : cr.status === "seen" ? "info" : "warn"}>
+                    {cr.status}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
     </form>
   );
 }

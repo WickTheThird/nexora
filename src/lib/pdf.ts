@@ -760,6 +760,17 @@ export function generateRctSummaryPdf(p: RctSummaryPayload): jsPDF {
   const margin = 40;
   let y = margin + 10;
 
+  // Defensive: every input could be null/undefined depending on the
+  // sub's profile completeness. Coerce so jsPDF.text never gets undefined.
+  const safe = (v: unknown, fallback = "-") =>
+    v === null || v === undefined || v === "" ? fallback : String(v);
+  const safeNum = (v: unknown) => {
+    const n = typeof v === "number" ? v : Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const brand = safe(p.brandName, "BC Construction");
+  const generatedAt = safe(p.generatedAt, new Date().toLocaleDateString("en-IE"));
+
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
   doc.setTextColor(20, 20, 20);
@@ -769,7 +780,7 @@ export function generateRctSummaryPdf(p: RctSummaryPayload): jsPDF {
   doc.setFontSize(9);
   doc.setTextColor(110, 110, 110);
   doc.text(
-    `For inclusion with the subcontractor\u2019s Form 11 self-assessment return. Issued by ${p.brandName} on ${p.generatedAt}.`,
+    `For inclusion with the subcontractor\u2019s Form 11 self-assessment return. Issued by ${brand} on ${generatedAt}.`,
     margin, y, { maxWidth: pageWidth - margin * 2 },
   );
   y += 24;
@@ -781,12 +792,13 @@ export function generateRctSummaryPdf(p: RctSummaryPayload): jsPDF {
   doc.text("Subcontractor", margin, y);
   y += 13;
   doc.setFont("helvetica", "normal");
+  const subInfo = p.subcontractor || ({} as RctSummaryPayload["subcontractor"]);
   const lines = [
-    `Name: ${p.subcontractor.fullName || "-"}`,
-    p.subcontractor.subcontractorRef ? `Sub code: ${p.subcontractor.subcontractorRef}` : null,
-    p.subcontractor.ppsn ? `PPSN: ${p.subcontractor.ppsn}` : null,
-    p.subcontractor.email ? `Email: ${p.subcontractor.email}` : null,
-    p.subcontractor.rctRate ? `RCT rate on file: ${p.subcontractor.rctRate}%` : null,
+    `Name: ${safe(subInfo.fullName)}`,
+    subInfo.subcontractorRef ? `Sub code: ${subInfo.subcontractorRef}` : null,
+    subInfo.ppsn ? `PPSN: ${subInfo.ppsn}` : null,
+    subInfo.email ? `Email: ${subInfo.email}` : null,
+    subInfo.rctRate ? `RCT rate on file: ${subInfo.rctRate}%` : null,
   ].filter(Boolean) as string[];
   for (const line of lines) {
     doc.text(line, margin, y);
@@ -797,9 +809,11 @@ export function generateRctSummaryPdf(p: RctSummaryPayload): jsPDF {
   // Filter payments to the tax year (calendar year for Ireland)
   const yearStart = new Date(`${p.taxYear}-01-01T00:00:00Z`).getTime();
   const yearEnd   = new Date(`${p.taxYear + 1}-01-01T00:00:00Z`).getTime();
-  const inYear = p.payments.filter(pay => {
-    const t = pay.paymentDate ? new Date(pay.paymentDate).getTime() : 0;
-    return t >= yearStart && t < yearEnd;
+  const payments = Array.isArray(p.payments) ? p.payments : [];
+  const inYear = payments.filter(pay => {
+    if (!pay || !pay.paymentDate) return false;
+    const t = new Date(pay.paymentDate).getTime();
+    return Number.isFinite(t) && t >= yearStart && t < yearEnd;
   });
 
   // Group totals by currency (almost always EUR but be safe)
@@ -807,9 +821,9 @@ export function generateRctSummaryPdf(p: RctSummaryPayload): jsPDF {
   for (const pay of inYear) {
     const c = pay.currency || "EUR";
     if (!totals[c]) totals[c] = { gross: 0, rct: 0, net: 0, n: 0 };
-    totals[c].gross += pay.grossMinor || 0;
-    totals[c].rct   += pay.rctDeductionMinor || 0;
-    totals[c].net   += pay.netMinor || 0;
+    totals[c].gross += safeNum(pay.grossMinor);
+    totals[c].rct   += safeNum(pay.rctDeductionMinor);
+    totals[c].net   += safeNum(pay.netMinor);
     totals[c].n     += 1;
   }
 
@@ -857,14 +871,14 @@ export function generateRctSummaryPdf(p: RctSummaryPayload): jsPDF {
       body: inYear
         .sort((a, b) => (a.paymentDate || "").localeCompare(b.paymentDate || ""))
         .map(pay => [
-          fmtDate(pay.paymentDate),
+          safe(fmtDate(pay.paymentDate)),
           pay.periodStart && pay.periodEnd ? `${fmtDate(pay.periodStart)}\u2192${fmtDate(pay.periodEnd)}` : "-",
-          pay.invoiceNumber || "-",
+          safe(pay.invoiceNumber),
           pay.rctRate ? `${pay.rctRate}%` : "-",
-          pay.rctAuthNumber || "-",
-          fmtMoneyMinor(pay.grossMinor || 0, pay.currency || "EUR"),
-          fmtMoneyMinor(pay.rctDeductionMinor || 0, pay.currency || "EUR"),
-          fmtMoneyMinor(pay.netMinor || 0, pay.currency || "EUR"),
+          safe(pay.rctAuthNumber),
+          fmtMoneyMinor(safeNum(pay.grossMinor), pay.currency || "EUR"),
+          fmtMoneyMinor(safeNum(pay.rctDeductionMinor), pay.currency || "EUR"),
+          fmtMoneyMinor(safeNum(pay.netMinor), pay.currency || "EUR"),
         ]),
       headStyles: { fillColor: [240, 240, 240], textColor: [40, 40, 40], fontStyle: "bold", fontSize: 8 },
       bodyStyles: { fontSize: 8 },

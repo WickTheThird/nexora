@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import { api, ApiError } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import type { ContractRecord } from "@/lib/types";
@@ -9,10 +10,13 @@ import { Empty } from "@/components/ui/Empty";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { SignaturePad } from "@/components/ui/SignaturePad";
 import { fmtDateTime } from "@/lib/format";
-import { FileText, CheckCircle2, PenLine } from "lucide-react";
+import { FileText, CheckCircle2, PenLine, ArrowLeft } from "lucide-react";
 
 export function Contract() {
   const toast = useToast();
+  // When mounted at /app/contracts/:id we load that specific contract.
+  // When mounted at the legacy /app/contract we fall back to the latest.
+  const { id } = useParams<{ id?: string }>();
   const [contract, setContract] = useState<ContractRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [signedName, setSignedName] = useState("");
@@ -24,7 +28,7 @@ export function Contract() {
   useEffect(() => {
     (async () => {
       try {
-        const c = await api.getMyContract();
+        const c = id ? await api.getMyContractById(id) : await api.getMyContract();
         setContract(c);
       } catch (e) {
         if (e instanceof ApiError && e.status === 404) setNotAvailable(true);
@@ -34,7 +38,7 @@ export function Contract() {
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [id]);
 
   const canSign =
     agreed && signedName.trim().length >= 2 && !!signaturePng;
@@ -79,6 +83,16 @@ export function Contract() {
 
   return (
     <>
+      {/* When loaded via /app/contracts/:id we surface a back link to
+          the list. Hidden on the legacy /app/contract route. */}
+      {id && (
+        <Link
+          to="/app/contracts"
+          className="inline-flex items-center gap-1 text-sm text-ink-500 hover:text-ink-900 mb-3"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to all contracts
+        </Link>
+      )}
       <PageHeader
         title="Contract"
         description="Review and sign your subcontractor agreement."
