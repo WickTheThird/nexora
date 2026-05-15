@@ -175,14 +175,12 @@ export function PrimarySubmitPayment() {
         if (cancelled) return;
         setSites(s.items);
         setSitesLoaded(true);
-        // Active operatives only (Enagh: only Active appear on Job Card).
-        //   - Closed ones (closedAt non-null) excluded.
-        //   - Proposed pairings excluded - principal must accept first.
-        const active = ops.items.filter(o =>
-          (o.onboardingStatus === "approved" || o.onboardingStatus === "active") &&
-          !o.closedAt &&
-          o.primaryLinkStatus !== "proposed" && o.primaryLinkStatus !== "declined"
-        );
+        // The principal manages their own roster; every worker on it
+        // appears on the Job Card form. Onboarding status is BC's
+        // review state - it doesn't gate the principal using their
+        // own workers. We still exclude rows the principal explicitly
+        // closed.
+        const active = ops.items.filter(o => !o.closedAt);
         setOperatives(active);
         if (prim.jobCardCalc) {
           setVatRatePercent(prim.jobCardCalc.vatRatePercent ?? 13.5);
