@@ -5,66 +5,81 @@ import type { PrimaryInvoice } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { Badge } from "@/components/ui/Badge";
 import { Empty } from "@/components/ui/Empty";
-import { FileText, ArrowUpRight, Briefcase, MapPin, Layers } from "lucide-react";
+import { FileText, ChevronDown, ChevronUp, MapPin, ArrowUpRight } from "lucide-react";
 
-// Principal Invoices list. Each processed Job Card now spawns up to
-// two invoices: one "labour" (the wages BC owes the operatives) and one
-// "service" (BC's own fee). They are grouped by parent Job Card here so
-// the principal sees a clean "JOB-0012 on Site DUB48662N" header with
-// both rows underneath, plus a per-group total.
+// Principal Invoices, simplified:
+//   - One row per site (one Job Card = one site = one row).
+//   - Row collapsed by default; click the chevron to reveal the two
+//     invoices for that job (labour + service).
+//
+// No descriptor text up top, no "Manual invoice" terminology.
+// Invoices that didn't come from a Job Card aren't shown here (they are
+// admin-side artefacts and never reach the principal's invoice list in
+// normal operation).
 
 function fmtMoney(minor: number) {
   return `\u20AC${(minor / 100).toLocaleString("en-IE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-type Group = {
+type Job = {
   key: string;
-  jobRef: string | null;
-  submissionId: string | null;
-  siteLabel: string | null;
+  submissionId: string;
+  siteLabel: string;
+  siteProject: string | null;
+  periodStart: string;
+  periodEnd: string;
   invoices: PrimaryInvoice[];
   totalMinor: number;
+  allPaid: boolean;
 };
 
-function groupInvoices(items: PrimaryInvoice[]): Group[] {
-  const map = new Map<string, Group>();
+function groupBySite(items: PrimaryInvoice[]): Job[] {
+  const map = new Map<string, Job>();
   for (const inv of items) {
-    // Group by Job Card submission_id; manual invoices fall into their
-    // own per-invoice bucket using the invoice id as the key.
-    const key = inv.submissionId || `manual:${inv.id}`;
+    if (!inv.submissionId) continue; // hide non-Job-Card invoices
+    const key = inv.submissionId;
     let g = map.get(key);
     if (!g) {
       g = {
         key,
-        jobRef: inv.jobRef,
         submissionId: inv.submissionId,
-        siteLabel: inv.siteProjectSnapshot || inv.siteCodeSnapshot || null,
+        siteLabel: inv.siteCodeSnapshot || "Site",
+        siteProject: inv.siteProjectSnapshot,
+        periodStart: inv.periodStart,
+        periodEnd: inv.periodEnd,
         invoices: [],
         totalMinor: 0,
+        allPaid: true,
       };
       map.set(key, g);
     }
     g.invoices.push(inv);
     g.totalMinor += inv.netMinor || 0;
+    if (inv.status !== "paid") g.allPaid = false;
   }
-  // Sort each group: labour first, then service. Within kind, by issuedAt desc.
+  // Order invoices within a job: labour first, then service.
   for (const g of map.values()) {
     g.invoices.sort((a, b) => {
       if (a.kind !== b.kind) return a.kind === "labour" ? -1 : 1;
-      return (b.issuedAt || "").localeCompare(a.issuedAt || "");
+      return (a.issuedAt || "").localeCompare(b.issuedAt || "");
     });
   }
-  // Group order: most recently issued first.
+  // Order jobs: newest first (by latest issuedAt across both rows).
   return Array.from(map.values()).sort((a, b) => {
-    const aT = a.invoices[0]?.issuedAt || "";
-    const bT = b.invoices[0]?.issuedAt || "";
+    const aT = a.invoices.reduce((m, i) => i.issuedAt > m ? i.issuedAt : m, "");
+    const bT = b.invoices.reduce((m, i) => i.issuedAt > m ? i.issuedAt : m, "");
     return bT.localeCompare(aT);
   });
+}
+
+function kindLabel(k: PrimaryInvoice["kind"]) {
+  return k === "service" ? "BC service fee" : "Labour";
 }
 
 export function PrimaryInvoices() {
   const [items, setItems] = useState<PrimaryInvoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     (async () => {
@@ -77,103 +92,92 @@ export function PrimaryInvoices() {
     })();
   }, []);
 
-  const groups = useMemo(() => groupInvoices(items), [items]);
+  const jobs = useMemo(() => groupBySite(items), [items]);
+
+  const toggle = (key: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   return (
     <>
-      <PageHeader
-        title="Invoices"
-        description="Each Job Card processed by BC produces two invoices: a labour pass-through covering operative wages, and BC's own service fee. Grouped here per Job Card / site."
-      />
+      <PageHeader title="Invoices" />
 
       {loading ? (
         <div className="skeleton h-64" />
-      ) : items.length === 0 ? (
+      ) : jobs.length === 0 ? (
         <Empty
           icon={FileText}
           title="No invoices yet"
-          description="When BC processes a Job Card you submitted, the labour and service invoices will appear here."
+          description="When BC processes a Job Card you submitted, the invoices will appear here."
         />
       ) : (
-        <div className="space-y-4">
-          {groups.map((g) => {
+        <div className="space-y-3">
+          {jobs.map((j) => {
+            const open = expanded.has(j.key);
             return (
-              <div key={g.key} className="card overflow-hidden">
-                {/* Group header */}
-                <div className="px-4 py-3 sm:px-5 sm:py-4 border-b border-ink-100 bg-ink-50/40 flex items-start justify-between gap-3 flex-wrap">
-                  <div className="min-w-0">
-                    <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold inline-flex items-center gap-1.5">
-                      {g.submissionId ? (
-                        <>
-                          <Briefcase className="h-3.5 w-3.5" /> Job Card
-                          {g.jobRef && (
-                            <Link
-                              to={`/primary/submissions/${g.submissionId}`}
-                              className="font-mono text-ink-700 hover:text-ink-900 ml-1"
-                            >
-                              {g.jobRef}
-                            </Link>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <Layers className="h-3.5 w-3.5" /> Manual invoice
-                        </>
+              <div key={j.key} className="card overflow-hidden">
+                {/* Header - site as the headline. Click anywhere to expand. */}
+                <button
+                  type="button"
+                  onClick={() => toggle(j.key)}
+                  className="w-full flex items-start justify-between gap-3 px-4 py-3 sm:px-5 sm:py-4 hover:bg-ink-50/50 transition text-left"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 text-base font-semibold text-ink-900">
+                      <MapPin className="h-4 w-4 text-ink-500" />
+                      {j.siteLabel}
+                      {j.siteProject && (
+                        <span className="text-ink-600 font-normal text-sm">- {j.siteProject}</span>
                       )}
                     </div>
-                    {g.siteLabel && (
-                      <div className="text-sm text-ink-800 mt-1 inline-flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5 text-ink-400" /> {g.siteLabel}
-                      </div>
-                    )}
+                    <div className="text-xs text-ink-500 mt-1">
+                      {j.periodStart} - {j.periodEnd} · {j.invoices.length} invoice{j.invoices.length === 1 ? "" : "s"}
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-[11px] uppercase tracking-wider text-ink-500 font-semibold">Total to pay BC</div>
-                    <div className="text-lg font-bold text-ink-900 tabular-nums">{fmtMoney(g.totalMinor)}</div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-ink-900 tabular-nums">{fmtMoney(j.totalMinor)}</div>
+                      <Badge tone={j.allPaid ? "success" : "warn"}>
+                        {j.allPaid ? "Paid" : "To pay"}
+                      </Badge>
+                    </div>
+                    {open ? <ChevronUp className="h-5 w-5 text-ink-400" /> : <ChevronDown className="h-5 w-5 text-ink-400" />}
                   </div>
-                </div>
+                </button>
 
-                {/* Per-invoice rows */}
-                <table className="w-full text-sm">
-                  <thead className="bg-white border-b border-ink-100">
-                    <tr className="text-left text-xs uppercase tracking-wider text-ink-500 font-semibold">
-                      <th className="px-5 py-2">Kind</th>
-                      <th className="px-5 py-2">Invoice #</th>
-                      <th className="px-5 py-2">Period</th>
-                      <th className="px-5 py-2">Issued</th>
-                      <th className="px-5 py-2">Status</th>
-                      <th className="px-5 py-2 text-right">Net</th>
-                      <th className="px-5 py-2"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {g.invoices.map((inv) => {
+                {/* Body - the two invoices for this job. */}
+                {open && (
+                  <div className="border-t border-ink-100 divide-y divide-ink-100">
+                    {j.invoices.map((inv) => {
                       const tone: "neutral" | "info" | "success" | "warn" =
                         inv.status === "paid" ? "success" :
                         inv.status === "sent" ? "info" :
                         inv.status === "cancelled" ? "neutral" : "warn";
-                      const kindTone = inv.kind === "service" ? "info" : "neutral";
-                      const kindLabel = inv.kind === "service" ? "BC service fee" : "Labour";
                       return (
-                        <tr key={inv.id} className="border-b border-ink-100 last:border-b-0 hover:bg-ink-50/50">
-                          <td className="px-5 py-3">
-                            <Badge tone={kindTone}>{kindLabel}</Badge>
-                          </td>
-                          <td className="px-5 py-3 font-mono text-xs">{inv.invoiceNumber}</td>
-                          <td className="px-5 py-3 text-ink-700">{inv.periodStart} → {inv.periodEnd}</td>
-                          <td className="px-5 py-3 text-ink-600">{inv.issuedAt}</td>
-                          <td className="px-5 py-3"><Badge tone={tone}>{inv.status}</Badge></td>
-                          <td className="px-5 py-3 text-right tabular-nums font-bold">{fmtMoney(inv.netMinor)}</td>
-                          <td className="px-5 py-3 text-right">
-                            <Link to={`/primary/invoices/${inv.id}`} className="btn-ghost !py-1.5 inline-flex">
-                              View <ArrowUpRight className="h-4 w-4" />
-                            </Link>
-                          </td>
-                        </tr>
+                        <div key={inv.id} className="px-4 py-3 sm:px-5 sm:py-3 flex items-center gap-3 flex-wrap">
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-medium text-ink-900">{kindLabel(inv.kind)}</div>
+                            <div className="text-xs text-ink-500 font-mono mt-0.5">{inv.invoiceNumber}</div>
+                          </div>
+                          <Badge tone={tone}>{inv.status}</Badge>
+                          <div className="text-base font-semibold text-ink-900 tabular-nums w-28 text-right">{fmtMoney(inv.netMinor)}</div>
+                          <Link
+                            to={`/primary/invoices/${inv.id}`}
+                            className="text-xs text-ink-500 hover:text-ink-900 inline-flex items-center gap-0.5"
+                            title="Open invoice"
+                          >
+                            View <ArrowUpRight className="h-3.5 w-3.5" />
+                          </Link>
+                        </div>
                       );
                     })}
-                  </tbody>
-                </table>
+                  </div>
+                )}
               </div>
             );
           })}
