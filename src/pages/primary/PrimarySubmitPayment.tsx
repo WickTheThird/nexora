@@ -76,6 +76,10 @@ function operativeToRow(o: OperativeRow): Row {
 }
 
 function parseCsv(text: string): string[][] {
+  // Strip UTF-8 BOM that Excel and many spreadsheet apps prepend - it
+  // otherwise garbles the first header cell ("\uFEFFSubcontractorCo")
+  // and breaks column auto-detect.
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
   const out: string[][] = [];
   let row: string[] = [];
   let cell = "";
