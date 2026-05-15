@@ -267,8 +267,12 @@ export interface QuestionnaireRecord {
 export type PrimaryInvoiceStatus = "draft" | "sent" | "paid" | "cancelled";
 
 // Status of a primary submission (developer's payment data sent to BC for processing).
+// 'held' is the 10-minute grace window after the principal hits Submit -
+// the row is still editable; auto-promotes to 'submitted' when the
+// auto_submit_at timestamp passes.
 export type PrimarySubmissionStatus =
   | "draft"
+  | "held"
   | "submitted"
   | "processing"
   | "completed"
@@ -320,6 +324,9 @@ export interface PrimarySubmission {
   // older rows; new submissions always set them.
   jobCardType: JobCardType | null;
   dateEnding: string | null;
+  // ms-epoch when a 'held' submission auto-promotes to 'submitted'.
+  // Null when status is anything other than 'held'.
+  autoSubmitAt: number | null;
   createdAt: number;
   // Enagh-parity: surface the auto-generated principal invoice number on
   // the list view. Populated only after admin Process step completes;

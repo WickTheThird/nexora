@@ -820,9 +820,16 @@ export const api = {
       notes?: string;
     }>;
   }) => request<PrimarySubmission>("PATCH", `/me/primary/submissions/${id}`, { body: data as Json }),
-  // Submit a draft (status: draft → submitted). Locks the card.
+  // Submit a draft. Moves into a 10-minute 'held' window during which
+  // the principal can still edit, cancel-hold, or release-now.
   submitMyDraftSubmission: (id: string) =>
     request<PrimarySubmission>("POST", `/me/primary/submissions/${id}/submit`),
+  // Skip the 10-minute hold and submit immediately.
+  releaseMyHeldSubmission: (id: string) =>
+    request<PrimarySubmission>("POST", `/me/primary/submissions/${id}/release-now`),
+  // Cancel the hold and revert to draft for further editing.
+  cancelMyHeldSubmission: (id: string) =>
+    request<PrimarySubmission>("POST", `/me/primary/submissions/${id}/cancel-hold`),
   // Delete a draft.
   deleteMyDraftSubmission: (id: string) =>
     request<{ deleted: true }>("DELETE", `/me/primary/submissions/${id}`),
