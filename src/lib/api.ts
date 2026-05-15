@@ -568,6 +568,27 @@ export const api = {
     }>("GET", "/admin/payments" + (q.toString() ? `?${q}` : ""));
   },
 
+  // -------- admin: contracts (global audit view) --------
+  adminListContracts: (params: { primaryId?: string; subId?: string; status?: string } = {}) => {
+    const q = new URLSearchParams();
+    if (params.primaryId) q.set("primaryId", params.primaryId);
+    if (params.subId)     q.set("subId", params.subId);
+    if (params.status)    q.set("status", params.status);
+    return request<{
+      items: Array<ContractRecord & {
+        templateName: string | null;
+        primaryName: string | null;
+        primaryEmail: string | null;
+        subcontractorName: string | null;
+        subcontractorEmail: string | null;
+        subcontractorRef: string | null;
+        siteCode: string | null;
+        siteProject: string | null;
+        siteAddress: string | null;
+      }>;
+    }>("GET", "/admin/contracts" + (q.toString() ? `?${q}` : ""));
+  },
+
   // -------- admin: templates --------
   adminCreateTemplate: (name: string, bodyHtml: string) =>
     request<ContractTemplate>("POST", "/admin/contract-templates", {

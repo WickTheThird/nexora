@@ -27,6 +27,7 @@ import { AdminOperativeRequests } from "./OperativeRequests";
 import { AdminSignupRequests } from "./SignupRequests";
 import { BulkAdvice } from "./BulkAdvice";
 import { Templates } from "./Templates";
+import { AdminContracts } from "./Contracts";
 import { ChangeRequests } from "./ChangeRequests";
 import { Settings } from "./Settings";
 import { AdminJobs } from "./Jobs";
@@ -51,6 +52,7 @@ const nav = [
   { to: "/admin/actions", label: "Actions", icon: Zap, groupBefore: "Actions" },
   { to: "/admin/bulk-advice", label: "Advice", icon: Send },
   { to: "/admin/templates", label: "Contract Templates", icon: FileText },
+  { to: "/admin/contracts", label: "Contracts (audit)", icon: FileText },
   // Misc
   { to: "/admin/settings", label: "Settings", icon: SettingsIcon, groupBefore: "Setup" },
 ];
@@ -117,6 +119,7 @@ export function AdminApp() {
         <Route path="actions" element={<AdminActions />} />
         <Route path="bulk-advice" element={<BulkAdvice />} />
         <Route path="templates" element={<Templates />} />
+        <Route path="contracts" element={<AdminContracts />} />
         <Route path="change-requests" element={<ChangeRequests />} />
         <Route path="settings" element={<Settings />} />
       </Routes>

@@ -181,6 +181,30 @@ const HELP_REGISTRY: Record<string, ReactNode> = {
     </>
   ),
 
+  // --- Admin global Contracts audit ---
+  contracts: (
+    <>
+      <h3>What is this page?</h3>
+      <p>
+        Audit view of every contract on the platform. Read-only -
+        generation happens elsewhere (auto on assignment, or manually
+        from a Sub Detail page).
+      </p>
+      <h3>What you can filter by</h3>
+      <ul>
+        <li><strong>Status pills</strong> - All / Awaiting signature / Signed / Replaced.</li>
+        <li><strong>Principal</strong> - narrow to one client. The Subcontractor dropdown auto-scopes to their operatives.</li>
+        <li><strong>Search</strong> - any text across principal, sub, site, template, or signed name.</li>
+      </ul>
+      <h3>Tip</h3>
+      <p>
+        Click the principal or sub link on a row to jump to their detail page.
+        Contracts marked "Replaced" are historical - they were superseded by a
+        new one when the principal moved the operative to a different site.
+      </p>
+    </>
+  ),
+
   // --- Change Requests ---
   changeRequests: (
     <>
