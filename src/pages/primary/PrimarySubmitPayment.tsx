@@ -754,6 +754,16 @@ export function PrimarySubmitPayment() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between"><span className="text-ink-600">Total Gross</span><span className="tabular-nums font-medium">{fmtMoneyEur(totals.totalGrossMinor)}</span></div>
             <div className="flex justify-between"><span className="text-ink-600">Total to certify to revenue</span><span className="tabular-nums">{fmtMoneyEur(totals.totalGrossMinor)}</span></div>
+            {/* RCT at 20% - INFORMATIVE only. Revenue assigns each
+                sub's actual rate (0% / 20% / 35%); BC applies whatever
+                Revenue says at process time. This row is just a
+                "what 20% would look like" estimate for the principal
+                while filling the Job Card. NOT submitted to the server,
+                NOT stored. */}
+            <div className="flex justify-between">
+              <span className="text-ink-500 text-xs italic">RCT @ 20% (informative)</span>
+              <span className="tabular-nums text-xs text-ink-500 italic">-{fmtMoneyEur(Math.round(totals.totalGrossMinor * 0.20))}</span>
+            </div>
             {/* The principal accounts for the reverse-charge VAT
                 themselves on their VAT3 return - we no longer surface
                 it as a banner here (it was confusing). RCT rate is
