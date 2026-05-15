@@ -30,8 +30,6 @@ const empty: AppSettings = {
   changes_request_email: null,
   // BC service fee per worker (minor units). Default 1700 = €17.
   service_fee_per_worker_minor: null,
-  // Default contract template (set via Templates page, not here).
-  default_contract_template_id: null,
 };
 
 export function Settings() {

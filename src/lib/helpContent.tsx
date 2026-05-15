@@ -51,12 +51,12 @@ const HELP_REGISTRY: Record<string, ReactNode> = {
         <li><strong>In progress</strong> - sub is filling profile/bank/docs; not yet submitted.</li>
         <li><strong>Submitted</strong> - waiting for BC to review and approve.</li>
         <li><strong>Changes requested</strong> - you've sent it back; sub needs to fix and resubmit.</li>
-        <li><strong>Approved</strong> - review complete, contract not yet signed.</li>
-        <li><strong>Active</strong> - contract signed; included in Job Cards and advice flows.</li>
+        <li><strong>Approved</strong> - review complete, ready to receive payments.</li>
+        <li><strong>Active</strong> - included in Job Cards and advice flows.</li>
       </ul>
       <h3>What can I do here?</h3>
       <ul>
-        <li>Click a row to open the Sub Detail page (review docs, edit profile, change RCT rate, generate contract).</li>
+        <li>Click a row to open the Sub Detail page (review docs, edit profile, change RCT rate).</li>
         <li>Use the search to find a sub by name, email, reference, or PPS.</li>
         <li>Pending self-serve sign-up applications appear as a banner at the top - accept or reject without leaving the page.</li>
       </ul>
@@ -67,11 +67,10 @@ const HELP_REGISTRY: Record<string, ReactNode> = {
     <>
       <h3>What is this page?</h3>
       <p>
-        Full record for one subcontractor. Tabs across the top: Overview · Documents · Timesheets · Payments · Change requests · Activity log.
+        Full record for one subcontractor. Tabs across the top: Overview · Documents · Questionnaire · Payments.
       </p>
       <h3>Operations card (top right)</h3>
       <ul>
-        <li><strong>Principal</strong> - pick which primary this sub is linked to.</li>
         <li><strong>Status</strong> - flip onboarding state manually. Use sparingly - Approve / Reject buttons leave a proper audit trail.</li>
         <li><strong>Anonymise</strong> - GDPR erasure. Hashes PII and clears bank details. Irreversible.</li>
       </ul>
@@ -80,8 +79,6 @@ const HELP_REGISTRY: Record<string, ReactNode> = {
         <li><strong>Approve</strong> - moves to approved + sends welcome email.</li>
         <li><strong>Reject</strong> - terminal; requires a reason.</li>
         <li><strong>Request re-upload</strong> on a document - tells the sub that document needs to be replaced.</li>
-        <li><strong>Add timesheet</strong> - manual entry when the sub forgot to log hours.</li>
-        <li><strong>Generate contract</strong> - picks a template and creates a personalised contract for the sub to sign.</li>
       </ul>
     </>
   ),
@@ -139,69 +136,15 @@ const HELP_REGISTRY: Record<string, ReactNode> = {
       </p>
       <h3>Columns</h3>
       <ul>
-        <li><strong>Open</strong> - sub has approved + unpaid timesheets for the chosen period. No payment record yet.</li>
-        <li><strong>Previewed</strong> - you've reviewed the breakdown and flagged the card. Local to your browser; no DB state.</li>
-        <li><strong>Sent</strong> - payment record exists (status <em>advised</em> or <em>invoiced</em>). Sub has been notified and can issue their invoice.</li>
+        <li><strong>Open</strong> - sub has Job Card hours awaiting advice for the chosen period.</li>
+        <li><strong>Sent</strong> - payment record exists. Sub has been notified and can issue their invoice.</li>
         <li><strong>Paid</strong> - bank transfer reconciled.</li>
-      </ul>
-      <h3>What is each card awaiting?</h3>
-      <ul>
-        <li><strong>Open</strong> - your decision: send advice now or hold off.</li>
-        <li><strong>Previewed</strong> - same as Open, but you've already looked once.</li>
-        <li><strong>Sent (advised)</strong> - sub needs to click <em>Generate invoice</em> in their portal.</li>
-        <li><strong>Sent (invoiced)</strong> - bank transfer needs to go out, then <em>Mark paid</em>.</li>
       </ul>
       <h3>What can I do here?</h3>
       <ul>
         <li><strong>Per-card</strong> - expand a card, then <em>Create advice</em> or <em>Mark paid</em>.</li>
-        <li><strong>Bulk</strong> - tick checkboxes on cards. Use the column "Select all" or the sticky action bar to send N advices or mark N paid in one go.</li>
-        <li><strong>From timesheets</strong> tab - table view for bulk-send (legacy flow).</li>
-        <li><strong>From CSV upload</strong> tab - Enagh-style import: upload a CSV with SubcontractorCo / Quantity / Rate / etc.</li>
+        <li><strong>Bulk</strong> - tick checkboxes on cards and use the sticky action bar to send N advices or mark N paid in one go.</li>
       </ul>
-    </>
-  ),
-
-  // --- Templates ---
-  templates: (
-    <>
-      <h3>What is this page?</h3>
-      <p>Contract templates used to generate per-sub personalised contracts.</p>
-      <h3>Editor</h3>
-      <ul>
-        <li>Bold / Italic / Underline / Headings / Lists - toolbar buttons or Ctrl+B / I / U.</li>
-        <li><strong>Merge variables</strong> - click a chip to drop a token like <code>{"{{fullName}}"}</code>. The token is replaced with the sub's real value when a contract is generated.</li>
-        <li><strong>Fullscreen</strong> - the maximise icon on the right of the toolbar promotes the editor out of the modal.</li>
-      </ul>
-      <h3>Sending contracts</h3>
-      <ul>
-        <li><strong>Send to subs</strong> on each row - multi-select subs and generate a personalised contract for each. Subs must have submitted onboarding; otherwise the generate call fails for that sub.</li>
-      </ul>
-      <h3>Versioning</h3>
-      <p>Creating a template with an existing name supersedes the previous version. Old contracts keep referring to the old template version.</p>
-    </>
-  ),
-
-  // --- Admin global Contracts audit ---
-  contracts: (
-    <>
-      <h3>What is this page?</h3>
-      <p>
-        Audit view of every contract on the platform. Read-only -
-        generation happens elsewhere (auto on assignment, or manually
-        from a Sub Detail page).
-      </p>
-      <h3>What you can filter by</h3>
-      <ul>
-        <li><strong>Status pills</strong> - All / Awaiting signature / Signed / Replaced.</li>
-        <li><strong>Principal</strong> - narrow to one client. The Subcontractor dropdown auto-scopes to their operatives.</li>
-        <li><strong>Search</strong> - any text across principal, sub, site, template, or signed name.</li>
-      </ul>
-      <h3>Tip</h3>
-      <p>
-        Click the principal or sub link on a row to jump to their detail page.
-        Contracts marked "Replaced" are historical - they were superseded by a
-        new one when the principal moved the operative to a different site.
-      </p>
     </>
   ),
 
@@ -223,25 +166,6 @@ const HELP_REGISTRY: Record<string, ReactNode> = {
         <li><strong>Drag</strong> a card between columns to change its status.</li>
         <li><strong>Click</strong> a card to read the full message and respond.</li>
         <li><strong>Multi-select</strong> with checkboxes and bulk-close from the sticky bar.</li>
-      </ul>
-    </>
-  ),
-
-  // --- Operative requests ---
-  operativeRequests: (
-    <>
-      <h3>What is this page?</h3>
-      <p>Principal-initiated requests to add a new operative under their account.</p>
-      <ul>
-        <li><strong>Current</strong> - pending review.</li>
-        <li><strong>Archive</strong> - accepted or rejected.</li>
-      </ul>
-      <h3>What is each row awaiting?</h3>
-      <p>Your decision: <em>Accept</em> creates the sub user (invites them by email) and links them to the principal; <em>Reject</em> closes with a reason.</p>
-      <h3>What can I do here?</h3>
-      <ul>
-        <li>Bulk-reject multiple rows with a shared reason.</li>
-        <li>Filter by principal in the search box.</li>
       </ul>
     </>
   ),
@@ -320,7 +244,6 @@ const HELP_REGISTRY: Record<string, ReactNode> = {
       <h3>What can I do here?</h3>
       <ul>
         <li>Invite a primary user - creates a login linked to this primary.</li>
-        <li>Generate a manual invoice for an arbitrary period.</li>
         <li>Mark an invoice sent / paid; void or issue a credit note.</li>
         <li>Manage site IDs (Revenue SIN codes) used on Job Cards.</li>
       </ul>

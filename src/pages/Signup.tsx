@@ -18,7 +18,7 @@ import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
-import { ArrowRight, CheckCircle2, Hammer, Building2, Mail } from "lucide-react";
+import { ArrowRight, Hammer, Building2, Mail } from "lucide-react";
 
 const API_URL = (window as { __SAMWISE_CONFIG__?: { apiUrl?: string } }).__SAMWISE_CONFIG__?.apiUrl
   || "https://nexora-api.bumbufilip22.workers.dev";
@@ -32,7 +32,6 @@ export function Signup() {
   const [done, setDone] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [mobile, setMobile] = useState("");
   // User picks their own password at signup. Min 8 chars; we don't enforce
   // complexity - modern guidance is length, not symbols.
   const [password, setPassword] = useState("");
@@ -62,7 +61,7 @@ export function Signup() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          kind, fullName, email, mobile, password,
+          kind, fullName, email, password,
           trade: kind === "subcontractor" ? trade : undefined,
           companyName: kind === "primary" ? companyName : undefined,
           companyVat: kind === "primary" ? companyVat : undefined,
@@ -176,13 +175,6 @@ export function Signup() {
             required
             placeholder="you@example.ie"
             autoComplete="email"
-          />
-          <Input
-            label="Mobile"
-            value={mobile}
-            onChange={(e) => setMobile(e.target.value)}
-            placeholder="+353 87 ..."
-            autoComplete="tel"
           />
           <div className="grid sm:grid-cols-2 gap-4">
             <Input

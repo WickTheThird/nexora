@@ -2,10 +2,11 @@ import { Route, Routes } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { PortalShell } from "@/components/layout/PortalShell";
 import { LayoutDashboard, Users, FileText, Send, MapPin, MapPinned, User, Plus, ClipboardList } from "lucide-react";
+// FileText is still used for Invoices nav entry below.
 import { api } from "@/lib/api";
 import type { PaletteItem } from "@/components/ui/CommandPalette";
 import { PrimaryDashboard } from "./PrimaryDashboard";
-import { PrimarySubcontractors } from "./PrimarySubcontractors";
+import { PrimaryRoster } from "./PrimaryRoster";
 import { PrimarySubDetail } from "./PrimarySubDetail";
 import { PrimaryInvoices } from "./PrimaryInvoices";
 import { PrimaryInvoiceDetail } from "./PrimaryInvoiceDetail";
@@ -16,13 +17,11 @@ import { PrincipalSites } from "./PrincipalSites";
 import { PrincipalSiteDetail } from "./PrincipalSiteDetail";
 import { PrincipalSiteIds } from "./PrincipalSiteIds";
 import { PrincipalAccount } from "./PrincipalAccount";
-import { PrimaryContracts } from "./PrimaryContracts";
 
 const nav = [
   { to: "/primary", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/primary/account", label: "Account", icon: User },
   { to: "/primary/subcontractors", label: "Subcontractors", icon: Users },
-  { to: "/primary/contracts", label: "Contracts", icon: FileText },
   { to: "/primary/site-ids", label: "Site IDs", icon: MapPinned },
   { to: "/primary/sites", label: "Site activity", icon: MapPin },
   { to: "/primary/submissions", label: "Jobs Posted", icon: Send },
@@ -81,9 +80,8 @@ export function PrimaryApp() {
       <Routes>
         <Route index element={<PrimaryDashboard />} />
         <Route path="account" element={<PrincipalAccount />} />
-        <Route path="subcontractors" element={<PrimarySubcontractors />} />
+        <Route path="subcontractors" element={<PrimaryRoster />} />
         <Route path="subcontractors/:id" element={<PrimarySubDetail />} />
-        <Route path="contracts" element={<PrimaryContracts />} />
         <Route path="site-ids" element={<PrincipalSiteIds />} />
         <Route path="sites" element={<PrincipalSites />} />
         <Route path="sites/:ref" element={<PrincipalSiteDetail />} />

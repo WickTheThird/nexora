@@ -28,7 +28,7 @@ import {
 //   1. Kanban   - Jira-style board: Open / Previewed / Sent / Paid columns.
 //                 Each card shows the per-sub gross/RCT/net and lets the
 //                 admin create a single payment advice in one click.
-//   2. Timesheets - the bulk preview/send flow (multi-select then send N).
+//   2. Bulk     - bulk preview/send flow (multi-select then send N).
 //   3. CSV      - Enagh-style CSV import.
 
 type PreviewItem = Awaited<ReturnType<typeof api.adminBulkAdvicePreview>>["items"][number];
@@ -81,7 +81,7 @@ export function BulkAdvice() {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const initial = defaultRange();
 
-  const [view, setView] = useState<"kanban" | "timesheets" | "csv">("kanban");
+  const [view, setView] = useState<"kanban" | "bulk" | "csv">("kanban");
   const [from, setFrom] = useState(initial.from);
   const [to, setTo] = useState(initial.to);
   const [notify, setNotify] = useState(true);
@@ -447,7 +447,7 @@ export function BulkAdvice() {
       {/* View tabs ----------------------------------------------------- */}
       <div className="flex gap-1 mb-5 border-b border-ink-200">
         <TabBtn label="Kanban" active={view === "kanban"} onClick={() => setView("kanban")} />
-        <TabBtn label="From timesheets" active={view === "timesheets"} onClick={() => setView("timesheets")} />
+        <TabBtn label="Bulk send" active={view === "bulk"} onClick={() => setView("bulk")} />
         <TabBtn label="From CSV upload" active={view === "csv"} onClick={() => setView("csv")} />
       </div>
 
@@ -697,7 +697,7 @@ export function BulkAdvice() {
       )}
 
       {/* TIMESHEETS VIEW (bulk preview/send) ---------------------------- */}
-      {view === "timesheets" && (
+      {view === "bulk" && (
         <>
           <div className="card-padded mb-5">
             <div className="grid sm:grid-cols-4 gap-3 items-end">
@@ -746,7 +746,7 @@ export function BulkAdvice() {
               description="Pick a date range and click Preview to see which subcontractors would receive a payment advice."
             />
           ) : items.length === 0 ? (
-            <Empty icon={CheckCircle2} title="Nothing to advise" description="No subs have approved, unpaid timesheets in that period." />
+            <Empty icon={CheckCircle2} title="Nothing to advise" description="No subs have eligible Job Card items in that period." />
           ) : (
             <>
               <div className="flex items-center justify-between mb-3 px-1">
@@ -1140,7 +1140,7 @@ function OpenCard({
             <span className="tabular-nums">{fmtMoney(item.netMinor)}</span>
           </div>
           <div className="text-ink-500 text-[11px] pt-1">
-            {item.sheetCount} timesheet{item.sheetCount === 1 ? "" : "s"} · {item.totalHours.toFixed(1)}h
+            {item.sheetCount} entr{item.sheetCount === 1 ? "y" : "ies"} · {item.totalHours.toFixed(1)}h
           </div>
 
           <div className="pt-2 flex gap-2">

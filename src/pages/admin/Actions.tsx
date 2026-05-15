@@ -31,7 +31,7 @@ import {
 // Domain
 // ------------------------------------------------------------------
 
-type Audience = "subs" | "principals" | "sub_requests" | "submissions" | "change_requests" | "payments";
+type Audience = "subs" | "principals" | "submissions" | "change_requests" | "payments";
 
 type Target = {
   id: string;
@@ -116,23 +116,6 @@ const ACTIONS: ActionDef[] = [
     run: async (id) => { await api.adminPatchSubcontractor(id, { primaryId: null } as Partial<Subcontractor>); },
   },
 
-  // ---- Sub-request actions ----
-  {
-    key: "approve_sub_request",
-    label: "Approve subcontractor request",
-    description: "Create the sub user + send the welcome email. Uses the email and name from the original request.",
-    audiences: ["sub_requests"],
-    run: async (id) => { await api.adminApproveOperativeRequest(id, {}); },
-  },
-  {
-    key: "reject_sub_request",
-    label: "Reject subcontractor request",
-    description: "Reject the pending principal-initiated request with a shared reason.",
-    audiences: ["sub_requests"],
-    needs: ["reason"],
-    run: async (id, { reason }) => { await api.adminRejectOperativeRequest(id, reason || ""); },
-  },
-
   // ---- Submission actions ----
   {
     key: "process_submission",
@@ -171,7 +154,6 @@ const ACTIONS: ActionDef[] = [
 const AUDIENCE_META: Record<Audience, { label: string; icon: React.ComponentType<{ className?: string }>; hint: string }> = {
   subs:            { label: "Subcontractors",         icon: Users,          hint: "Approve, reject, change status, assign principal, unlink." },
   principals:      { label: "Principals",             icon: Building2,      hint: "Archive in bulk (more actions coming)." },
-  sub_requests:    { label: "Subcontractor requests", icon: Inbox,          hint: "Bulk-reject pending requests." },
   submissions:     { label: "Job Card submissions",   icon: Briefcase,      hint: "Bulk-process submitted Job Cards." },
   change_requests: { label: "Change requests",        icon: MessagesSquare, hint: "Bulk-close + mark seen." },
   payments:        { label: "Payments (advice)",      icon: CreditCard,     hint: "Mark advised/invoiced payments as paid." },
@@ -222,11 +204,6 @@ export function AdminActions() {
             ...STATUS_OPTIONS_SUBS,
           ],
         },
-      ];
-    }
-    if (audience === "sub_requests") {
-      return [
-        { key: "primaryId", label: "Principal", kind: "select", options: principalOpts },
       ];
     }
     if (audience === "submissions") {
@@ -635,15 +612,6 @@ async function fetchTargets(audience: Audience): Promise<Target[]> {
       label: p.name,
       sub: [p.contactName, p.contactEmail, p.vat].filter(Boolean).join(" · "),
       meta: { vat: p.vat || "" },
-    }));
-  }
-  if (audience === "sub_requests") {
-    const r = await api.adminListOperativeRequests("requested");
-    return r.items.map((req) => ({
-      id: req.id,
-      label: req.name,
-      sub: [req.email, req.mobile, req.primaryName].filter(Boolean).join(" · "),
-      meta: { primaryId: req.primaryId || "" },
     }));
   }
   if (audience === "submissions") {

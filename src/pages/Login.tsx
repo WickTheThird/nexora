@@ -154,15 +154,7 @@ export function Login() {
               Forgot your password?
             </Link>
           </p>
-          <div className="mt-8 pt-6 border-t border-ink-100 text-center">
-            <p className="text-xs uppercase tracking-wider text-ink-400 font-semibold mb-2">New here?</p>
-            <p className="text-sm text-ink-600">
-              <Link to="/signup/subcontractor" className="text-ink-900 font-medium hover:underline">Sign up as a subcontractor</Link>
-              <span className="mx-2 text-ink-400">·</span>
-              <Link to="/signup/primary" className="text-ink-900 font-medium hover:underline">Sign up as a principal</Link>
-            </p>
-          </div>
-          <p className="text-xs text-ink-400 mt-3 text-center">
+          <p className="text-xs text-ink-400 mt-8 text-center">
             <a href="#/help" className="underline hover:text-ink-700">How it works</a>
             <span className="mx-2">·</span>
             <a href="#/legal/privacy" className="underline hover:text-ink-700">Privacy notice</a>

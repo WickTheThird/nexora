@@ -96,33 +96,6 @@ export function PrimarySubDetail() {
         </div>
       )}
 
-      <h2 className="text-lg font-semibold text-ink-900 mb-3">Recent timesheets</h2>
-      {data.timesheets.length === 0 ? (
-        <Empty icon={FileText} title="No timesheets" description="No hours logged yet under your contract." />
-      ) : (
-        <div className="card overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-ink-50 border-b border-ink-100">
-              <tr className="text-left text-xs uppercase tracking-wider text-ink-500 font-semibold">
-                <th className="px-5 py-3">Date</th>
-                <th className="px-5 py-3">Hours</th>
-                <th className="px-5 py-3">Site</th>
-                <th className="px-5 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.timesheets.map((t: Record<string, unknown>) => (
-                <tr key={String(t.id)} className="border-b border-ink-100 last:border-b-0">
-                  <td className="px-5 py-3 text-ink-900">{String(t.work_date)}</td>
-                  <td className="px-5 py-3 text-ink-700 tabular-nums">{t.hours != null ? String(t.hours) : <span className="text-ink-400">-</span>}</td>
-                  <td className="px-5 py-3 text-ink-600">{t.site_ref ? String(t.site_ref) : <span className="text-ink-400">-</span>}</td>
-                  <td className="px-5 py-3"><Badge tone={t.status === "approved" || t.status === "paid" ? "success" : "info"}>{String(t.status)}</Badge></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
     </>
   );
 }

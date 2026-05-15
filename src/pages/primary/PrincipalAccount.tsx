@@ -59,40 +59,6 @@ export function PrincipalAccount() {
     }
   };
 
-  // View/Print Contract - opens the contract HTML in a new tab with print styles
-  const viewContract = async () => {
-    try {
-      const r = await api.getMyPrimaryContract();
-      const html = r.kind === "signed" ? r.contract.renderedHtml : r.template.bodyHtml;
-      const banner = r.kind === "signed"
-        ? `<div class="banner">Signed on ${new Date(r.signedAt).toLocaleDateString("en-IE")}${r.signedBy ? ` by ${r.signedBy}` : ""}.</div>`
-        : `<div class="banner banner-amber">Preview - this is the active contract template. Subcontractors sign individually as part of their onboarding.</div>`;
-      const w = window.open("", "_blank", "noopener,noreferrer,width=900,height=1100");
-      if (!w) { toast.error("Pop-up blocker prevented opening the contract."); return; }
-      w.document.open();
-      w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Contract - ${primary?.name || ""}</title>
-        <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color:#111; max-width: 800px; margin: 24mm auto; padding: 0 16mm; line-height: 1.55; font-size: 11pt; }
-          h1, h2, h3 { color:#000; } h1 { font-size: 18pt; margin-top: 0; } h2 { font-size: 13pt; margin-top: 18pt; }
-          ul, ol { padding-left: 22pt; }
-          .banner { padding: 10pt 14pt; background: #ecfdf5; border-left: 4px solid #047857; font-size: 10pt; margin-bottom: 18pt; }
-          .banner-amber { background: #fef3c7; border-left-color: #b45309; }
-          @page { size: A4; margin: 16mm; }
-          @media print { .no-print { display: none !important; } }
-        </style></head><body>
-        <div class="no-print" style="margin-bottom:18px;text-align:right">
-          <button onclick="window.print()" style="padding:8px 16px;font:600 13px sans-serif;border:1px solid #1f4396;background:#1f4396;color:#fff;border-radius:6px;cursor:pointer">Print / Save as PDF</button>
-        </div>
-        ${banner}
-        ${html || "<em>No contract content available.</em>"}
-        </body></html>`);
-      w.document.close();
-      setTimeout(() => { try { w.focus(); } catch {} }, 200);
-    } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : "Failed to load contract");
-    }
-  };
-
   if (loading) return <div className="skeleton h-64" />;
   if (!primary) return <div>Account not found.</div>;
 
@@ -110,9 +76,6 @@ export function PrincipalAccount() {
               <Building2 className="h-5 w-5 text-ink-500" /> Company details
             </h2>
             <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={viewContract} leftIcon={<FileText className="h-4 w-4" />}>
-                View / Print Contract
-              </Button>
               <span className="text-xs text-ink-500">Managed by BC</span>
             </div>
           </div>

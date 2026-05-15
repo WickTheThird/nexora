@@ -6,8 +6,6 @@ import type {
   AppSettings,
   BankDetails,
   ChangeRequest,
-  ContractRecord,
-  ContractTemplate,
   DocumentRecord,
   InvoicePayload,
   JobApplication,
@@ -24,8 +22,8 @@ import type {
   PublicJobRateUnit,
   PublicJobVisibility,
   QuestionnaireRecord,
+  RosterEntry,
   Subcontractor,
-  Timesheet,
   VendorListApplication,
   VendorListEntry,
   VendorListMembership,
@@ -208,12 +206,6 @@ export const api = {
       { body: { action: "reject", ids, reason } as Json },
     ),
 
-  adminBulkRejectOperativeRequests: (ids: string[], reason: string) =>
-    request<{ ok: number; failed: number }>(
-      "POST", "/admin/operative-requests/bulk",
-      { body: { action: "reject", ids, reason } as Json },
-    ),
-
   // Principal-side bulk ops on their roster.
   meBulkOperatives: (
     action: "close" | "reactivate" | "accept-pairing" | "decline-pairing",
@@ -273,28 +265,6 @@ export const api = {
       "/me/profile/submit",
     ),
   getMyOnboarding: () => request<OnboardingView>("GET", "/me/onboarding"),
-
-  // -------- contracts --------
-  getMyContract: () => request<ContractRecord>("GET", "/me/contracts/current"),
-  // Full history for the signed-in sub; each row carries an extra
-  // templateName for display. Sorted newest first by the worker.
-  listMyContracts: () =>
-    request<{
-      items: Array<ContractRecord & {
-        templateName: string | null;
-        primaryName: string | null;
-        primaryEmail: string | null;
-        siteCode: string | null;
-        siteProject: string | null;
-        siteAddress: string | null;
-      }>;
-    }>("GET", "/me/contracts"),
-  getMyContractById: (id: string) =>
-    request<ContractRecord>("GET", `/me/contracts/${id}`),
-  signMyContract: (signedName: string, signaturePng?: string) =>
-    request<ContractRecord>("POST", "/me/contracts/current/sign", {
-      body: { signedName, agreed: true, signaturePng },
-    }),
 
   // -------- Web push (any role) --------
   // Fetch the VAPID public key the client uses when subscribing.
@@ -457,16 +427,6 @@ export const api = {
       "POST",
       `/admin/subcontractors/${id}/reset-password`,
     ),
-  adminGenerateContract: (id: string, templateId?: string) =>
-    request<ContractRecord>(
-      "POST",
-      `/admin/subcontractors/${id}/generate-contract`,
-      { body: templateId ? { templateId } : {} },
-    ),
-  // Admin-side fetch of an operative's most recent contract - used by the
-  // "Print contract" action on the Subcontractor detail Contract tab.
-  adminGetContract: (id: string) =>
-    request<ContractRecord>("GET", `/admin/subcontractors/${id}/contract`),
 
   // -------- admin: documents --------
   adminListSubDocuments: (subId: string) =>
@@ -568,45 +528,6 @@ export const api = {
     }>("GET", "/admin/payments" + (q.toString() ? `?${q}` : ""));
   },
 
-  // -------- admin: contracts (global audit view) --------
-  adminListContracts: (params: { primaryId?: string; subId?: string; status?: string } = {}) => {
-    const q = new URLSearchParams();
-    if (params.primaryId) q.set("primaryId", params.primaryId);
-    if (params.subId)     q.set("subId", params.subId);
-    if (params.status)    q.set("status", params.status);
-    return request<{
-      items: Array<ContractRecord & {
-        templateName: string | null;
-        primaryName: string | null;
-        primaryEmail: string | null;
-        subcontractorName: string | null;
-        subcontractorEmail: string | null;
-        subcontractorRef: string | null;
-        siteCode: string | null;
-        siteProject: string | null;
-        siteAddress: string | null;
-      }>;
-    }>("GET", "/admin/contracts" + (q.toString() ? `?${q}` : ""));
-  },
-
-  // -------- admin: templates --------
-  adminCreateTemplate: (name: string, bodyHtml: string) =>
-    request<ContractTemplate>("POST", "/admin/contract-templates", {
-      body: { name, bodyHtml },
-    }),
-  adminListTemplates: () =>
-    request<{
-      items: Array<ContractTemplate & { isDefault: boolean }>;
-      defaultTemplateId: string | null;
-    }>("GET", "/admin/contract-templates"),
-  // Marks one template as the global default used by the auto-generation
-  // on principal-driven site assignments. Persisted as a row in
-  // app_settings (key 'default_contract_template_id').
-  adminSetDefaultTemplate: (templateId: string) =>
-    request<AppSettings>("PUT", "/admin/settings", {
-      body: { default_contract_template_id: templateId },
-    }),
-
   // -------- admin: change requests --------
   adminListChangeRequests: (status?: string) =>
     request<Page<ChangeRequest>>(
@@ -618,57 +539,6 @@ export const api = {
       body: { status },
     }),
 
-  // -------- timesheets: subcontractor --------
-  listMyTimesheets: (params: { from?: string; to?: string } = {}) => {
-    const q = new URLSearchParams();
-    if (params.from) q.set("from", params.from);
-    if (params.to) q.set("to", params.to);
-    return request<{ items: Timesheet[] }>(
-      "GET",
-      "/me/timesheets" + (q.toString() ? `?${q}` : ""),
-    );
-  },
-  createMyTimesheet: (data: {
-    workDate: string;
-    hours?: number | null;
-    siteRef?: string | null;
-    notes?: string | null;
-  }) => request<Timesheet>("POST", "/me/timesheets", { body: data }),
-  patchMyTimesheet: (id: string, data: Partial<{ hours: number | null; siteRef: string | null; notes: string | null; workDate: string }>) =>
-    request<Timesheet>("PATCH", `/me/timesheets/${id}`, { body: data }),
-  deleteMyTimesheet: (id: string) =>
-    request<{ ok: true }>("DELETE", `/me/timesheets/${id}`),
-  clockIn: (siteRef?: string | null) =>
-    request<Timesheet>("POST", "/me/timesheets/clock-in", { body: siteRef ? { siteRef } : {} }),
-  clockOut: () => request<Timesheet>("POST", "/me/timesheets/clock-out"),
-  getMyActiveClock: () => request<Timesheet | null>("GET", "/me/timesheets/active"),
-
-  // -------- timesheets: admin --------
-  adminListSubTimesheets: (
-    subId: string,
-    params: { from?: string; to?: string; status?: string } = {},
-  ) => {
-    const q = new URLSearchParams();
-    if (params.from) q.set("from", params.from);
-    if (params.to) q.set("to", params.to);
-    if (params.status) q.set("status", params.status);
-    return request<{ items: Timesheet[] }>(
-      "GET",
-      `/admin/subcontractors/${subId}/timesheets` + (q.toString() ? `?${q}` : ""),
-    );
-  },
-  adminReviewTimesheet: (id: string, status: "approved" | "rejected") =>
-    request<Timesheet>("POST", `/admin/timesheets/${id}/review`, { body: { status } }),
-  adminCreateSubTimesheet: (
-    subId: string,
-    data: { workDate: string; hours: number; siteRef?: string; notes?: string; approved?: boolean },
-  ) => request<Timesheet>("POST", `/admin/subcontractors/${subId}/timesheets`, { body: data as Json }),
-  adminGeneratePaymentFromPeriod: (subId: string, from: string, to: string) =>
-    request<PaymentRecord>(
-      "POST",
-      `/admin/subcontractors/${subId}/payments/from-period`,
-      { body: { from, to } },
-    ),
   adminGetInvoice: (subId: string, from: string, to: string) =>
     request<InvoicePayload>(
       "GET",
@@ -676,7 +546,7 @@ export const api = {
     ),
 
   // -------- bulk advice (admin) --------
-  // Preview: which subs have approved+unpaid timesheets in the period and
+  // Preview: which subs have approved+unpaid payment lines in the period and
   // would receive a payment advice if we sent now. The UI lets the admin
   // untick anyone before committing.
   adminBulkAdvicePreview: (from: string, to: string) =>
@@ -697,7 +567,6 @@ export const api = {
         currency: string;
         eligible: boolean;
         ineligibleReason: string | null;
-        timesheetIds: string[];
       }>;
     }>("GET", `/admin/bulk-advice/preview?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
   adminBulkAdviceSend: (
@@ -808,15 +677,6 @@ export const api = {
       latestNews?: string | null;
       // Email used by the principal's "Changes Request" button
       changesRequestEmail?: string | null;
-      // True once any operative under this principal has signed their
-      // contract - drives the "Contract Signed and Complete" banner.
-      contractSigned?: boolean;
-      contractSignedAt?: number | null;
-      // Enagh's "Friday 2:30pm – Wednesday 2pm" operative-add cutoff.
-      operativeRequestWindow?: {
-        open: boolean;
-        humanWindow: string;
-      };
     }>("GET", "/me/primary"),
   // Primary user updates their own scoped fields. Company-level info
   // (name, VAT, address) is still admin-managed.
@@ -826,15 +686,6 @@ export const api = {
     contactEmail?: string | null;
     phone?: string | null;
   }) => request<Primary>("PATCH", "/me/primary", { body: data as Json }),
-  // Principal "View/Print Contract" - returns either the most recent
-  // signed contract among any of their operatives ("kind: signed") or
-  // the active template as a preview ("kind: template_preview").
-  getMyPrimaryContract: () =>
-    request<
-      | { kind: "signed"; contract: { id: string; renderedHtml: string; signedAt: number | null; signedName: string | null }; signedBy: string | null; signedAt: number }
-      | { kind: "template_preview"; template: { id: string; name: string; version: number; bodyHtml: string } }
-    >("GET", "/me/primary/contract"),
-
   // -------- primary site IDs (managed registry) --------
   // Per-principal list of registered Revenue SIN numbers (DUB48662N etc.).
   // Mirrors Enagh's "Site IDs" page - add once, reuse on every Job Card.
@@ -1072,63 +923,6 @@ export const api = {
       `/me/primary/operatives/${subId}/reactivate`,
     ),
 
-  // Operative Request flow (Enagh-style): principal asks BC to add a new
-  // operative; admin reviews + approves (creating the actual sub) or rejects.
-  createMyOperativeRequest: (data: {
-    name: string;
-    mobile?: string;
-    email?: string;
-    notes?: string;
-  }) => request<{
-    id: string;
-    name: string;
-    mobile: string | null;
-    email: string | null;
-    status: string;
-  }>("POST", "/me/primary/operative-requests", { body: data as Json }),
-  listMyOperativeRequests: () =>
-    request<{
-      items: Array<{
-        id: string;
-        name: string;
-        mobile: string | null;
-        email: string | null;
-        status: string;
-        rejectionReason: string | null;
-        createdAt: number;
-        reviewedAt: number | null;
-      }>;
-    }>("GET", "/me/primary/operative-requests"),
-
-  // Admin inbox for operative requests
-  adminListOperativeRequests: (status?: string) =>
-    request<{
-      items: Array<{
-        id: string;
-        primaryId: string;
-        primaryName: string | null;
-        name: string;
-        mobile: string | null;
-        email: string | null;
-        notes: string | null;
-        status: string;
-        rejectionReason: string | null;
-        createdAt: number;
-        reviewedAt: number | null;
-      }>;
-    }>("GET", "/admin/operative-requests" + (status ? `?status=${status}` : "")),
-  adminApproveOperativeRequest: (id: string, data: { email?: string; fullName?: string }) =>
-    request<{
-      requestId: string;
-      subcontractorId: string;
-      userId: string;
-      email: string;
-      tempPassword: string;
-      primaryName: string | null;
-      note: string;
-    }>("POST", `/admin/operative-requests/${id}/approve`, { body: data as Json }),
-  adminRejectOperativeRequest: (id: string, reason: string) =>
-    request<{ rejected: true }>("POST", `/admin/operative-requests/${id}/reject`, { body: { reason } }),
   getMyPrimarySubDetail: (subId: string) =>
     request<{
       subcontractor: {
@@ -1141,7 +935,6 @@ export const api = {
         vatReverseCharge: boolean;
       };
       payments: Array<Record<string, unknown>>;
-      timesheets: Array<Record<string, unknown>>;
     }>("GET", `/me/primary/subcontractors/${subId}`),
   listMyPrimaryInvoices: () =>
     request<{ items: PrimaryInvoice[] }>("GET", "/me/primary/invoices"),
@@ -1218,7 +1011,7 @@ export const api = {
   adminListPublicJobs: (status?: string) =>
     request<{ items: PublicJob[] }>("GET", `/admin/public-jobs${status ? `?status=${status}` : ""}`),
 
-  // -------- Site assignments + per-site contracts (principal-driven) --------
+  // -------- Site assignments (principal-driven) --------
   primaryListOperativeAssignments: (subId: string) =>
     request<{
       items: Array<{
@@ -1234,9 +1027,6 @@ export const api = {
         endedAt: number | null;
         endReason: string | null;
         notes: string | null;
-        contractId: string | null;
-        contractStatus: ContractRecord["status"] | null;
-        contractSignedAt: number | null;
       }>;
     }>("GET", `/me/primary/operatives/${subId}/assignments`),
   primaryAssignOperative: (subId: string, data: { siteId: string; notes?: string }) =>
@@ -1251,18 +1041,25 @@ export const api = {
       `/me/primary/operatives/${subId}/assignments/${assignmentId}/end`,
       reason ? { body: { reason } } : undefined,
     ),
-  primaryListContracts: () =>
+
+  // -------- Principal roster (workers the principal has claimed) --------
+  // The roster is the principal's own list of workers (PPS + email + name).
+  // It exists independently of whether the workers have a sub account.
+  // When a sub later signs up + is approved with a matching PPS, the
+  // server auto-populates linkedSubId on the roster entry.
+  primaryListRoster: () =>
+    request<{ items: RosterEntry[] }>("GET", "/me/primary/roster"),
+  primaryAddRosterEntry: (data: { pps: string; email: string; name: string }) =>
+    request<RosterEntry>("POST", "/me/primary/roster", { body: data }),
+  primaryDeleteRosterEntry: (id: string) =>
+    request<{ ok: true }>("DELETE", `/me/primary/roster/${id}`),
+  // Bulk import - the worker validates again server-side, so the client
+  // can send the pre-parsed rows directly.
+  primaryImportRoster: (rows: Array<{ pps: string; email: string; name: string }>) =>
     request<{
-      items: Array<ContractRecord & {
-        templateName: string | null;
-        subcontractorName: string | null;
-        subcontractorEmail: string | null;
-        subcontractorRef: string | null;
-        siteCode: string | null;
-        siteProject: string | null;
-        siteAddress: string | null;
-      }>;
-    }>("GET", "/me/primary/contracts"),
+      added: number;
+      skipped: Array<{ pps: string; reason: string }>;
+    }>("POST", "/me/primary/roster/import", { body: { rows } }),
 
   // -------- Principal vendor list (talent pool) --------
   // Kept: the principal's own curated roster of approved operatives +

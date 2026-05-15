@@ -9,7 +9,6 @@ import {
   Building2,
   Send,
   Inbox,
-  FileText,
   MessagesSquare,
   Settings as SettingsIcon,
   Briefcase,
@@ -23,11 +22,8 @@ import { Primaries } from "./Primaries";
 import { PrimaryDetail } from "./PrimaryDetail";
 import { AdminPrimarySubmissions } from "./PrimarySubmissions";
 import { AdminPrimarySubmissionDetail } from "./AdminPrimarySubmissionDetail";
-import { AdminOperativeRequests } from "./OperativeRequests";
 import { AdminSignupRequests } from "./SignupRequests";
 import { BulkAdvice } from "./BulkAdvice";
-import { Templates } from "./Templates";
-import { AdminContracts } from "./Contracts";
 import { ChangeRequests } from "./ChangeRequests";
 import { Settings } from "./Settings";
 import { AdminJobs } from "./Jobs";
@@ -45,14 +41,11 @@ const nav = [
   { to: "/admin/jobs", label: "Jobs", icon: Briefcase },
   // Workflow inboxes
   { to: "/admin/primary-submissions", label: "Submissions", icon: Inbox, groupBefore: "Inboxes" },
-  { to: "/admin/operative-requests", label: "Subcontractor Requests", icon: Inbox },
   { to: "/admin/change-requests", label: "Change Requests", icon: MessagesSquare },
   { to: "/admin/signup-requests", label: "Recent Activity", icon: Activity },
   // Actions
   { to: "/admin/actions", label: "Actions", icon: Zap, groupBefore: "Actions" },
   { to: "/admin/bulk-advice", label: "Advice", icon: Send },
-  { to: "/admin/templates", label: "Contract Templates", icon: FileText },
-  { to: "/admin/contracts", label: "Contracts (audit)", icon: FileText },
   // Misc
   { to: "/admin/settings", label: "Settings", icon: SettingsIcon, groupBefore: "Setup" },
 ];
@@ -93,7 +86,6 @@ export function AdminApp() {
         ];
         const actionItems: PaletteItem[] = [
           { id: "act-advice", label: "Advice", hint: "Issue payment advices (single + bulk)", category: "actions", icon: Send, to: "/admin/bulk-advice" },
-          { id: "act-op-requests", label: "Subcontractor requests inbox", hint: "Pending principals' new-subcontractor requests", category: "actions", icon: Inbox, to: "/admin/operative-requests" },
           { id: "act-submissions", label: "Submissions inbox", hint: "Pending Job Cards from principals", category: "actions", icon: Inbox, to: "/admin/primary-submissions" },
           { id: "act-jobs", label: "All Jobs", hint: "Cross-platform view of every Job Card + tender post", category: "actions", icon: Briefcase, to: "/admin/jobs" },
         ];
@@ -111,15 +103,12 @@ export function AdminApp() {
         <Route path="primaries/:id" element={<PrimaryDetail />} />
         <Route path="primary-submissions" element={<AdminPrimarySubmissions />} />
         <Route path="primary-submissions/:id" element={<AdminPrimarySubmissionDetail />} />
-        <Route path="operative-requests" element={<AdminOperativeRequests />} />
         <Route path="signup-requests" element={<AdminSignupRequests />} />
         <Route path="subcontractors" element={<Subcontractors />} />
         <Route path="subcontractors/:id" element={<SubcontractorDetail />} />
         <Route path="jobs" element={<AdminJobs />} />
         <Route path="actions" element={<AdminActions />} />
         <Route path="bulk-advice" element={<BulkAdvice />} />
-        <Route path="templates" element={<Templates />} />
-        <Route path="contracts" element={<AdminContracts />} />
         <Route path="change-requests" element={<ChangeRequests />} />
         <Route path="settings" element={<Settings />} />
       </Routes>

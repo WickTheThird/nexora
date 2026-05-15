@@ -72,7 +72,6 @@ export function PrimaryDashboard() {
   const [savingAcc, setSavingAcc] = useState(false);
   // Enagh-style additions: latest news, contract-signed badge, changes-request CTA
   const [latestNews, setLatestNews] = useState<string | null>(null);
-  const [contractSigned, setContractSigned] = useState(false);
   const [changesRequestEmail, setChangesRequestEmail] = useState<string | null>(null);
 
   useEffect(() => {
@@ -83,7 +82,6 @@ export function PrimaryDashboard() {
         setAccInput(p.primary.accountantEmail || "");
         setStats(s);
         setLatestNews(p.latestNews || null);
-        setContractSigned(!!p.contractSigned);
         setChangesRequestEmail(p.changesRequestEmail || null);
       } finally {
         setLoading(false);
@@ -146,14 +144,6 @@ export function PrimaryDashboard() {
         <div className="skeleton h-64" />
       ) : (
         <>
-          {/* "Contract Signed and Complete" banner - Enagh's red-text marker */}
-          {contractSigned && (
-            <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 mb-5 inline-flex items-center gap-2 text-sm font-semibold text-emerald-900">
-              <CheckCircle2 className="h-4 w-4" />
-              Contract Signed and Complete
-            </div>
-          )}
-
           {/* Latest News - admin-controlled message panel */}
           {latestNews && (
             <div className="card-padded mb-6 border-l-4 border-l-accent-500">

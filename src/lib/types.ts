@@ -13,7 +13,6 @@ export type OnboardingStatus =
 
 export type StepKey =
   | "application_form"
-  | "contract"
   | "questionnaire"
   | "photo_id"
   | "hs_card";
@@ -41,12 +40,6 @@ export type DocumentType =
   | "ppe"
   | "other";
 export type ReviewStatus = "pending" | "approved" | "rejected";
-export type ContractStatus =
-  | "draft"
-  | "generated"
-  | "viewed"
-  | "signed"
-  | "superseded";
 // New lifecycle: advised → invoiced → paid (or cancelled).
 // Legacy values kept so old records still type-check.
 export type PaymentStatus =
@@ -68,30 +61,6 @@ export type QuestionnaireStatus =
   | "submitted"
   | "approved"
   | "rejected";
-
-export type TimesheetStatus =
-  | "draft"
-  | "submitted"
-  | "approved"
-  | "rejected"
-  | "paid";
-
-export interface Timesheet {
-  id: string;
-  subcontractorId: string;
-  workDate: string;          // 'YYYY-MM-DD'
-  hours: number | null;      // explicit; or derived from clockInAt/clockOutAt
-  clockInAt: number | null;
-  clockOutAt: number | null;
-  siteRef: string | null;
-  notes: string | null;
-  status: TimesheetStatus;
-  paymentId: string | null;
-  primaryId: string | null;
-  createdBy: string;
-  createdAt: number;
-  updatedAt: number;
-}
 
 export interface AppSettings {
   principal_name: string | null;
@@ -121,8 +90,6 @@ export interface AppSettings {
   changes_request_email: string | null;
   // BC service fee per worker (minor units). Default 1700 = €17.
   service_fee_per_worker_minor: string | null;
-  // UUID of the default contract template used on auto-gen.
-  default_contract_template_id: string | null;
 }
 
 // Invoice template options surfaced in the InvoicePayload (parsed from
@@ -232,8 +199,7 @@ export interface Subcontractor {
   // Subcontractor's own accountant - who they want their invoices CC'd to.
   // Distinct from the principal's accountant (in AppSettings).
   accountantEmail: string | null;
-  // Default Primary this sub typically works for (per-timesheet override
-  // possible via Timesheet.primaryId).
+  // Default Primary this sub typically works for.
   primaryId: string | null;
   anonymisedAt: number | null;
   createdAt: number;
@@ -251,34 +217,23 @@ export interface BankDetails {
   currency: string;
 }
 
-export interface ContractRecord {
+// Roster entry: a principal's claim that a given PPS + email + name is
+// one of their workers. Lives independently of whether a sub account
+// exists for that PPS. When a sub later signs up + is approved by admin
+// with the matching PPS, linkedSubId is populated.
+export interface RosterEntry {
   id: string;
-  subcontractorId: string;
-  templateId: string;
-  templateVersion: number;
-  renderedHtml: string;
-  pdfR2Key: string | null;
-  status: ContractStatus;
-  signedName: string | null;
-  signedIp: string | null;
-  signedToken: string | null;
-  signedAt: number | null;
-  signaturePng: string | null;
-  createdAt: number;
-  // Counterparty + site - nullable on legacy contracts that pre-date
-  // the per-site model.
-  primaryId: string | null;
-  siteId: string | null;
-  assignmentId: string | null;
-}
-
-export interface ContractTemplate {
-  id: string;
+  primaryId: string;
+  // Encrypted PPS - never exposed in the clear. The list endpoint
+  // returns a masked version (e.g. "1234567A" -> "*****67A").
+  ppsMasked: string;
+  email: string;
   name: string;
-  version: number;
-  bodyHtml: string;
-  isActive: boolean;
+  linkedSubId: string | null;
+  // Subcontractor approval status when linked, null otherwise.
+  linkedSubStatus: OnboardingStatus | null;
   createdAt: number;
+  updatedAt: number;
 }
 
 export interface DocumentRecord {

@@ -3,7 +3,6 @@ import { Link, useParams } from "react-router-dom";
 import { api, ApiError } from "@/lib/api";
 import type {
   BankDetails,
-  ContractRecord,
   DocumentRecord,
   PaymentRecord,
   Primary,
@@ -38,7 +37,7 @@ import {
   Plus,
 } from "lucide-react";
 
-type Tab = "overview" | "documents" | "contract" | "questionnaire" | "timesheets" | "payments";
+type Tab = "overview" | "documents" | "questionnaire" | "payments";
 
 export function SubcontractorDetail() {
   const { id = "" } = useParams();
@@ -77,7 +76,6 @@ export function SubcontractorDetail() {
   const [rejectReason, setRejectReason] = useState("");
   const [changesModal, setChangesModal] = useState(false);
   const [changesNote, setChangesNote] = useState("");
-  const [genContractLoading, setGenContractLoading] = useState(false);
   const [anonModal, setAnonModal] = useState(false);
   const [anonConfirm, setAnonConfirm] = useState("");
   const [anonLoading, setAnonLoading] = useState(false);
@@ -106,19 +104,6 @@ export function SubcontractorDetail() {
     }
   };
 
-  const generateContract = async () => {
-    setGenContractLoading(true);
-    try {
-      await api.adminGenerateContract(id);
-      toast.success("Contract generated");
-      setTab("contract");
-    } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : "Failed");
-    } finally {
-      setGenContractLoading(false);
-    }
-  };
-
   if (loading || !sub) {
     return (
       <div className="space-y-4">
@@ -131,9 +116,7 @@ export function SubcontractorDetail() {
   const tabs: { key: Tab; label: string }[] = [
     { key: "overview", label: "Overview" },
     { key: "documents", label: "Documents" },
-    { key: "contract", label: "Contract" },
     { key: "questionnaire", label: "Questionnaire" },
-    { key: "timesheets", label: "Timesheets" },
     { key: "payments", label: "Payments" },
   ];
 
@@ -215,16 +198,7 @@ export function SubcontractorDetail() {
 
       {tab === "overview" && <OverviewTab sub={sub} bank={bank} onRefresh={refreshSub} />}
       {tab === "documents" && <DocumentsTab subId={id} />}
-      {tab === "contract" && (
-        <ContractTab
-          subId={id}
-          canGenerate={!!sub.submittedAt}
-          generating={genContractLoading}
-          onGenerate={generateContract}
-        />
-      )}
       {tab === "questionnaire" && <QuestionnaireTab subId={id} />}
-      {tab === "timesheets" && <TimesheetsTab subId={id} sub={sub} />}
       {tab === "payments" && (
         <PaymentsTab
           subId={id}
@@ -623,114 +597,6 @@ function DocumentsTab({ subId }: { subId: string }) {
   );
 }
 
-function ContractTab({ subId, canGenerate, generating, onGenerate }: { subId: string; canGenerate: boolean; generating: boolean; onGenerate: () => void }) {
-  const [contract, setContract] = useState<ContractRecord | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-
-  const refresh = async () => {
-    try {
-      const c = await api.adminGetContract(subId);
-      setContract(c);
-      setNotFound(false);
-    } catch (e) {
-      if (e instanceof ApiError && e.code === "NOT_FOUND") setNotFound(true);
-    }
-  };
-
-  useEffect(() => {
-    (async () => { try { await refresh(); } finally { setLoading(false); } })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subId]);
-
-  // After admin generates a fresh contract, re-fetch automatically.
-  useEffect(() => {
-    if (!generating) { refresh(); }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [generating]);
-
-  // Print the contract - opens the browser print dialog with only the
-  // rendered contract HTML visible. Mirrors Enagh's print_contract.asp.
-  const printContract = () => {
-    if (!contract?.renderedHtml) return;
-    const w = window.open("", "_blank", "noopener,noreferrer,width=900,height=1100");
-    if (!w) { window.alert("Pop-up blocker prevented opening the print preview."); return; }
-    w.document.open();
-    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Contract</title>
-      <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color:#111; max-width: 800px; margin: 24mm auto; padding: 0 16mm; line-height: 1.55; font-size: 11pt; }
-        h1, h2, h3 { color:#000; }
-        h1 { font-size: 18pt; margin-top: 0; }
-        h2 { font-size: 13pt; margin-top: 18pt; }
-        ul, ol { padding-left: 22pt; }
-        .signed { margin-top: 24pt; padding: 10pt 14pt; background: #f3f6fa; border-left: 4px solid #1f4396; font-size: 10pt; }
-        @page { size: A4; margin: 16mm; }
-        @media print { .no-print { display: none !important; } }
-      </style></head><body>
-      <div class="no-print" style="margin-bottom:18px;text-align:right">
-        <button onclick="window.print()" style="padding:8px 16px;font:600 13px sans-serif;border:1px solid #1f4396;background:#1f4396;color:#fff;border-radius:6px;cursor:pointer">Print / Save as PDF</button>
-      </div>
-      ${contract.renderedHtml}
-      ${contract.signedAt ? `<div class="signed">
-        <strong>Signed</strong> on ${new Date(contract.signedAt).toLocaleString("en-IE")} by ${contract.signedName || "-"}.
-        ${contract.signedIp ? `<br>IP at signing: <code>${contract.signedIp}</code>` : ""}
-        ${contract.signedToken ? `<br>Token: <code style="font-family:monospace;font-size:9pt">${contract.signedToken.slice(0, 32)}…</code>` : ""}
-      </div>` : ""}
-      </body></html>`);
-    w.document.close();
-    setTimeout(() => { try { w.focus(); w.print(); } catch {} }, 350);
-  };
-
-  if (loading) return <div className="skeleton h-64" />;
-
-  return (
-    <div className="space-y-6">
-      <div className="card-padded">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div>
-            <h3 className="font-semibold text-ink-900 mb-1">Contract</h3>
-            <p className="text-sm text-ink-500">
-              {contract
-                ? <>Status: <strong className="text-ink-700">{contract.status}</strong>{contract.signedAt ? <> · signed {new Date(contract.signedAt).toLocaleDateString("en-IE")} by {contract.signedName || "-"}</> : null}</>
-                : notFound ? "No contract on file yet." : "Generate a contract from the active template. This supersedes any previous contract."}
-            </p>
-          </div>
-          <div className="flex gap-2 shrink-0">
-            {contract && (
-              <Button variant="outline" onClick={printContract} leftIcon={<FileText className="h-4 w-4" />}>
-                Print contract
-              </Button>
-            )}
-            <Button
-              variant="accent"
-              onClick={onGenerate}
-              disabled={!canGenerate}
-              loading={generating}
-              leftIcon={<FileText className="h-4 w-4" />}
-            >
-              {canGenerate ? (contract ? "Regenerate" : "Generate contract") : "Awaiting profile submission"}
-            </Button>
-          </div>
-        </div>
-        {!canGenerate && !contract && (
-          <p className="text-xs text-ink-400">
-            The subcontractor must submit their application before a contract can be generated.
-          </p>
-        )}
-      </div>
-
-      {contract && (
-        <div className="card-padded">
-          <h3 className="font-semibold text-ink-900 mb-3">Preview</h3>
-          <div
-            className="prose prose-sm max-w-none border border-ink-100 rounded-lg p-4 bg-ink-50/30 max-h-[600px] overflow-y-auto"
-            dangerouslySetInnerHTML={{ __html: contract.renderedHtml || "<em class='text-ink-400'>No rendered HTML.</em>" }}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
 
 function QuestionnaireTab({ subId }: { subId: string }) {
   const toast = useToast();
@@ -804,290 +670,6 @@ function QuestionnaireTab({ subId }: { subId: string }) {
   );
 }
 
-function TimesheetsTab({ subId, sub }: { subId: string; sub: Subcontractor }) {
-  const toast = useToast();
-  const [items, setItems] = useState<import("@/lib/types").Timesheet[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [from, setFrom] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
-  });
-  const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10));
-  const [statusFilter, setStatusFilter] = useState("");
-  const [genOpen, setGenOpen] = useState(false);
-  const [genFrom, setGenFrom] = useState(from);
-  const [genTo, setGenTo] = useState(to);
-  const [generating, setGenerating] = useState(false);
-  // Manual timesheet entry (admin types it on the sub's behalf -
-  // covers cases where the clock-in/out flow wasn't used).
-  const [addOpen, setAddOpen] = useState(false);
-  const [addDate, setAddDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [addHours, setAddHours] = useState("8");
-  const [addSite, setAddSite] = useState("");
-  const [addNotes, setAddNotes] = useState("");
-  const [adding, setAdding] = useState(false);
-  const addTimesheet = async () => {
-    const hours = parseFloat(addHours) || 0;
-    if (!addDate || hours <= 0) { toast.error("Date + hours > 0 required."); return; }
-    setAdding(true);
-    try {
-      await api.adminCreateSubTimesheet(subId, {
-        workDate: addDate,
-        hours,
-        siteRef: addSite.trim() || undefined,
-        notes: addNotes.trim() || undefined,
-        approved: true,
-      });
-      toast.success("Timesheet added (status: approved).");
-      setAddOpen(false);
-      setAddSite(""); setAddNotes("");
-      await refresh();
-    } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : "Failed");
-    } finally { setAdding(false); }
-  };
-
-  const refresh = async () => {
-    const r = await api.adminListSubTimesheets(subId, {
-      from, to, status: statusFilter || undefined,
-    });
-    setItems(r.items);
-  };
-  useEffect(() => {
-    (async () => { try { await refresh(); } finally { setLoading(false); } })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subId]);
-
-  const applyFilters = async () => {
-    setLoading(true);
-    try { await refresh(); } finally { setLoading(false); }
-  };
-
-  const review = async (id: string, status: "approved" | "rejected") => {
-    try {
-      await api.adminReviewTimesheet(id, status);
-      await refresh();
-      toast.success(`Timesheet ${status}`);
-    } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : "Failed");
-    }
-  };
-
-  const generate = async () => {
-    setGenerating(true);
-    try {
-      const p = await api.adminGeneratePaymentFromPeriod(subId, genFrom, genTo);
-      toast.success(`Payment created: ${fmtMoney(p.grossMinor, p.currency)} gross`);
-      setGenOpen(false);
-      await refresh();
-    } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : "Failed");
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  const totalHours = items.reduce((s, t) => s + (t.hours || 0), 0);
-  const approvedUnpaidHours = items.filter(t => t.status === "approved").reduce((s, t) => s + (t.hours || 0), 0);
-  const projectedGross =
-    sub.rateAmountMinor && sub.rateUnit === "hour"
-      ? Math.round(approvedUnpaidHours * sub.rateAmountMinor)
-      : null;
-
-  return (
-    <>
-      <div className="card-padded mb-5">
-        <div className="flex items-end gap-3 flex-wrap">
-          <Input label="From" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-          <Input label="To" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-          <div className="w-40">
-            <Select
-              label="Status"
-              value={statusFilter}
-              options={[
-                { value: "", label: "All" },
-                { value: "draft", label: "Draft" },
-                { value: "submitted", label: "Submitted" },
-                { value: "approved", label: "Approved" },
-                { value: "rejected", label: "Rejected" },
-                { value: "paid", label: "Paid" },
-              ]}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            />
-          </div>
-          <Button variant="outline" onClick={applyFilters}>Apply</Button>
-          <div className="ml-auto flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => exportRowsAsCsv(
-                `timesheets_${sub.fullName?.replace(/\s+/g, "_") || sub.id.slice(0,6)}_${from}_${to}.csv`,
-                items,
-                [
-                  { header: "Date",     value: (t) => t.workDate },
-                  { header: "Hours",    value: (t) => t.hours ?? "" },
-                  { header: "Clock in", value: (t) => t.clockInAt ? new Date(t.clockInAt).toISOString() : "" },
-                  { header: "Clock out",value: (t) => t.clockOutAt ? new Date(t.clockOutAt).toISOString() : "" },
-                  { header: "Site",     value: (t) => t.siteRef ?? "" },
-                  { header: "Notes",    value: (t) => t.notes ?? "" },
-                  { header: "Status",   value: (t) => t.status },
-                ],
-              )}
-              leftIcon={<Download className="h-4 w-4" />}
-              disabled={items.length === 0}
-            >
-              CSV
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setAddOpen(true)}
-              leftIcon={<Plus className="h-4 w-4" />}
-            >
-              Add timesheet
-            </Button>
-            <Button
-              variant="accent"
-              onClick={() => { setGenFrom(from); setGenTo(to); setGenOpen(true); }}
-              disabled={!sub.rateAmountMinor || !sub.rateUnit}
-              leftIcon={<Send className="h-4 w-4" />}
-            >
-              Generate payment from period
-            </Button>
-          </div>
-        </div>
-        <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
-          <div>
-            <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold">Hours in range</div>
-            <div className="text-xl font-bold tabular-nums mt-1">{totalHours.toFixed(2)}</div>
-          </div>
-          <div>
-            <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold">Approved &amp; unpaid</div>
-            <div className="text-xl font-bold tabular-nums mt-1 text-emerald-700">{approvedUnpaidHours.toFixed(2)}</div>
-          </div>
-          <div>
-            <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold">Projected gross</div>
-            <div className="text-xl font-bold tabular-nums mt-1">
-              {projectedGross != null ? fmtMoney(projectedGross, "EUR") : <span className="text-ink-400">·</span>}
-            </div>
-            <div className="text-[10px] text-ink-500 mt-0.5">
-              {sub.rateAmountMinor && sub.rateUnit
-                ? `Based on ${fmtMoney(sub.rateAmountMinor, "EUR")} / ${sub.rateUnit}`
-                : "No contracted rate set"}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="skeleton h-64" />
-      ) : items.length === 0 ? (
-        <div className="card p-6 text-sm text-ink-500">No timesheets in this range.</div>
-      ) : (
-        <div className="card overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-ink-50 border-b border-ink-100">
-              <tr className="text-left text-xs font-semibold uppercase tracking-wider text-ink-500">
-                <th className="px-5 py-3">Date</th>
-                <th className="px-5 py-3">Hours</th>
-                <th className="px-5 py-3">Clock in / out</th>
-                <th className="px-5 py-3">Site</th>
-                <th className="px-5 py-3">Notes</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((t) => (
-                <tr key={t.id} className="border-b border-ink-100 last:border-b-0">
-                  <td className="px-5 py-3 text-sm text-ink-900">{fmtDate(t.workDate)}</td>
-                  <td className="px-5 py-3 text-sm tabular-nums text-ink-900">{t.hours != null ? t.hours.toFixed(2) : "·"}</td>
-                  <td className="px-5 py-3 text-xs text-ink-600">
-                    {t.clockInAt ? new Date(t.clockInAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "·"}
-                    {" → "}
-                    {t.clockOutAt ? new Date(t.clockOutAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "·"}
-                  </td>
-                  <td className="px-5 py-3 text-sm text-ink-600">{t.siteRef || <span className="text-ink-400">·</span>}</td>
-                  <td className="px-5 py-3 text-sm text-ink-600 max-w-[220px] truncate" title={t.notes || ""}>
-                    {t.notes || <span className="text-ink-400">·</span>}
-                  </td>
-                  <td className="px-5 py-3">
-                    {t.status === "approved" && <Badge tone="success">Approved</Badge>}
-                    {t.status === "rejected" && <Badge tone="danger">Rejected</Badge>}
-                    {t.status === "submitted" && <Badge tone="info">Submitted</Badge>}
-                    {t.status === "draft" && <Badge tone="warn">Draft</Badge>}
-                    {t.status === "paid" && <Badge tone="success">Paid</Badge>}
-                  </td>
-                  <td className="px-5 py-3 text-right">
-                    {t.status === "submitted" && (
-                      <>
-                        <Button variant="ghost" size="sm" onClick={() => review(t.id, "rejected")}>Reject</Button>
-                        <Button variant="accent" size="sm" onClick={() => review(t.id, "approved")}>Approve</Button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <Modal
-        open={genOpen}
-        onClose={() => setGenOpen(false)}
-        title="Generate payment from approved timesheets"
-        description="Sums all approved + unpaid timesheets in the period and creates a payment using the contracted rate. Approved timesheets in range will be marked 'paid' and linked to the new payment."
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setGenOpen(false)}>Cancel</Button>
-            <Button variant="accent" onClick={generate} loading={generating}>Generate</Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="From" type="date" value={genFrom} onChange={(e) => setGenFrom(e.target.value)} />
-            <Input label="To" type="date" value={genTo} onChange={(e) => setGenTo(e.target.value)} />
-          </div>
-          {sub.rateAmountMinor && sub.rateUnit ? (
-            <div className="rounded-lg bg-ink-100 border border-ink-200 p-3 text-sm text-ink-700">
-              Rate: <strong>{fmtMoney(sub.rateAmountMinor, "EUR")} / {sub.rateUnit}</strong>{sub.rctRate ? ` · RCT ${sub.rctRate}%` : ""}
-            </div>
-          ) : (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-800">
-              Subcontractor has no contracted rate set. Add one on the Payments tab first.
-            </div>
-          )}
-        </div>
-      </Modal>
-
-      {/* Manual timesheet entry. Admin sometimes needs to type hours
-          on a sub's behalf (clock-in flow unreliable / offline crew /
-          retroactive entry). Row lands as 'approved' so it flows into
-          the next 'Generate payment from period' run. */}
-      <Modal
-        open={addOpen}
-        onClose={() => setAddOpen(false)}
-        title="Add timesheet (manual)"
-        description="For when clock-in/out wasn't used. Row is auto-approved so it flows into the next payment run."
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button variant="accent" onClick={addTimesheet} loading={adding}>Add</Button>
-          </>
-        }
-      >
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <Input label="Work date" type="date" value={addDate} onChange={(e) => setAddDate(e.target.value)} />
-            <Input label="Hours" type="number" step="0.25" min="0" max="24" value={addHours} onChange={(e) => setAddHours(e.target.value)} />
-          </div>
-          <Input label="Site reference (optional)" value={addSite} onChange={(e) => setAddSite(e.target.value)} placeholder="e.g. DUB48662N" />
-          <Textarea label="Notes (optional)" value={addNotes} onChange={(e) => setAddNotes(e.target.value)} rows={3} placeholder="What did they do, anything to flag for payroll, etc." />
-        </div>
-      </Modal>
-    </>
-  );
-}
 
 function PaymentsTab({
   subId,
