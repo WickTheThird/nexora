@@ -73,39 +73,37 @@ export function PrimaryInvoiceDetail() {
       issuedAt: new Date().toISOString(),
       period: { from: inv.periodStart, to: inv.periodEnd },
       invoiceNumber: inv.invoiceNumber,
-      // Issuer block (BILL TO on the principal-side invoice download). Uses
-      // the live brand name from runtime config so renames don't get stuck
-      // in code. Address/VAT/email are populated by the worker into the
-      // invoice payload when we hand it back - see worker side below.
+      // Direction: BC (issuer) -> Primary (recipient).
+      // The PDF renderer puts `subcontractor` in the FROM column and
+      // `principal` in the BILL TO column. So:
+      //   FROM = BC -> subcontractor slot
+      //   BILL TO = Primary -> principal slot
       principal: {
-        name: data.invoice.issuerName || "Samwise Building Contractors Ltd",
-        address: data.invoice.issuerAddress || null,
-        vat: data.invoice.issuerVat || null,
-        email: data.invoice.issuerEmail || null,
+        name: data.primary.name,
+        address: data.primary.address,
+        vat: data.primary.vat,
+        email: data.primary.contactEmail,
       },
-      // We treat the primary as the "subcontractor" recipient slot since the
-      // PDF generator is structured around two parties; mode='primaryInvoice'
-      // makes the wording reflect "Bill To" rather than "Subcontractor".
       subcontractor: {
-        id: data.primary.id,
+        id: "bc",
         userId: "",
         clientRef: null,
         subcontractorRef: null,
-        fullName: data.primary.name,
-        address1: data.primary.address,
+        fullName: data.invoice.issuerName || "Samwise Building Contractors Ltd",
+        address1: data.invoice.issuerAddress || null,
         address2: null,
         town: null,
         postcode: null,
         dob: null,
         placeOfBirth: null,
-        tel: data.primary.phone,
+        tel: null,
         mob: null,
-        email: data.primary.contactEmail,
+        email: data.invoice.issuerEmail || null,
         ppsNumber: null,
         natureOfServices: null,
         workType: null,
-        vatRegistered: !!data.primary.vat,
-        vatNumber: data.primary.vat,
+        vatRegistered: !!data.invoice.issuerVat,
+        vatNumber: data.invoice.issuerVat || null,
         rateAmountMinor: null,
         rateUnit: null,
         rctRate: null,
@@ -113,7 +111,7 @@ export function PrimaryInvoiceDetail() {
         vatReverseCharge: false,
         onboardingStatus: "approved" as const,
         submittedAt: null,
-        accountantEmail: data.primary.accountantEmail,
+        accountantEmail: null,
         primaryId: null,
         anonymisedAt: null,
         createdAt: 0,
@@ -130,9 +128,12 @@ export function PrimaryInvoiceDetail() {
       },
       rct: { byRate: [] },
       vat: {
-        subcontractorVatRegistered: !!data.primary.vat,
-        subcontractorVatNumber: data.primary.vat,
-        principalVatNumber: null,
+        // For BC->Primary invoices: BC charges VAT on the service kind.
+        // The 'subcontractor' slot is now BC, so subcontractorVatNumber
+        // is BC's VAT, principalVatNumber is the primary's VAT.
+        subcontractorVatRegistered: !!data.invoice.issuerVat,
+        subcontractorVatNumber: data.invoice.issuerVat || null,
+        principalVatNumber: data.primary.vat,
         reverseChargeApplied: false,
         reverseChargePaymentCount: 0,
         note: null,
