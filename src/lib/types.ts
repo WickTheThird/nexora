@@ -361,6 +361,10 @@ export interface PrimaryInvoice {
   periodEnd: string;
   grossMinor: number;
   markupMinor: number;
+  // VAT only applies to 'service' invoices (BC's fee). Labour pass-
+  // through is VAT-free under RCT reverse-charge.
+  vatMinor: number;
+  vatRatePercent: number | null;
   netMinor: number;
   currency: string;
   status: PrimaryInvoiceStatus;

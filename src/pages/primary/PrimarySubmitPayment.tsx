@@ -104,6 +104,15 @@ function fmtMoneyEur(amountMinor: number): string {
   return `\u20AC${(amountMinor / 100).toLocaleString("en-IE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+// Per-worker hours cap, scaled to the Job Card period. 64h/week is the
+// hard ceiling; fortnightly + monthly are multiples. Going over blocks
+// submission and surfaces a red error on the offending row.
+function hoursCapFor(jobCardType: JobCardType): number {
+  if (jobCardType === "fortnightly") return 128;
+  if (jobCardType === "monthly")     return 256;
+  return 64; // weekly
+}
+
 export function PrimarySubmitPayment() {
   const toast = useToast();
   const nav = useNavigate();
@@ -398,6 +407,14 @@ export function PrimarySubmitPayment() {
   const submitJobCard = async () => {
     const cleaned = buildItems(true);
     if (cleaned.length === 0) { toast.error("No rows have a quantity > 0. Fill at least one operative's hours/days."); return; }
+    // Hours cap: refuse if any row exceeds the period ceiling.
+    const cap = hoursCapFor(jobCardType);
+    const offenders = rows.filter(r => (parseFloat(r.quantity) || 0) > cap);
+    if (offenders.length > 0) {
+      const names = offenders.map(r => r.subcontractorName || r.subcontractorRef || "operative").join(", ");
+      toast.error(`Too many hours for ${names}. Max ${cap}h per ${jobCardType} Job Card.`);
+      return;
+    }
     if (!confirm(`Submit Job Card to BC?\n\n• ${cleaned.length} operative${cleaned.length === 1 ? "" : "s"} with hours\n• Total Gross: ${fmtMoneyEur(totals.totalGrossMinor)}\n• Total to Pay BC: ${fmtMoneyEur(totals.totalToPay)}\n\nThis will LOCK the Job Card. It can't be edited after.`)) return;
     setSubmitting(true);
     try {
@@ -642,7 +659,7 @@ export function PrimarySubmitPayment() {
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={11} className="px-5 py-10 text-center text-sm text-ink-500">
-                  You don&apos;t have any active subcontractors yet. <Link to="/primary/subcontractors" className="text-ink-900 underline font-medium">Request your first subcontractor</Link> to start filling Job Cards.
+                  You don&apos;t have any subcontractors yet. <Link to="/primary/subcontractors" className="text-ink-900 underline font-medium">Add your first subcontractor</Link> to start filling Job Cards.
                 </td>
               </tr>
             ) : rows.map((row, i) => {
@@ -652,12 +669,21 @@ export function PrimarySubmitPayment() {
               const e = parseFloat(row.extras) || 0;
               const grossMinor = Math.round((q * rt + m + e) * 100);
               const isAuto = !!row.operativeId;
+              const cap = hoursCapFor(jobCardType);
+              const overCap = q > cap;
               return (
-                <tr key={row.operativeId || `adhoc-${i}`} className="border-b border-ink-100 last:border-b-0">
+                <tr key={row.operativeId || `adhoc-${i}`} className={`border-b border-ink-100 last:border-b-0 ${overCap ? "bg-red-50" : ""}`}>
                   <td className="px-3 py-2 font-mono text-xs text-ink-500">{row.operativeId ? row.operativeId.slice(0, 6) : "-"}</td>
                   <td className="px-3 py-2 font-mono text-xs text-ink-700">{row.subcontractorRef || "-"}</td>
-                  <td className="px-3 py-2 text-ink-900">{row.subcontractorName || "-"}</td>
-                  <td className="px-2 py-2"><input inputMode="decimal" className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.quantity} onChange={(ev) => updateRow(i, "quantity", ev.target.value)} placeholder="0" /></td>
+                  <td className="px-3 py-2 text-ink-900">
+                    {row.subcontractorName || "-"}
+                    {overCap && (
+                      <div className="text-xs text-red-700 mt-0.5 font-medium">
+                        Too many hours for {row.subcontractorName || "this operative"} ({q}h &gt; {cap}h cap)
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-2 py-2"><input inputMode="decimal" className={`w-20 px-2 py-1 text-sm rounded border outline-none text-right tabular-nums ${overCap ? "border-red-400 focus:border-red-600 bg-red-50" : "border-ink-200 focus:border-ink-900"}`} value={row.quantity} onChange={(ev) => updateRow(i, "quantity", ev.target.value)} placeholder="0" /></td>
                   <td className="px-2 py-2"><input inputMode="decimal" className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.rate} onChange={(ev) => updateRow(i, "rate", ev.target.value)} placeholder="0" /></td>
                   <td className="px-2 py-2"><input inputMode="decimal" className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.extras} onChange={(ev) => updateRow(i, "extras", ev.target.value)} placeholder="0" /></td>
                   <td className="px-2 py-2"><input inputMode="decimal" className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.materialValue} onChange={(ev) => updateRow(i, "materialValue", ev.target.value)} placeholder="0" /></td>
