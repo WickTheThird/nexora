@@ -100,21 +100,8 @@ const ACTIONS: ActionDef[] = [
     needs: ["status"],
     run: async (id, { status }) => { await api.adminPatchSubcontractor(id, { onboardingStatus: status as Subcontractor["onboardingStatus"] }); },
   },
-  {
-    key: "assign_principal",
-    label: "Assign to principal...",
-    description: "Link selected subcontractors to a chosen principal (overwrites existing linkage).",
-    audiences: ["subs"],
-    needs: ["principal_id"],
-    run: async (id, { principalId }) => { await api.adminPatchSubcontractor(id, { primaryId: principalId } as Partial<Subcontractor>); },
-  },
-  {
-    key: "unlink_principal",
-    label: "Unlink from principal",
-    description: "Clear primary_id on each selected sub.",
-    audiences: ["subs"],
-    run: async (id) => { await api.adminPatchSubcontractor(id, { primaryId: null } as Partial<Subcontractor>); },
-  },
+  // Principal linkage actions removed: principals manage their own
+  // roster (PPS-keyed auto-link). Admin doesn't reassign manually.
 
   // ---- Submission actions ----
   {
@@ -152,7 +139,7 @@ const ACTIONS: ActionDef[] = [
 ];
 
 const AUDIENCE_META: Record<Audience, { label: string; icon: React.ComponentType<{ className?: string }>; hint: string }> = {
-  subs:            { label: "Subcontractors",         icon: Users,          hint: "Approve, reject, change status, assign principal, unlink." },
+  subs:            { label: "Subcontractors",         icon: Users,          hint: "Approve, reject, change status." },
   principals:      { label: "Principals",             icon: Building2,      hint: "Archive in bulk (more actions coming)." },
   submissions:     { label: "Job Card submissions",   icon: Briefcase,      hint: "Bulk-process submitted Job Cards." },
   change_requests: { label: "Change requests",        icon: MessagesSquare, hint: "Bulk-close + mark seen." },
