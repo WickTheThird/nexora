@@ -13,7 +13,7 @@
 // keeps principals in control of who's on their roster.
 
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
@@ -23,15 +23,29 @@ import { ArrowRight, Hammer, Building2, Mail } from "lucide-react";
 const API_URL = (window as { __SAMWISE_CONFIG__?: { apiUrl?: string } }).__SAMWISE_CONFIG__?.apiUrl
   || "https://nexora-api.bumbufilip22.workers.dev";
 
+// React Router's useLocation gives us the in-app search string; for the
+// hash-router setup we also strip the query off the hash itself so links
+// like #/signup/subcontractor?email=x&name=y work as expected.
+function parseInviteParams(search: string): { email?: string; name?: string } {
+  try {
+    const qs = search.startsWith("?") ? search.slice(1) : search;
+    const p = new URLSearchParams(qs);
+    return { email: p.get("email") || undefined, name: p.get("name") || undefined };
+  } catch { return {}; }
+}
+
 export function Signup() {
   const { kind: rawKind } = useParams<{ kind: string }>();
+  const location = useLocation();
   const kind: "primary" | "subcontractor" = rawKind === "primary" ? "primary" : "subcontractor";
   const nav = useNavigate();
   const toast = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  // Prefill from invite link query params (?email=...&name=...).
+  const initial = parseInviteParams(location.search);
+  const [fullName, setFullName] = useState(initial.name || "");
+  const [email, setEmail] = useState(initial.email || "");
   // User picks their own password at signup. Min 8 chars; we don't enforce
   // complexity - modern guidance is length, not symbols.
   const [password, setPassword] = useState("");

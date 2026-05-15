@@ -4,7 +4,6 @@ import type { RosterEntry } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Badge } from "@/components/ui/Badge";
 import { Empty } from "@/components/ui/Empty";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
@@ -19,16 +18,6 @@ import { Users, UserPlus, Upload, Trash2, FileSpreadsheet } from "lucide-react";
 //     columns by content shape.
 //   - We never depend on the worker having an account. Invoices and
 //     payment advices are emailed to the email on the roster entry.
-
-// The principal doesn't need to see the sub's onboarding status -
-// these are their workers regardless. We just show whether the worker
-// has an account on the platform yet (purely informational).
-function PresenceBadge({ entry }: { entry: RosterEntry }) {
-  if (!entry.linkedSubId) {
-    return <Badge tone="neutral">Pending sign-up</Badge>;
-  }
-  return <Badge tone="success">On platform</Badge>;
-}
 
 export function PrimaryRoster() {
   const toast = useToast();
@@ -123,7 +112,6 @@ export function PrimaryRoster() {
                 <th className="px-5 py-3">Name</th>
                 <th className="px-5 py-3">Email</th>
                 <th className="px-5 py-3">PPS</th>
-                <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3 w-12"></th>
               </tr>
             </thead>
@@ -133,7 +121,6 @@ export function PrimaryRoster() {
                   <td className="px-5 py-3 font-medium text-ink-900">{it.name}</td>
                   <td className="px-5 py-3 text-ink-700">{it.email}</td>
                   <td className="px-5 py-3 font-mono text-xs text-ink-600">{it.ppsMasked}</td>
-                  <td className="px-5 py-3"><PresenceBadge entry={it} /></td>
                   <td className="px-5 py-3 text-right">
                     <button
                       type="button"
