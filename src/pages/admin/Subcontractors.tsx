@@ -234,7 +234,7 @@ export function Subcontractors() {
                   <th className="px-5 py-3">Name</th>
                   <th className="px-5 py-3">Email</th>
                   <th className="px-5 py-3">Principal</th>
-                  <th className="px-5 py-3">Client ref</th>
+                  <th className="px-5 py-3">PPS</th>
                   <th className="px-5 py-3">Status</th>
                   <th className="px-5 py-3">Created</th>
                   <th className="px-5 py-3"></th>
@@ -273,7 +273,7 @@ export function Subcontractors() {
                         <span className="text-ink-400">-</span>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-sm text-ink-600">{s.clientRef || "·"}</td>
+                    <td className="px-5 py-3 text-sm text-ink-600 font-mono">{s.ppsNumber || s.subcontractorRef || "·"}</td>
                     <td className="px-5 py-3">{statusBadge(s.onboardingStatus)}</td>
                     <td className="px-5 py-3 text-sm text-ink-500">{fmtDate(s.createdAt)}</td>
                     <td className="px-5 py-3 text-right">

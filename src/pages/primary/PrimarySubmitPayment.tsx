@@ -645,8 +645,6 @@ export function PrimarySubmitPayment() {
         <table className="w-full text-sm">
           <thead className="bg-ink-50 border-b border-ink-100">
             <tr className="text-left text-xs uppercase tracking-wider text-ink-500 font-semibold">
-              <th className="px-3 py-2">ID</th>
-              <th className="px-3 py-2">Sub</th>
               <th className="px-3 py-2">Name</th>
               <th className="px-3 py-2 text-right">Qty</th>
               <th className="px-3 py-2 text-right">Rate</th>
@@ -660,7 +658,7 @@ export function PrimarySubmitPayment() {
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={11} className="px-5 py-10 text-center text-sm text-ink-500">
+                <td colSpan={9} className="px-5 py-10 text-center text-sm text-ink-500">
                   You don&apos;t have any subcontractors yet. <Link to="/primary/subcontractors" className="text-ink-900 underline font-medium">Add your first subcontractor</Link> to start filling Job Cards.
                 </td>
               </tr>
@@ -675,8 +673,6 @@ export function PrimarySubmitPayment() {
               const overCap = q > cap;
               return (
                 <tr key={row.operativeId || `adhoc-${i}`} className={`border-b border-ink-100 last:border-b-0 ${overCap ? "bg-red-50" : ""}`}>
-                  <td className="px-3 py-2 font-mono text-xs text-ink-500">{row.operativeId ? row.operativeId.slice(0, 6) : "-"}</td>
-                  <td className="px-3 py-2 font-mono text-xs text-ink-700">{row.subcontractorRef || "-"}</td>
                   <td className="px-3 py-2 text-ink-900">
                     {row.subcontractorName || "-"}
                     {overCap && (

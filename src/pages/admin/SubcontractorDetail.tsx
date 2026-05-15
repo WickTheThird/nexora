@@ -139,7 +139,7 @@ export function SubcontractorDetail() {
           </div>
           <div className="mt-3 flex gap-2 flex-wrap">
             <Badge tone="neutral">Status: {sub.onboardingStatus.replace(/_/g, " ")}</Badge>
-            {sub.clientRef && <Badge tone="neutral">Client: {sub.clientRef}</Badge>}
+            {sub.ppsNumber && <Badge tone="neutral">PPS: {sub.ppsNumber}</Badge>}
             {sub.submittedAt && <Badge tone="info">Submitted {fmtDate(sub.submittedAt)}</Badge>}
           </div>
         </div>

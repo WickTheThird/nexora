@@ -18,7 +18,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { InvoicePayload, PaymentRecord } from "./types";
 
-export type PdfMode = "advice" | "invoice" | "bc_invoice";
+export type PdfMode = "advice" | "invoice";
 
 function fmtMoneyMinor(amountMinor: number, currency: string): string {
   // Enagh format: plain "1,000.00" with no currency symbol in the number
@@ -66,7 +66,6 @@ export function generateInvoicePdf(
   brandName = "Samwise",
   mode: PdfMode = "advice",
 ): jsPDF {
-  if (mode === "bc_invoice") return generateBcInvoicePdf(inv, brandName);
   if (mode === "invoice") return generateSubInvoicePdf(inv, brandName);
   return generatePaymentAdvicePdf(inv, brandName);
 }

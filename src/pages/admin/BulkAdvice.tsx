@@ -289,14 +289,15 @@ export function BulkAdvice() {
   };
 
   const bulkMarkPaid = async () => {
-    // Only invoiced payments are eligible to be marked paid (sub must have
-    // generated their invoice first).
+    // Admin can mark any non-terminal payment paid (advised or invoiced).
+    // The sub's own invoice doesn't need to exist first - the payment
+    // record IS the document of record for the cash transfer.
     const eligible = payments
-      .filter((p) => pickedPayments.has(p.id) && p.status === "invoiced")
+      .filter((p) => pickedPayments.has(p.id) && p.status !== "paid" && p.status !== "cancelled" && p.status !== "reversed")
       .map((p) => p.id);
     const skipped = pickedPayments.size - eligible.length;
     if (eligible.length === 0) {
-      toast.error("None of the selected payments are invoiced yet");
+      toast.error("No selectable payments to mark paid");
       return;
     }
     if (
