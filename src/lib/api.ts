@@ -306,56 +306,6 @@ export const api = {
       body: { endpoint },
     }),
 
-  // -------- Job Cards (sub-side) --------
-  // Submissions where this sub appears on at least one line, with their
-  // own lines + per-line acceptance state.
-  listMyJobCards: () =>
-    request<{
-      items: Array<{
-        submissionId: string;
-        primaryId: string;
-        primaryName: string | null;
-        jobRef: string | null;
-        jobCardType: string | null;
-        periodStart: string | null;
-        periodEnd: string | null;
-        dateEnding: string | null;
-        status: string;
-        submittedAt: number | null;
-        processedAt: number | null;
-        totalItemCount: number;
-        totalGrossMinor: number;
-        myGrossMinor: number;
-        myItemCount: number;
-        pendingItemCount: number;
-        responseLocked: boolean;
-        items: Array<{
-          id: string;
-          submissionId: string;
-          subcontractorId: string | null;
-          jobNumber: string | null;
-          siteAddress: string | null;
-          quantity: number;
-          rateMinor: number;
-          grossMinor: number;
-          notes: string | null;
-          rctRate: "0" | "20" | "35" | null;
-          subAcceptedAt: number | null;
-          subDeclinedAt: number | null;
-          subDeclineReason: string | null;
-        }>;
-      }>;
-    }>("GET", "/me/job-cards"),
-  respondToJobCardItem: (
-    submissionId: string,
-    itemId: string,
-    action: "accept" | "decline",
-    reason?: string,
-  ) =>
-    request<unknown>("POST", `/me/job-cards/${submissionId}/items/${itemId}/respond`, {
-      body: { action, ...(reason ? { reason } : {}) },
-    }),
-
   // -------- documents --------
   listMyDocuments: () =>
     request<{ items: DocumentRecord[] }>("GET", "/me/documents"),
@@ -1224,72 +1174,18 @@ export const api = {
   putSettings: (data: Partial<AppSettings>) =>
     request<{ ok: true }>("PUT", "/admin/settings", { body: data }),
 
-  // -------- public jobs marketplace (Phase 4) --------
-  // Principal-side
-  primaryCreatePublicJob: (data: {
-    title: string;
-    brief?: string;
-    trade?: string;
-    location?: string;
-    payRateMinor?: number | null;
-    rateUnit?: PublicJobRateUnit | null;
-    startDate?: string | null;
-    endDate?: string | null;
-    /** Phase 4.5: defaults to 'invite_only' if omitted. */
-    visibility?: PublicJobVisibility;
-    /** Required for visibility='invite_only'. Must reference subs
-     *  who are approved on the principal's vendor list. */
-    inviteeIds?: string[];
-  }) => request<PublicJob>("POST", "/me/primary/public-jobs", { body: data as Json }),
-  primaryListPublicJobs: () =>
-    request<{ items: PublicJob[] }>("GET", "/me/primary/public-jobs"),
-  primaryGetPublicJob: (id: string) =>
-    request<{ job: PublicJob; applications: JobApplication[] }>("GET", `/me/primary/public-jobs/${id}`),
-  primaryPatchPublicJob: (id: string, data: Partial<{
-    title: string; brief: string; trade: string; location: string;
-    payRateMinor: number | null; rateUnit: PublicJobRateUnit | null;
-    startDate: string | null; endDate: string | null;
-    status: "open" | "paused" | "closed" | "filled";
-  }>) =>
-    request<PublicJob>("PATCH", `/me/primary/public-jobs/${id}`, { body: data as Json }),
-  primaryApproveApplication: (jobId: string, appId: string) =>
-    request<JobApplication>("POST", `/me/primary/public-jobs/${jobId}/applications/${appId}/approve`),
-  primaryRejectApplication: (jobId: string, appId: string, reason: string) =>
-    request<JobApplication>("POST", `/me/primary/public-jobs/${jobId}/applications/${appId}/reject`, { body: { reason } }),
-
-  // Favourite subs
-  primaryListFavouriteSubs: () =>
-    request<{ items: { subcontractorId: string; createdAt: number }[] }>("GET", "/me/primary/favourite-subs"),
-  primaryAddFavouriteSub: (subId: string) =>
-    request<{ subcontractorId: string; createdAt: number }>("POST", `/me/primary/favourite-subs/${subId}`),
-  primaryRemoveFavouriteSub: (subId: string) =>
-    request<{ removed: true }>("DELETE", `/me/primary/favourite-subs/${subId}`),
-
-  // Sub-side
-  subListPublicJobs: (params: { q?: string; trade?: string } = {}) => {
-    const qs = new URLSearchParams();
-    if (params.q) qs.set("q", params.q);
-    if (params.trade) qs.set("trade", params.trade);
-    const s = qs.toString();
-    return request<{ items: PublicJob[] }>("GET", `/me/sub/public-jobs${s ? `?${s}` : ""}`);
-  },
-  subGetPublicJob: (id: string) =>
-    request<{ job: PublicJob; nextApplyAllowedAt: number | null }>("GET", `/me/sub/public-jobs/${id}`),
-  subApplyToJob: (id: string, message: string) =>
-    request<JobApplication>("POST", `/me/sub/public-jobs/${id}/apply`, { body: { message } }),
-  subListMyApplications: () =>
-    request<{ items: JobApplication[] }>("GET", "/me/sub/applications"),
-  subWithdrawApplication: (id: string) =>
-    request<{ withdrawn: true }>("POST", `/me/sub/applications/${id}/withdraw`),
-
-  // Admin
+  // -------- Public jobs marketplace - DECOMMISSIONED --------
+  // The principal-posting + sub-browsing flow was removed. Only the
+  // admin read-only review of historical listings remains so the office
+  // can inspect old data when needed.
   adminListPublicJobs: (status?: string) =>
     request<{ items: PublicJob[] }>("GET", `/admin/public-jobs${status ? `?status=${status}` : ""}`),
-  adminRemovePublicJob: (id: string, reason: string) =>
-    request<{ removed: true }>("POST", `/admin/public-jobs/${id}/remove`, { body: { reason } }),
 
-  // -------- Vendor list (Phase 4.5 procurement) --------
-  // Principal-side
+  // -------- Principal vendor list (talent pool) --------
+  // Kept: the principal's own curated roster of approved operatives +
+  // favourites. SUB-initiated 'apply to vendor list' is gone with the
+  // marketplace; principal adds operatives directly via Operative
+  // Requests now.
   primaryListVendorList: (params: { status?: VendorListEntry["status"]; favourite?: boolean } = {}) => {
     const qs = new URLSearchParams();
     if (params.status) qs.set("status", params.status);
@@ -1299,7 +1195,7 @@ export const api = {
   },
   primaryAddToVendorList: (subId: string) =>
     request<{ subcontractorId: string; createdAt: number; status: "approved" }>(
-      "POST", `/me/primary/vendor-list/${subId}`
+      "POST", `/me/primary/vendor-list/${subId}`,
     ),
   primaryRemoveFromVendorList: (subId: string, reason?: string) =>
     request<{ removed: true }>(
@@ -1308,48 +1204,12 @@ export const api = {
     ),
   primaryToggleVendorListFavourite: (subId: string, favourite: boolean) =>
     request<{ subcontractorId: string; isFavourite: boolean }>(
-      "POST", `/me/primary/vendor-list/${subId}/favourite`, { body: { favourite } }
+      "POST", `/me/primary/vendor-list/${subId}/favourite`, { body: { favourite } },
     ),
-  primaryListVendorListApplications: (status: VendorListApplication["status"] = "pending") =>
-    request<{ items: VendorListApplication[] }>(
-      "GET", `/me/primary/vendor-list-applications?status=${status}`
-    ),
-  primaryApproveVendorListApplication: (id: string) =>
-    request<VendorListApplication>("POST", `/me/primary/vendor-list-applications/${id}/approve`),
-  primaryRejectVendorListApplication: (id: string, reason: string) =>
-    request<VendorListApplication>(
-      "POST", `/me/primary/vendor-list-applications/${id}/reject`, { body: { reason } }
-    ),
-
-  // Sub-side
-  subListVendorMemberships: () =>
-    request<{ memberships: VendorListMembership[]; applications: VendorListApplication[] }>(
-      "GET", "/me/sub/vendor-lists"
-    ),
-  subBrowsePrincipals: () =>
-    request<{ items: PrincipalDirectoryEntry[] }>("GET", "/me/sub/principals"),
-  subApplyToVendorList: (primaryId: string, message: string) =>
-    request<VendorListApplication>(
-      "POST", "/me/sub/vendor-list-applications", { body: { primaryId, message } }
-    ),
-  subWithdrawVendorListApplication: (id: string) =>
-    request<{ withdrawn: true }>("POST", `/me/sub/vendor-list-applications/${id}/withdraw`),
-
-  // Sub: decline an invite (job_application status='invited' -> 'declined')
-  subDeclineJobInvite: (jobId: string, reason?: string) =>
-    request<{ declined: true }>(
-      "POST", `/me/sub/public-jobs/${jobId}/decline`,
-      reason ? { body: { reason } } : undefined,
-    ),
-
-  // Sub: extended browse - same endpoint, takes bucket + filters
-  subListPublicJobsByBucket: (bucket: "all" | "invited" | "my_lists" | "discover", params: { q?: string; trade?: string } = {}) => {
-    const qs = new URLSearchParams();
-    qs.set("bucket", bucket);
-    if (params.q) qs.set("q", params.q);
-    if (params.trade) qs.set("trade", params.trade);
-    return request<{ items: PublicJob[]; isTrusted: boolean }>(
-      "GET", `/me/sub/public-jobs?${qs.toString()}`
-    );
-  },
+  primaryListFavouriteSubs: () =>
+    request<{ items: { subcontractorId: string; createdAt: number }[] }>("GET", "/me/primary/favourite-subs"),
+  primaryAddFavouriteSub: (subId: string) =>
+    request<{ subcontractorId: string; createdAt: number }>("POST", `/me/primary/favourite-subs/${subId}`),
+  primaryRemoveFavouriteSub: (subId: string) =>
+    request<{ removed: true }>("DELETE", `/me/primary/favourite-subs/${subId}`),
 };

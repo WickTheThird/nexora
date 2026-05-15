@@ -1,9 +1,7 @@
-import { useEffect, useState } from "react";
 import { Route, Routes } from "react-router-dom";
 import { PortalShell } from "@/components/layout/PortalShell";
 import { BottomNav, type BottomTab } from "@/components/ui/BottomNav";
 import { StickyClockButton } from "@/components/ui/StickyClockButton";
-import { api } from "@/lib/api";
 import {
   LayoutDashboard,
   User,
@@ -13,8 +11,6 @@ import {
   Wallet,
   LifeBuoy,
   Clock,
-  Briefcase,
-  Inbox,
   Menu,
 } from "lucide-react";
 import { Home } from "./Home";
@@ -26,8 +22,12 @@ import { Questionnaire } from "./Questionnaire";
 import { Payments } from "./Payments";
 import { Support } from "./Support";
 import { Timesheets } from "./Timesheets";
-import { SubJobsBoard, SubJobDetail, SubMyApplications } from "./Jobs";
-import { JobCards } from "./JobCards";
+
+// The sub is a receiver: they don't browse jobs, accept Job Cards, or
+// apply to anything. The marketplace flow (public_jobs / vendor_lists /
+// sub Job Cards with per-line accept/decline) lived here briefly during
+// the prototype phase and is now gone. The sub only sees what is
+// already due to them: payment advices + their own onboarding state.
 
 const nav = [
   { to: "/app", label: "Overview", icon: LayoutDashboard, end: true },
@@ -37,35 +37,17 @@ const nav = [
   { to: "/app/questionnaire", label: "Questionnaire", icon: ClipboardCheck },
   { to: "/app/timesheets", label: "Timesheets", icon: Clock },
   { to: "/app/payments", label: "Payments", icon: Wallet },
-  { to: "/app/job-cards", label: "Job Cards", icon: Briefcase },
-  { to: "/app/jobs", label: "Jobs marketplace", icon: Inbox },
-  { to: "/app/applications", label: "My applications", icon: Inbox },
   { to: "/app/support", label: "Support", icon: LifeBuoy },
 ];
 
 export function SubcontractorApp() {
-  // Pending Job Card line-count drives a badge on the bottom-nav tab so
-  // subs can see "I have something to respond to" without opening the page.
-  const [pendingJobCards, setPendingJobCards] = useState(0);
-  const refreshPending = async () => {
-    try {
-      const r = await api.listMyJobCards();
-      let n = 0;
-      for (const g of r.items) n += g.pendingItemCount;
-      setPendingJobCards(n);
-    } catch {
-      /* non-fatal */
-    }
-  };
-  useEffect(() => { refreshPending(); }, []);
-
-  // Five bottom tabs - the most-used pages for an active sub. "More"
-  // overflows to the existing hamburger menu in PortalShell.
+  // Bottom-nav tabs. "Jobs" replaced with "Hours" focus + Payments since
+  // there is nothing for the sub to do with jobs anymore.
   const bottomTabs: BottomTab[] = [
     { to: "/app", label: "Home", icon: LayoutDashboard, end: true },
-    { to: "/app/job-cards", label: "Jobs", icon: Briefcase, badge: pendingJobCards },
     { to: "/app/timesheets", label: "Hours", icon: Clock },
     { to: "/app/payments", label: "Pay", icon: Wallet },
+    { to: "/app/contracts", label: "Docs", icon: FileText },
     { to: "/app/profile", label: "More", icon: Menu },
   ];
 
@@ -84,16 +66,10 @@ export function SubcontractorApp() {
         <Route path="questionnaire" element={<Questionnaire />} />
         <Route path="timesheets" element={<Timesheets />} />
         <Route path="payments" element={<Payments />} />
-        <Route path="job-cards" element={<JobCards />} />
-        <Route path="jobs" element={<SubJobsBoard />} />
-        <Route path="jobs/:id" element={<SubJobDetail />} />
-        <Route path="applications" element={<SubMyApplications />} />
         <Route path="support" element={<Support />} />
       </Routes>
-      {/* Mobile-only: persistent clock FAB + bottom tab bar. The
-          existing hamburger top header in PortalShell still works for
-          the routes that don't have a bottom tab. */}
-      <StickyClockButton onChange={refreshPending} />
+      {/* Mobile-only: persistent clock FAB + bottom tab bar. */}
+      <StickyClockButton />
       <BottomNav tabs={bottomTabs} />
     </PortalShell>
   );
