@@ -7,13 +7,14 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { fmtDateTime } from "@/lib/format";
-import { Save, Send, Lock, MessageSquarePlus, Clock } from "lucide-react";
+import { Save, Send, MessageSquarePlus, Clock } from "lucide-react";
 
-const EDITABLE: Subcontractor["onboardingStatus"][] = [
-  "invited",
-  "in_progress",
-  "changes_requested",
-];
+// Empty bank shape used when the sub has no bank_details row yet -
+// the form needs controlled values from the very first render.
+const EMPTY_BANK: BankDetails = {
+  bankName: null, accountHolderName: null, accountNumber: null,
+  sortCode: null, iban: null, bic: null, bankRef: null, currency: "EUR",
+};
 
 export function ProfileEdit() {
   const toast = useToast();
@@ -45,7 +46,10 @@ export function ProfileEdit() {
       try {
         const p = await api.getMyProfile();
         setSub(p.subcontractor);
-        setBank(p.bank);
+        // The bank row may not exist yet (fresh sub or post-wipe). Fall
+        // back to an empty shape so the form renders with empty inputs
+        // instead of hanging on the skeleton.
+        setBank(p.bank ?? EMPTY_BANK);
         await loadChangeReqs();
       } finally {
         setLoading(false);
@@ -72,7 +76,9 @@ export function ProfileEdit() {
     }
   };
 
-  const editable = sub ? EDITABLE.includes(sub.onboardingStatus) : false;
+  // The sub can edit at will - server only blocks if the account has
+  // been anonymised (GDPR scrub).
+  const editable = !!sub;
 
   const setS = <K extends keyof Subcontractor>(k: K, v: Subcontractor[K]) =>
     setSub((prev) => (prev ? { ...prev, [k]: v } : prev));
@@ -160,23 +166,20 @@ export function ProfileEdit() {
         description="Keep your personal, work and bank information up to date."
         right={
           <>
-            {editable ? (
-              <>
-                <Button variant="outline" type="submit" loading={saving} leftIcon={<Save className="h-4 w-4"/>}>Save</Button>
-                <Button
-                  type="button"
-                  variant="accent"
-                  loading={submitting}
-                  onClick={submit}
-                  leftIcon={<Send className="h-4 w-4" />}
-                >
-                  Submit for review
-                </Button>
-              </>
-            ) : (
-              <Badge tone="neutral" icon={<Lock className="h-3 w-3" />}>
-                Locked ({sub.onboardingStatus.replace(/_/g, " ")})
-              </Badge>
+            <Button variant="outline" type="submit" loading={saving} leftIcon={<Save className="h-4 w-4"/>}>Save</Button>
+            {/* Submit for review only makes sense before approval. After
+                approval the sub can still edit (save), but there's no
+                "review" workflow to enter. */}
+            {(sub.onboardingStatus === "invited" || sub.onboardingStatus === "in_progress" || sub.onboardingStatus === "changes_requested") && (
+              <Button
+                type="button"
+                variant="accent"
+                loading={submitting}
+                onClick={submit}
+                leftIcon={<Send className="h-4 w-4" />}
+              >
+                Submit for review
+              </Button>
             )}
           </>
         }
@@ -185,13 +188,6 @@ export function ProfileEdit() {
       {error && (
         <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-800">
           {error}
-        </div>
-      )}
-
-      {!editable && (
-        <div className="rounded-lg bg-ink-100 border border-ink-200 p-4 text-sm text-ink-700">
-          Your profile is locked while it's {sub.onboardingStatus.replace(/_/g, " ")}.
-          If changes are needed, an administrator will unlock it.
         </div>
       )}
 
