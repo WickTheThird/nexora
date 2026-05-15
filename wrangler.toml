@@ -34,9 +34,7 @@ database_id = "b9f5a8bb-38e2-4c60-b360-c331e4a3de96"
 binding = "BUCKET"
 bucket_name = "nexora-projects"
 
-# Scheduled triggers - daily clock-in reminders + future periodic jobs.
-# Cron is evaluated in UTC; 07:00 UTC is 07:00 IE in winter, 08:00 BST
-# in summer. We accept the one-hour summer slip rather than maintain
-# DST-aware logic.
-[triggers]
-crons = ["0 7 * * *"]
+# No scheduled triggers. The daily clock-in reminder cron was removed
+# along with the sub-side timesheet flow (2026-05-15). Held Job Card
+# submissions auto-release via lazy promotion on the next admin read,
+# not via a cron tick.
