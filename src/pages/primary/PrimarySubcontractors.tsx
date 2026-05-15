@@ -8,7 +8,7 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Empty } from "@/components/ui/Empty";
 import { useToast } from "@/components/ui/Toast";
-import { Users, ArrowUpRight, Pencil, Save, X, UserPlus, Clock, AlertTriangle, CheckCircle2, PauseCircle, PlayCircle, Search, Star } from "lucide-react";
+import { Users, ArrowUpRight, Pencil, Save, X, UserPlus, Clock, AlertTriangle, CheckCircle2, PauseCircle, PlayCircle, Search, Star, MapPin, FileSignature } from "lucide-react";
 import { useSelection } from "@/lib/useSelection";
 import { BulkActionBar, SelectCheckbox } from "@/components/ui/BulkActionBar";
 
@@ -58,20 +58,84 @@ export function PrimarySubcontractors() {
   // useful for sorting your own active operatives.
   const [favSubIds, setFavSubIds] = useState<Set<string>>(new Set());
 
+  // Site IDs the principal owns - the dropdown options on the "Assign
+  // to site" modal. Loaded once with the page; active (non-archived)
+  // only.
+  type SiteRow = Awaited<ReturnType<typeof api.listMyPrincipalSiteIds>>["items"][number];
+  const [sites, setSites] = useState<SiteRow[]>([]);
+
+  // Assign-to-site modal state. Anchored to one operative at a time;
+  // submit calls primaryAssignOperative which auto-generates a contract
+  // and notifies the sub.
+  type SubItem = Awaited<ReturnType<typeof api.listMyPrimarySubs>>["items"][number];
+  const [assigningSub, setAssigningSub] = useState<SubItem | null>(null);
+  const [assignSiteId, setAssignSiteId] = useState<string>("");
+  const [assignNotes, setAssignNotes] = useState<string>("");
+  const [assignBusy, setAssignBusy] = useState(false);
+  const [assignments, setAssignments] = useState<Awaited<ReturnType<typeof api.primaryListOperativeAssignments>>["items"]>([]);
+  const [assignmentsLoading, setAssignmentsLoading] = useState(false);
+
+  const openAssign = async (s: SubItem) => {
+    setAssigningSub(s);
+    setAssignSiteId(""); setAssignNotes("");
+    setAssignmentsLoading(true);
+    try {
+      const r = await api.primaryListOperativeAssignments(s.id);
+      setAssignments(r.items);
+    } catch {
+      setAssignments([]);
+    } finally {
+      setAssignmentsLoading(false);
+    }
+  };
+  const submitAssign = async () => {
+    if (!assigningSub || !assignSiteId) {
+      toast.error("Pick a site");
+      return;
+    }
+    setAssignBusy(true);
+    try {
+      await api.primaryAssignOperative(assigningSub.id, {
+        siteId: assignSiteId,
+        notes: assignNotes.trim() || undefined,
+      });
+      toast.success(`${assigningSub.fullName || "Operative"} assigned. Contract generated and emailed.`);
+      setAssigningSub(null);
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed to assign");
+    } finally {
+      setAssignBusy(false);
+    }
+  };
+  const endAssignment = async (assignmentId: string) => {
+    if (!assigningSub) return;
+    const reason = window.prompt("End this assignment? Optional reason:") ?? null;
+    try {
+      await api.primaryEndAssignment(assigningSub.id, assignmentId, reason || undefined);
+      toast.success("Assignment ended. Contract marked superseded.");
+      const r = await api.primaryListOperativeAssignments(assigningSub.id);
+      setAssignments(r.items);
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed");
+    }
+  };
+
   const [windowOpen, setWindowOpen] = useState<boolean>(true);
   const [windowText, setWindowText] = useState<string>("Friday 2:30pm – Wednesday 2pm");
 
   const refresh = async () => {
     try {
-      const [s, r, p, fav] = await Promise.all([
+      const [s, r, p, fav, siteList] = await Promise.all([
         api.listMyPrimarySubs(),
         api.listMyOperativeRequests(),
         api.getMyPrimary(),
         api.primaryListFavouriteSubs().catch(() => ({ items: [] })),
+        api.listMyPrincipalSiteIds().catch(() => ({ items: [] as SiteRow[] })),
       ]);
       setItems(s.items);
       setRequests(r.items);
       setFavSubIds(new Set(fav.items.map(f => f.subcontractorId)));
+      setSites(siteList.items.filter((x) => !x.archivedAt));
       if (p.operativeRequestWindow) {
         setWindowOpen(p.operativeRequestWindow.open);
         setWindowText(p.operativeRequestWindow.humanWindow);
@@ -366,6 +430,16 @@ export function PrimarySubcontractors() {
                     </button>
                   )}
                   {bucketKey === "active" && (
+                    <button
+                      type="button"
+                      onClick={() => openAssign(s)}
+                      className="text-ink-400 hover:text-accent-700 inline-flex items-center gap-1 text-xs px-2 py-1 rounded hover:bg-accent-50"
+                      title="Assign to a site (auto-generates a contract)"
+                    >
+                      <MapPin className="h-3.5 w-3.5" /> Assign to site
+                    </button>
+                  )}
+                  {bucketKey === "active" && (
                     <button type="button" onClick={() => closeOperative(s)} className="text-ink-400 hover:text-amber-700 inline-flex items-center gap-1 text-xs px-2 py-1 rounded hover:bg-amber-50" title="Mark In-Active (remove from Job Card auto-list)">
                       <PauseCircle className="h-3.5 w-3.5" /> Mark In-Active
                     </button>
@@ -616,6 +690,110 @@ export function PrimarySubcontractors() {
         );
       })()}
 
+      {/* Assign-to-site modal. Picks one of the principal's registered
+          site IDs and creates an active assignment + auto-generated
+          contract for that (sub, site) pair. The sub gets notified by
+          email + in-app and must sign before being paid for site hours. */}
+      <Modal
+        open={!!assigningSub}
+        onClose={() => setAssigningSub(null)}
+        title={assigningSub ? `Assign ${assigningSub.fullName || "operative"} to a site` : ""}
+        description="A new contract will be auto-generated and emailed to the operative for review + signature."
+        width="lg"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setAssigningSub(null)}>Cancel</Button>
+            <Button
+              variant="accent"
+              onClick={submitAssign}
+              loading={assignBusy}
+              disabled={!assignSiteId}
+              leftIcon={<FileSignature className="h-4 w-4" />}
+            >
+              Assign + generate contract
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs uppercase tracking-wider text-ink-500 font-semibold">Site</label>
+            {sites.length === 0 ? (
+              <p className="mt-2 text-sm text-amber-700">
+                You haven&apos;t added any Site IDs yet.{" "}
+                <Link to="/primary/site-ids" className="underline">Add a Revenue SIN first</Link>.
+              </p>
+            ) : (
+              <select
+                className="mt-2 w-full px-3 py-2 text-sm rounded-md border border-ink-200 focus:border-ink-900 outline-none bg-white"
+                value={assignSiteId}
+                onChange={(e) => setAssignSiteId(e.target.value)}
+              >
+                <option value="">- Pick a site -</option>
+                {sites.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.projectName ? `${s.projectName} (${s.siteId})` : s.siteId}
+                    {s.address ? ` - ${s.address}` : ""}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          <Textarea
+            label="Notes (optional)"
+            rows={2}
+            value={assignNotes}
+            onChange={(e) => setAssignNotes(e.target.value)}
+            placeholder="Anything BC + the sub should know about this assignment"
+          />
+
+          {/* History panel: every assignment this operative has had with
+              this principal across all sites. Shows contract status so
+              the user knows what's signed vs awaiting signature. */}
+          <div>
+            <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-2 inline-flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5" /> Assignment history
+            </div>
+            {assignmentsLoading ? (
+              <div className="skeleton h-16" />
+            ) : assignments.length === 0 ? (
+              <p className="text-xs text-ink-500 italic">No prior assignments.</p>
+            ) : (
+              <div className="border border-ink-200 rounded-md divide-y divide-ink-100 max-h-56 overflow-y-auto">
+                {assignments.map((a) => (
+                  <div key={a.id} className="px-3 py-2 flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm text-ink-900">
+                        {a.siteProject || a.siteCode || a.siteAddress || "site"}
+                      </div>
+                      <div className="text-[11px] text-ink-500 flex items-center gap-1.5 flex-wrap mt-0.5">
+                        <Badge tone={a.status === "active" ? "success" : "neutral"}>{a.status}</Badge>
+                        {a.contractStatus && (
+                          <Badge tone={a.contractStatus === "signed" ? "success" : a.contractStatus === "superseded" ? "neutral" : "warn"}>
+                            contract: {a.contractStatus}
+                          </Badge>
+                        )}
+                        <span>· assigned {new Date(a.assignedAt).toLocaleDateString()}</span>
+                        {a.endedAt && <span>· ended {new Date(a.endedAt).toLocaleDateString()}</span>}
+                      </div>
+                    </div>
+                    {a.status === "active" && (
+                      <button
+                        type="button"
+                        onClick={() => endAssignment(a.id)}
+                        className="text-xs text-ink-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50"
+                        title="End this assignment (contract -> superseded)"
+                      >
+                        End
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }

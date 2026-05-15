@@ -16,11 +16,13 @@ import { PrincipalSites } from "./PrincipalSites";
 import { PrincipalSiteDetail } from "./PrincipalSiteDetail";
 import { PrincipalSiteIds } from "./PrincipalSiteIds";
 import { PrincipalAccount } from "./PrincipalAccount";
+import { PrimaryContracts } from "./PrimaryContracts";
 
 const nav = [
   { to: "/primary", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/primary/account", label: "Account", icon: User },
   { to: "/primary/subcontractors", label: "Subcontractors", icon: Users },
+  { to: "/primary/contracts", label: "Contracts", icon: FileText },
   { to: "/primary/site-ids", label: "Site IDs", icon: MapPinned },
   { to: "/primary/sites", label: "Site activity", icon: MapPin },
   { to: "/primary/submissions", label: "Jobs Posted", icon: Send },
@@ -81,6 +83,7 @@ export function PrimaryApp() {
         <Route path="account" element={<PrincipalAccount />} />
         <Route path="subcontractors" element={<PrimarySubcontractors />} />
         <Route path="subcontractors/:id" element={<PrimarySubDetail />} />
+        <Route path="contracts" element={<PrimaryContracts />} />
         <Route path="site-ids" element={<PrincipalSiteIds />} />
         <Route path="sites" element={<PrincipalSites />} />
         <Route path="sites/:ref" element={<PrincipalSiteDetail />} />

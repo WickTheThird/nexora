@@ -1,10 +1,10 @@
-// Subcontractor Contracts list. Card-based layout designed for phones:
-// big tap targets, status badge, counterparty (template name), date.
-// Filter bar above with status pills + free-text search + date range.
+// Principal Contracts list. Every contract this principal has with
+// their operatives, one row per (sub, site) assignment. Read-only -
+// new contracts are generated automatically when the principal assigns
+// an operative to a site from the Subcontractors page.
 //
-// Today most subs have one contract; tomorrow they may have multiple
-// (new template version per year, renewals). The data model already
-// supports many - this page is the corresponding read surface.
+// Mobile-friendly card list with status pills + per-row Site / Sub
+// search.
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -14,41 +14,31 @@ import { Badge } from "@/components/ui/Badge";
 import { Empty } from "@/components/ui/Empty";
 import { useToast } from "@/components/ui/Toast";
 import { PageHeader } from "@/components/layout/PortalShell";
-import { FilterBar, presetToRange, type DatePreset } from "@/components/ui/FilterBar";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { fmtDate } from "@/lib/format";
 import { FileText, ChevronRight, CheckCircle2, PenLine, Eye } from "lucide-react";
 
-type ContractItem = ContractRecord & {
-  templateName: string | null;
-  primaryName: string | null;
-  primaryEmail: string | null;
-  siteCode: string | null;
-  siteProject: string | null;
-  siteAddress: string | null;
-};
+type Row = Awaited<ReturnType<typeof api.primaryListContracts>>["items"][number];
 
 function statusTone(s: ContractRecord["status"]) {
   if (s === "signed") return { tone: "success" as const, label: "Signed", icon: CheckCircle2 };
   if (s === "viewed") return { tone: "info" as const, label: "Awaiting signature", icon: PenLine };
-  if (s === "generated") return { tone: "warn" as const, label: "Ready to sign", icon: PenLine };
+  if (s === "generated") return { tone: "warn" as const, label: "Sent for signature", icon: PenLine };
   if (s === "superseded") return { tone: "neutral" as const, label: "Replaced", icon: Eye };
   return { tone: "neutral" as const, label: s, icon: FileText };
 }
 
-export function Contracts() {
+export function PrimaryContracts() {
   const toast = useToast();
-  const [items, setItems] = useState<ContractItem[]>([]);
+  const [items, setItems] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
-  const [datePreset, setDatePreset] = useState<DatePreset>("all");
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
 
   useEffect(() => {
     (async () => {
       try {
-        const r = await api.listMyContracts();
+        const r = await api.primaryListContracts();
         setItems(r.items);
       } catch (e) {
         toast.error(e instanceof ApiError ? e.message : "Failed to load contracts");
@@ -70,36 +60,27 @@ export function Contracts() {
   }, [items]);
 
   const visible = useMemo(() => {
-    const { from, to } = presetToRange(datePreset, dateFrom, dateTo);
-    const fromTs = from ? new Date(`${from}T00:00:00Z`).getTime() : null;
-    const toTs = to ? new Date(`${to}T23:59:59Z`).getTime() : null;
     const q = search.trim().toLowerCase();
     return items.filter((it) => {
       if (statusFilter === "awaiting" && (it.status === "signed" || it.status === "superseded")) return false;
       if (statusFilter === "signed" && it.status !== "signed") return false;
       if (statusFilter === "replaced" && it.status !== "superseded") return false;
-      if (fromTs !== null || toTs !== null) {
-        // Filter by signed date if signed, otherwise by created date.
-        const ref = it.signedAt || it.createdAt || 0;
-        if (fromTs !== null && ref < fromTs) return false;
-        if (toTs !== null && ref > toTs) return false;
-      }
       if (q) {
         const hay = [
-          it.templateName, it.signedName, String(it.templateVersion || ""),
-          it.primaryName, it.siteCode, it.siteProject, it.siteAddress,
+          it.subcontractorName, it.subcontractorEmail, it.subcontractorRef,
+          it.siteCode, it.siteProject, it.siteAddress, it.templateName,
         ].filter(Boolean).join(" ").toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [items, statusFilter, search, datePreset, dateFrom, dateTo]);
+  }, [items, statusFilter, search]);
 
   return (
     <>
       <PageHeader
-        title="My Contracts"
-        description="Read, sign and review every contract issued to you."
+        title="Contracts"
+        description="Every contract you have with your operatives, one per (operative, site). New contracts are generated automatically when you assign an operative to a site."
       />
 
       {loading ? (
@@ -112,32 +93,22 @@ export function Contracts() {
         <Empty
           icon={FileText}
           title="No contracts yet"
-          description="When the office generates a contract for you, it will appear here."
+          description="Assign an operative to a site from your Subcontractors page and a contract will be generated for them to sign."
         />
       ) : (
         <>
           <FilterBar
             pills={[
-              { value: "all",      label: "All",                 count: counts.all },
-              { value: "awaiting", label: "Awaiting my signature", count: counts.awaiting },
-              { value: "signed",   label: "Signed",              count: counts.signed },
-              { value: "replaced", label: "Replaced",            count: counts.replaced },
+              { value: "all",      label: "All",                count: counts.all },
+              { value: "awaiting", label: "Awaiting signature", count: counts.awaiting },
+              { value: "signed",   label: "Signed",             count: counts.signed },
+              { value: "replaced", label: "Replaced",           count: counts.replaced },
             ]}
             activePill={statusFilter}
             onPillChange={setStatusFilter}
             searchValue={search}
-            searchPlaceholder="Search principal, site, template..."
+            searchPlaceholder="Search operative, site, project..."
             onSearchChange={setSearch}
-            datePreset={datePreset}
-            dateFrom={dateFrom}
-            dateTo={dateTo}
-            onDateChange={(preset, from, to) => {
-              setDatePreset(preset);
-              if (preset === "custom") {
-                setDateFrom(from || "");
-                setDateTo(to || "");
-              }
-            }}
           />
 
           {visible.length === 0 ? (
@@ -150,28 +121,24 @@ export function Contracts() {
                 const s = statusTone(it.status);
                 const Icon = s.icon;
                 return (
-                  <Link
-                    key={it.id}
-                    to={`/app/contracts/${it.id}`}
-                    className="card p-4 min-h-16 flex items-center gap-3 hover:bg-ink-50/60 transition"
-                  >
+                  <div key={it.id} className="card p-4 flex items-start gap-3">
                     <div className="h-10 w-10 rounded-lg bg-ink-100 text-ink-700 grid place-items-center shrink-0">
                       <FileText className="h-5 w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <div className="font-medium text-ink-900 truncate">
-                          {it.primaryName || it.templateName || "Contract"}
+                          {it.subcontractorName || it.subcontractorEmail || "Operative"}
                         </div>
+                        {it.subcontractorRef && (
+                          <span className="font-mono text-[11px] text-ink-500">{it.subcontractorRef}</span>
+                        )}
                       </div>
-                      {(it.siteProject || it.siteCode || it.siteAddress) && (
-                        <div className="text-xs text-ink-700 mt-0.5 truncate">
-                          {it.siteProject || it.siteCode}
-                          {it.siteAddress ? ` - ${it.siteAddress}` : ""}
-                        </div>
-                      )}
-                      <div className="text-xs text-ink-500 mt-1 flex items-center gap-2 flex-wrap">
+                      <div className="text-xs text-ink-600 mt-1 flex items-center gap-2 flex-wrap">
                         <Badge tone={s.tone} icon={<Icon className="h-3 w-3" />}>{s.label}</Badge>
+                        {it.siteProject || it.siteCode ? (
+                          <span>{it.siteProject || it.siteCode}{it.siteAddress ? ` - ${it.siteAddress}` : ""}</span>
+                        ) : null}
                         <span>
                           {it.signedAt
                             ? `Signed ${fmtDate(new Date(it.signedAt).toISOString().slice(0, 10))}`
@@ -180,14 +147,20 @@ export function Contracts() {
                               : null}
                         </span>
                         {it.templateName && (
-                          <span className="text-ink-400">
-                            · {it.templateName}{it.templateVersion ? ` v${it.templateVersion}` : ""}
-                          </span>
+                          <span className="text-ink-400">· {it.templateName}{it.templateVersion ? ` v${it.templateVersion}` : ""}</span>
                         )}
                       </div>
                     </div>
-                    <ChevronRight className="h-5 w-5 text-ink-300 shrink-0" />
-                  </Link>
+                    {it.subcontractorId && (
+                      <Link
+                        to={`/primary/subcontractors/${it.subcontractorId}`}
+                        className="text-xs text-ink-500 hover:text-ink-900 inline-flex items-center gap-0.5 shrink-0"
+                        title="View operative"
+                      >
+                        Open <ChevronRight className="h-3.5 w-3.5" />
+                      </Link>
+                    )}
+                  </div>
                 );
               })}
             </div>

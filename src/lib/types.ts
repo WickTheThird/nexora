@@ -261,6 +261,11 @@ export interface ContractRecord {
   signedAt: number | null;
   signaturePng: string | null;
   createdAt: number;
+  // Counterparty + site - nullable on legacy contracts that pre-date
+  // the per-site model.
+  primaryId: string | null;
+  siteId: string | null;
+  assignmentId: string | null;
 }
 
 export interface ContractTemplate {

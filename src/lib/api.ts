@@ -279,10 +279,16 @@ export const api = {
   // Full history for the signed-in sub; each row carries an extra
   // templateName for display. Sorted newest first by the worker.
   listMyContracts: () =>
-    request<{ items: Array<ContractRecord & { templateName: string | null }> }>(
-      "GET",
-      "/me/contracts",
-    ),
+    request<{
+      items: Array<ContractRecord & {
+        templateName: string | null;
+        primaryName: string | null;
+        primaryEmail: string | null;
+        siteCode: string | null;
+        siteProject: string | null;
+        siteAddress: string | null;
+      }>;
+    }>("GET", "/me/contracts"),
   getMyContractById: (id: string) =>
     request<ContractRecord>("GET", `/me/contracts/${id}`),
   signMyContract: (signedName: string, signaturePng?: string) =>
@@ -1180,6 +1186,52 @@ export const api = {
   // can inspect old data when needed.
   adminListPublicJobs: (status?: string) =>
     request<{ items: PublicJob[] }>("GET", `/admin/public-jobs${status ? `?status=${status}` : ""}`),
+
+  // -------- Site assignments + per-site contracts (principal-driven) --------
+  primaryListOperativeAssignments: (subId: string) =>
+    request<{
+      items: Array<{
+        id: string;
+        subcontractorId: string;
+        primaryId: string;
+        siteId: string;
+        siteCode: string | null;
+        siteProject: string | null;
+        siteAddress: string | null;
+        status: "active" | "completed" | "terminated";
+        assignedAt: number;
+        endedAt: number | null;
+        endReason: string | null;
+        notes: string | null;
+        contractId: string | null;
+        contractStatus: ContractRecord["status"] | null;
+        contractSignedAt: number | null;
+      }>;
+    }>("GET", `/me/primary/operatives/${subId}/assignments`),
+  primaryAssignOperative: (subId: string, data: { siteId: string; notes?: string }) =>
+    request<{ assignment: Record<string, unknown> }>(
+      "POST",
+      `/me/primary/operatives/${subId}/assignments`,
+      { body: data },
+    ),
+  primaryEndAssignment: (subId: string, assignmentId: string, reason?: string) =>
+    request<{ ended: true }>(
+      "POST",
+      `/me/primary/operatives/${subId}/assignments/${assignmentId}/end`,
+      reason ? { body: { reason } } : undefined,
+    ),
+  primaryListContracts: () =>
+    request<{
+      items: Array<ContractRecord & {
+        templateName: string | null;
+        subcontractorName: string | null;
+        subcontractorEmail: string | null;
+        subcontractorRef: string | null;
+        siteCode: string | null;
+        siteProject: string | null;
+        siteAddress: string | null;
+      }>;
+    }>("GET", "/me/primary/contracts"),
 
   // -------- Principal vendor list (talent pool) --------
   // Kept: the principal's own curated roster of approved operatives +
