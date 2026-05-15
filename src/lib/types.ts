@@ -415,6 +415,20 @@ export interface PrimaryInvoice {
   paidAt: number | null;
   createdAt: number;
   createdBy: string | null;
+  // 'labour' = pass-through invoice covering the wages BC will hand to
+  // the subs. 'service' = BC's own fee. Legacy rows default to 'labour'.
+  kind: "labour" | "service";
+  // Link back to the Job Card + site this invoice was issued for.
+  // submission_id is the primary_submission UUID; site_id is the
+  // sites.id UUID. Snapshots are human-readable labels captured at
+  // issue time so the printed invoice survives later renames.
+  submissionId: string | null;
+  siteId: string | null;
+  siteCodeSnapshot: string | null;
+  siteProjectSnapshot: string | null;
+  // Job Card per-principal sequential reference (JOB-0012). JOINed on
+  // the list endpoints from the parent primary_submission row.
+  jobRef: string | null;
   // Optional issuer + template overlays - populated by the worker on the
   // detail endpoint so the PDF generator can pull them without an extra
   // settings call. Absent on list endpoints; never required.
