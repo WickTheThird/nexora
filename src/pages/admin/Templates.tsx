@@ -24,7 +24,7 @@ import { useToast } from "@/components/ui/Toast";
 import { fmtDateTime } from "@/lib/format";
 import {
   FilePlus, FileText, Bold, Italic, Underline, Heading1, Heading2,
-  List, ListOrdered, Minus, Type, Send, Maximize2, Minimize2, X,
+  List, ListOrdered, Minus, Type, Send, Maximize2, Minimize2, X, Star,
 } from "lucide-react";
 
 const PLACEHOLDERS = [
@@ -41,9 +41,12 @@ const SAMPLE = `<h1>Subcontractor Services Agreement</h1>
 <h2>2. Signature</h2>
 <p>By signing below, the Subcontractor confirms they have read and agreed to this agreement.</p>`;
 
+type TemplateRow = ContractTemplate & { isDefault: boolean };
+
 export function Templates() {
   const toast = useToast();
-  const [items, setItems] = useState<ContractTemplate[]>([]);
+  const [items, setItems] = useState<TemplateRow[]>([]);
+  const [defaultBusy, setDefaultBusy] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("standard");
@@ -90,6 +93,22 @@ export function Templates() {
   const refresh = async () => {
     const r = await api.adminListTemplates();
     setItems(r.items);
+  };
+
+  // Mark one template as the global default. The setting is read by
+  // the worker every time a principal assigns an operative to a site -
+  // that template is what gets rendered for the auto-generated contract.
+  const setAsDefault = async (t: TemplateRow) => {
+    setDefaultBusy(t.id);
+    try {
+      await api.adminSetDefaultTemplate(t.id);
+      toast.success(`${t.name} is now the default contract template.`);
+      await refresh();
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed to set default");
+    } finally {
+      setDefaultBusy(null);
+    }
   };
 
   useEffect(() => {
@@ -232,8 +251,8 @@ export function Templates() {
       ) : (
         <div className="space-y-3">
           {items.map((t) => (
-            <div key={t.id} className="card p-5 flex items-center gap-4 flex-wrap">
-              <div className="h-10 w-10 rounded-lg bg-ink-100 text-ink-700 grid place-items-center">
+            <div key={t.id} className={`card p-5 flex items-center gap-4 flex-wrap ${t.isDefault ? "ring-1 ring-amber-300 bg-amber-50/30" : ""}`}>
+              <div className={`h-10 w-10 rounded-lg grid place-items-center ${t.isDefault ? "bg-amber-200 text-amber-900" : "bg-ink-100 text-ink-700"}`}>
                 <FileText className="h-5 w-5" />
               </div>
               <div className="flex-1 min-w-0">
@@ -241,9 +260,22 @@ export function Templates() {
                   <div className="font-medium text-ink-900">{t.name}</div>
                   <Badge tone="neutral">v{t.version}</Badge>
                   {t.isActive && <Badge tone="success">active</Badge>}
+                  {t.isDefault && (
+                    <Badge tone="warn" icon={<Star className="h-3 w-3" />}>Default</Badge>
+                  )}
                 </div>
                 <div className="text-xs text-ink-500 mt-0.5">Created {fmtDateTime(t.createdAt)}</div>
               </div>
+              {!t.isDefault && (
+                <Button
+                  variant="ghost"
+                  onClick={() => setAsDefault(t)}
+                  loading={defaultBusy === t.id}
+                  leftIcon={<Star className="h-4 w-4" />}
+                >
+                  Set as default
+                </Button>
+              )}
               <Button variant="outline" onClick={() => setPreview(t)}>Preview</Button>
               <Button variant="accent" onClick={() => setSending(t)} leftIcon={<Send className="h-4 w-4" />}>
                 Send to subs

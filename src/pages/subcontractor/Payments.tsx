@@ -349,9 +349,6 @@ export function Payments() {
                             </td>
                             <td className="px-5 py-4 text-sm text-ink-700 tabular-nums">
                               {p.invoiceNumber || <span className="text-ink-400">-</span>}
-                              {p.vatReverseCharge && (
-                                <Badge tone="info">VAT RC</Badge>
-                              )}
                             </td>
                             <td className="px-5 py-4">{statusBadge(p.status)}</td>
                             <td className="px-5 py-4 text-sm text-ink-900 text-right font-medium tabular-nums">

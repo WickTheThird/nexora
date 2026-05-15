@@ -574,7 +574,17 @@ export const api = {
       body: { name, bodyHtml },
     }),
   adminListTemplates: () =>
-    request<{ items: ContractTemplate[] }>("GET", "/admin/contract-templates"),
+    request<{
+      items: Array<ContractTemplate & { isDefault: boolean }>;
+      defaultTemplateId: string | null;
+    }>("GET", "/admin/contract-templates"),
+  // Marks one template as the global default used by the auto-generation
+  // on principal-driven site assignments. Persisted as a row in
+  // app_settings (key 'default_contract_template_id').
+  adminSetDefaultTemplate: (templateId: string) =>
+    request<AppSettings>("PUT", "/admin/settings", {
+      body: { default_contract_template_id: templateId },
+    }),
 
   // -------- admin: change requests --------
   adminListChangeRequests: (status?: string) =>

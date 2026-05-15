@@ -119,10 +119,8 @@ export function PrimarySubmitPayment() {
   const [periodStart, setPeriodStart] = useState(iso(today));
   const [periodEnd, setPeriodEnd] = useState(iso(today));
   const [notes, setNotes] = useState("");
-  // Job-Card-wide default RCT rate. Hidden behind the visible top
-  // dropdown; when set, it gets applied to every row that hasn't been
-  // overridden manually.
-  const [defaultRctRate, setDefaultRctRate] = useState<"" | "0" | "20" | "35">("");
+  // (RCT rate no longer a principal concern - BC applies it from the
+  // sub's recorded Revenue rate when processing the Job Card.)
 
   // Marketplace audience / tender post was decommissioned. A Job Card
   // is now always 'internal' - a record of completed work that will be
@@ -449,11 +447,10 @@ export function PrimarySubmitPayment() {
       {/* Top context - Date Ending + Type + Notes (left) and the BC contact help-block (right), Enagh layout */}
       <div className="grid lg:grid-cols-3 gap-4 mb-5">
         <div className="lg:col-span-2 card-padded">
-          {/* Top context row. Layout order matches reading order:
-              type -> start date -> end date -> RCT default. Every
-              control uses the same Select/Input wrapper so the labels
-              + input heights align pixel-perfect. */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Top context row. RCT rate is set by Revenue per-sub and applied
+              by BC at processing time, so the principal doesn't need to pick
+              one on the Job Card. */}
+          <div className="grid sm:grid-cols-3 gap-3">
             <Select
               label="Job Card Type"
               value={jobCardType}
@@ -475,28 +472,6 @@ export function PrimarySubmitPayment() {
               type="date"
               value={dateEnding}
               onChange={(e) => setDateEnding(e.target.value)}
-            />
-            {/* Card-wide default RCT rate. Picking one cascades to
-                every row that hasn't been manually overridden. */}
-            <Select
-              label="RCT rate (default)"
-              value={defaultRctRate}
-              onChange={(e) => {
-                const v = e.target.value as "" | "0" | "20" | "35";
-                setDefaultRctRate(v);
-                setRows(prev => prev.map(r => (
-                  (r.rctRate === "" || r.rctRate === defaultRctRate)
-                    ? { ...r, rctRate: v }
-                    : r
-                )));
-              }}
-              title="Applied to every row that hasn't been manually overridden"
-              options={[
-                { value: "",   label: "- pick -" },
-                { value: "0",  label: "0%" },
-                { value: "20", label: "20%" },
-                { value: "35", label: "35%" },
-              ]}
             />
           </div>
           <div className="mt-3">
@@ -659,7 +634,6 @@ export function PrimarySubmitPayment() {
               <th className="px-3 py-2 text-right">Extras</th>
               <th className="px-3 py-2 text-right">Materials</th>
               <th className="px-3 py-2 text-right">Gross</th>
-              <th className="px-3 py-2">RCT</th>
               <th className="px-3 py-2">Site ID</th>
               <th className="px-3 py-2 w-8"></th>
             </tr>
@@ -688,23 +662,6 @@ export function PrimarySubmitPayment() {
                   <td className="px-2 py-2"><input inputMode="decimal" className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.extras} onChange={(ev) => updateRow(i, "extras", ev.target.value)} placeholder="0" /></td>
                   <td className="px-2 py-2"><input inputMode="decimal" className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.materialValue} onChange={(ev) => updateRow(i, "materialValue", ev.target.value)} placeholder="0" /></td>
                   <td className="px-2 py-2 text-right tabular-nums font-medium text-ink-700">{grossMinor > 0 ? fmtMoneyEur(grossMinor) : "-"}</td>
-                  <td className="px-2 py-2">
-                    {/* RCT rate dropdown - per-line, defaults to the sub's
-                        recorded rate. The principal can override per Job
-                        Card; admin uses this value when generating the
-                        payment record. */}
-                    <select
-                      className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none bg-white"
-                      value={row.rctRate}
-                      onChange={(ev) => updateRow(i, "rctRate", ev.target.value)}
-                      title="RCT deduction rate for this row"
-                    >
-                      <option value="">-</option>
-                      <option value="0">0%</option>
-                      <option value="20">20%</option>
-                      <option value="35">35%</option>
-                    </select>
-                  </td>
                   <td className="px-2 py-2">
                     <div className="flex items-center gap-1">
                       {sites.length > 0 ? (

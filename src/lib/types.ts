@@ -119,6 +119,10 @@ export interface AppSettings {
   latest_news: string | null;
   // Email used by the principal's "Changes Request" button on the home
   changes_request_email: string | null;
+  // BC service fee per worker (minor units). Default 1700 = €17.
+  service_fee_per_worker_minor: string | null;
+  // UUID of the default contract template used on auto-gen.
+  default_contract_template_id: string | null;
 }
 
 // Invoice template options surfaced in the InvoicePayload (parsed from

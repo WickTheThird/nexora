@@ -28,6 +28,10 @@ const empty: AppSettings = {
   // Enagh-style "Latest News" panel + "Changes Request" target email
   latest_news: null,
   changes_request_email: null,
+  // BC service fee per worker (minor units). Default 1700 = €17.
+  service_fee_per_worker_minor: null,
+  // Default contract template (set via Templates page, not here).
+  default_contract_template_id: null,
 };
 
 export function Settings() {
@@ -127,37 +131,26 @@ export function Settings() {
         </section>
 
         <section className="card-padded">
-          <h2 className="text-base font-semibold text-ink-900 mb-1">Principal invoice fee</h2>
+          <h2 className="text-base font-semibold text-ink-900 mb-1">BC service fee</h2>
           <p className="text-sm text-ink-500 mb-5">
-            BC's default fee charged on consolidated invoices issued <em>to principals</em>.
-            Fixed amount and percentage are added together. The
-            "Generate invoice" modal pre-fills the markup with this calculation
-            so you can override per-invoice if needed.
+            BC charges a fixed fee per worker on every Job Card a principal submits.
+            The fee is multiplied by the period: <strong>weekly &times;1</strong>,{" "}
+            <strong>fortnightly &times;2</strong>, <strong>monthly &times;4</strong>.
+            A second invoice is auto-generated alongside the labour pass-through invoice.
           </p>
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Fixed fee (€)"
+              label="Service fee per worker (€)"
               type="number"
               step="0.01"
               min="0"
-              value={data.admin_fee_amount_minor ? (parseInt(data.admin_fee_amount_minor, 10) / 100).toFixed(2) : ""}
+              value={data.service_fee_per_worker_minor ? (parseInt(data.service_fee_per_worker_minor, 10) / 100).toFixed(2) : ""}
               onChange={(e) => {
                 const v = parseFloat(e.target.value);
-                set("admin_fee_amount_minor", Number.isFinite(v) && v > 0 ? String(Math.round(v * 100)) : null);
+                set("service_fee_per_worker_minor", Number.isFinite(v) && v > 0 ? String(Math.round(v * 100)) : null);
               }}
-              placeholder="e.g. 50.00"
-              hint="A flat fee applied to every principal invoice."
-            />
-            <Input
-              label="Percentage fee (%)"
-              type="number"
-              step="0.1"
-              min="0"
-              max="100"
-              value={data.admin_fee_percent || ""}
-              onChange={(e) => set("admin_fee_percent", e.target.value || null)}
-              placeholder="e.g. 2.5"
-              hint="A percentage of the consolidated gross."
+              placeholder="17.00"
+              hint="Default 17.00. Charged once per worker, scaled by period length."
             />
           </div>
         </section>

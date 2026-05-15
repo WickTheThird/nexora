@@ -3,7 +3,7 @@ import { api, ApiError } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import type { BankDetails, ChangeRequest, Subcontractor } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
-import { Input, Textarea, Checkbox } from "@/components/ui/Input";
+import { Input, Textarea } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { fmtDateTime } from "@/lib/format";
@@ -241,17 +241,9 @@ export function ProfileEdit() {
           <div className="sm:col-span-2">
             <Input label="Nature of services" value={sub.natureOfServices || ""} onChange={(e) => setS("natureOfServices", e.target.value)} disabled={!editable} />
           </div>
-          <div className="sm:col-span-2">
-            <Checkbox
-              label="I am registered for VAT"
-              checked={sub.vatRegistered}
-              onChange={(e) => setS("vatRegistered", e.target.checked)}
-              disabled={!editable}
-            />
-          </div>
-          {sub.vatRegistered && (
-            <Input label="VAT number" value={sub.vatNumber || ""} onChange={(e) => setS("vatNumber", e.target.value)} disabled={!editable} />
-          )}
+          {/* VAT is handled by BC under the Irish RCT reverse-charge
+              regime - subs invoice without VAT and BC self-accounts.
+              No reason to surface VAT controls on the sub profile. */}
           <div className="sm:col-span-2">
             <Input
               label="Your accountant's email (optional)"

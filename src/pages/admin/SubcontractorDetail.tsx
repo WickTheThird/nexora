@@ -488,7 +488,6 @@ function OverviewTab({
         <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
           {fieldRow("Deduction rate", sub.rctRate ? `${sub.rctRate}%` : null)}
           {fieldRow("Authorisation number", sub.rctAuthorisationNumber)}
-          {fieldRow("VAT reverse charge", sub.vatReverseCharge ? "Yes" : "No")}
         </div>
       </div>
       <div className="card-padded">
@@ -1052,7 +1051,6 @@ function TimesheetsTab({ subId, sub }: { subId: string; sub: Subcontractor }) {
           {sub.rateAmountMinor && sub.rateUnit ? (
             <div className="rounded-lg bg-ink-100 border border-ink-200 p-3 text-sm text-ink-700">
               Rate: <strong>{fmtMoney(sub.rateAmountMinor, "EUR")} / {sub.rateUnit}</strong>{sub.rctRate ? ` · RCT ${sub.rctRate}%` : ""}
-              {sub.vatReverseCharge ? " · VAT reverse charge" : ""}
             </div>
           ) : (
             <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-800">
@@ -1249,10 +1247,9 @@ function PaymentsTab({
         </div>
         <div className="card p-5 flex items-center justify-between gap-4">
           <div>
-            <div className="text-xs uppercase tracking-wider text-ink-400 font-semibold">RCT &amp; VAT</div>
+            <div className="text-xs uppercase tracking-wider text-ink-400 font-semibold">RCT</div>
             <div className="text-xl font-bold text-ink-900 mt-1 tabular-nums">
-              {sub.rctRate ? `${sub.rctRate}% RCT` : "RCT N/A"}
-              {sub.vatReverseCharge && <span className="text-base font-medium text-ink-600 ml-2">· VAT RC</span>}
+              {sub.rctRate ? `${sub.rctRate}%` : "N/A"}
             </div>
             <div className="text-xs text-ink-500 mt-1">
               {sub.rctAuthorisationNumber ? `Auth: ${sub.rctAuthorisationNumber}` : "No Revenue authorisation recorded"}
@@ -1318,7 +1315,6 @@ function PaymentsTab({
                         </td>
                         <td className="px-5 py-3 text-sm text-ink-600">
                           {p.reference || "·"}
-                          {p.vatReverseCharge && <span className="ml-1 inline-block"><Badge tone="info">VAT RC</Badge></span>}
                         </td>
                         <td className="px-5 py-3">
                           {(() => {
@@ -1468,15 +1464,6 @@ function PaymentsTab({
                 disabled={!rctRate}
               />
             </div>
-            <div className="mt-3">
-              <Checkbox
-                label="VAT reverse charge applies"
-                hint="Principal and subcontractor both VAT-registered. No VAT is charged; subcontractor self-accounts."
-                checked={vatReverseCharge}
-                onChange={(e) => setVatReverseCharge(e.target.checked)}
-              />
-            </div>
-
             {/* Live breakdown */}
             {(() => {
               const grossCents = Math.round(parseFloat(amount || "0") * 100);
@@ -1623,12 +1610,6 @@ function TaxModal({
           onChange={(e) => setAuthNumber(e.target.value)}
           placeholder="e.g. RCTXXXXXXXXXX"
           hint="Encrypted at rest. From Revenue's eRCT system."
-        />
-        <Checkbox
-          label="VAT reverse charge applies to this subcontractor"
-          hint="Both principal and subcontractor VAT-registered. Reverse charge rather than VAT-inclusive billing."
-          checked={vrc}
-          onChange={(e) => setVrc(e.target.checked)}
         />
       </div>
     </Modal>
