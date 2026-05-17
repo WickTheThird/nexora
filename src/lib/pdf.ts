@@ -18,7 +18,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { InvoicePayload, PaymentRecord } from "./types";
 
-export type PdfMode = "advice" | "invoice";
+export type PdfMode = "advice" | "invoice" | "bc_invoice";
 
 function fmtMoneyMinor(amountMinor: number, currency: string): string {
   // Enagh format: plain "1,000.00" with no currency symbol in the number
@@ -66,6 +66,7 @@ export function generateInvoicePdf(
   brandName = "Samwise",
   mode: PdfMode = "advice",
 ): jsPDF {
+  if (mode === "bc_invoice") return generateBcInvoicePdf(inv, brandName);
   if (mode === "invoice") return generateSubInvoicePdf(inv, brandName);
   return generatePaymentAdvicePdf(inv, brandName);
 }
@@ -708,6 +709,233 @@ function generateSubInvoicePdf(inv: InvoicePayload, brandName: string): jsPDF {
   return doc;
 }
 
+// =====================================================================
+// Mode 3: BC-issued Invoice (BC -> Principal) - Enagh-style layout
+// =====================================================================
+// Renders the two BC-side invoices (labour pass-through + service fee).
+// Layout matches the Enagh reference: brand top-left, BC address
+// top-right, customer details mid-left, invoice metadata mid-right,
+// line items table with VAT column, summary block, payment details
+// box, footer with contact + registered office.
+function generateBcInvoicePdf(inv: InvoicePayload, brandName: string): jsPDF {
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 40;
+  const rightX = pageWidth - margin;
+  const currency = inv.totals.currency || "EUR";
+  const bc = inv.bc || {} as Partial<NonNullable<InvoicePayload["bc"]>>;
+
+  // Header: brand left, BC address right
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(28);
+  doc.setTextColor(15, 23, 34);
+  doc.text(brandName, margin, 48);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(40, 40, 40);
+  const bcAddrLines = [
+    inv.subcontractor.fullName || brandName,
+    ...(inv.subcontractor.address1 ? inv.subcontractor.address1.split("\n") : []),
+  ];
+  let y = 30;
+  for (const line of bcAddrLines) {
+    doc.text(line, rightX, y, { align: "right" });
+    y += 13;
+  }
+
+  // "Invoice" title
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(22);
+  doc.setTextColor(15, 23, 34);
+  doc.text("Invoice", rightX, 130, { align: "right" });
+
+  // VAT Reg No (BC's)
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(40, 40, 40);
+  if (inv.subcontractor.vatNumber) {
+    doc.text(`VAT Reg No: ${inv.subcontractor.vatNumber}`, rightX, 150, { align: "right" });
+  }
+
+  // Customer Details (left) + Invoice metadata (right) - top of body
+  let bodyY = 190;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(15, 23, 34);
+  doc.text("Customer Details", margin, bodyY);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(40, 40, 40);
+  const customerLines = [
+    inv.principal.name || "[Customer]",
+    ...(inv.principal.address ? inv.principal.address.split("\n") : []),
+  ].filter(Boolean);
+  let cy = bodyY + 14;
+  for (const line of customerLines) {
+    doc.text(line, margin, cy);
+    cy += 13;
+  }
+
+  // Invoice metadata block (right)
+  const metaLabelX = rightX - 130;
+  const metaValueX = rightX;
+  const issuedDate = new Date(inv.issuedAt).toLocaleDateString("en-IE");
+  const meta: Array<[string, string]> = [
+    ["Invoice No:", inv.invoiceNumber],
+    ["Date:", issuedDate],
+  ];
+  if (inv.principal.vat) meta.push(["Customer Acc. Re:", inv.principal.vat]);
+  if (inv.jobCardType) {
+    const jct = inv.jobCardType.charAt(0).toUpperCase() + inv.jobCardType.slice(1);
+    meta.push(["Job Card Type:", jct]);
+  }
+  doc.setFontSize(10);
+  let my = bodyY;
+  for (const [label, value] of meta) {
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(40, 40, 40);
+    doc.text(label, metaLabelX, my, { align: "right" });
+    doc.setFont("helvetica", "normal");
+    doc.text(value, metaValueX, my, { align: "right" });
+    my += 16;
+  }
+
+  // Line items table
+  const tableTop = Math.max(cy, my) + 26;
+  const gross = inv.grossAmountMinor != null ? inv.grossAmountMinor : inv.totals.gross;
+  const vat = inv.vatAmountMinor != null ? inv.vatAmountMinor : 0;
+  const net = inv.netAmountMinor != null ? inv.netAmountMinor : gross + vat;
+  const vatRate = inv.template ? null : null; // computed below from vat/gross
+  const vatRatePercent = gross > 0 ? Math.round((vat / gross) * 1000) / 10 : 0;
+
+  const detailLines: string[] = [];
+  if (inv.invoiceKind === "service") {
+    detailLines.push("BC service fee");
+  } else {
+    detailLines.push(". for the following site IDs:");
+    if (inv.siteCodes && inv.siteCodes.length > 0) {
+      for (const code of inv.siteCodes) detailLines.push(`- ${code}`);
+    }
+  }
+
+  autoTable(doc, {
+    startY: tableTop,
+    head: [["Details", "Unit Price", "Net Amount", "VAT Rate"]],
+    body: [[
+      detailLines.join("\n"),
+      fmtMoneyMinor(gross, currency),
+      fmtMoneyMinor(gross, currency),
+      vat > 0 ? `${vatRatePercent}%` : "0%",
+    ]],
+    margin: { left: margin, right: margin },
+    styles: { font: "helvetica", fontSize: 10, cellPadding: 6, valign: "top" },
+    headStyles: { fillColor: [255, 255, 255], textColor: [80, 80, 80], fontStyle: "normal", lineWidth: 0 },
+    bodyStyles: { textColor: [40, 40, 40] },
+    columnStyles: {
+      0: { cellWidth: "auto" },
+      1: { halign: "right", cellWidth: 80 },
+      2: { halign: "right", cellWidth: 80 },
+      3: { halign: "right", cellWidth: 70 },
+    },
+    theme: "plain",
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const afterTableY = (doc as any).lastAutoTable.finalY + 30;
+
+  // Invoice Summary block
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(15, 23, 34);
+  doc.text("Invoice Summary", margin, afterTableY);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(40, 40, 40);
+  doc.text("The principal must account for the VAT on this supply", margin, afterTableY + 22);
+
+  // Totals on the right
+  const totalsLabelX = rightX - 90;
+  const totalsValueX = rightX;
+  let ty = afterTableY;
+  for (const [label, value] of [
+    ["Net", fmtMoneyMinor(gross, currency)],
+    ["VAT", fmtMoneyMinor(vat, currency)],
+    ["Gross", fmtMoneyMinor(net, currency)],
+  ]) {
+    doc.setFont("helvetica", "bold");
+    doc.text(label, totalsLabelX, ty, { align: "right" });
+    doc.setFont("helvetica", "normal");
+    doc.text(value, totalsValueX, ty, { align: "right" });
+    ty += 18;
+  }
+
+  // Payment Details block
+  const payY = Math.max(ty, afterTableY + 60) + 30;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(15, 23, 34);
+  doc.text("Payment Details:", margin, payY);
+  doc.setFont("helvetica", "normal");
+  doc.text("Payment to be made ASAP", margin + 100, payY);
+
+  doc.setFontSize(10);
+  doc.setTextColor(40, 40, 40);
+  const payLines: Array<[string, string]> = [];
+  if (bc.bankAccountName) payLines.push(["Account Name:", bc.bankAccountName]);
+  if (bc.bankBic) payLines.push(["BIC:", bc.bankBic]);
+  if (bc.bankIban) payLines.push(["IBAN:", bc.bankIban]);
+  let py = payY + 16;
+  for (const [label, value] of payLines) {
+    doc.setFont("helvetica", "bold");
+    doc.text(label, margin, py);
+    doc.setFont("helvetica", "normal");
+    doc.text(value, margin + 95, py);
+    py += 14;
+  }
+  if (bc.bankAccountAddress) {
+    py += 4;
+    doc.setFont("helvetica", "normal");
+    for (const line of bc.bankAccountAddress.split("\n")) {
+      doc.text(line, margin, py);
+      py += 13;
+    }
+  }
+
+  // Footer (bottom of page): phones + website + email + registered office
+  const footerTop = pageHeight - 90;
+  doc.setDrawColor(200, 200, 200);
+  doc.line(margin, footerTop - 10, rightX, footerTop - 10);
+  doc.setFontSize(9);
+  doc.setTextColor(60, 60, 60);
+  const phoneParts: string[] = [];
+  if (bc.phoneRoi) phoneParts.push(`ROI: ${bc.phoneRoi}`);
+  if (bc.phoneNi) phoneParts.push(`NI: ${bc.phoneNi}`);
+  if (phoneParts.length) doc.text(phoneParts.join("  |  "), margin, footerTop + 2);
+  if (bc.registeredNumber) {
+    doc.text(`Registered in Ireland - Number: ${bc.registeredNumber}`, margin, footerTop + 16);
+  }
+  if (bc.website) doc.text(bc.website, rightX, footerTop + 2, { align: "right" });
+  if (inv.subcontractor.email) doc.text(inv.subcontractor.email, rightX, footerTop + 16, { align: "right" });
+
+  // Registered office (centred, last line)
+  if (inv.subcontractor.address1 || inv.subcontractor.fullName) {
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 80);
+    const tradingLine = `${brandName} is a trading name of ${inv.subcontractor.fullName || brandName}`;
+    doc.text(tradingLine, pageWidth / 2, pageHeight - 36, { align: "center" });
+    if (inv.subcontractor.address1) {
+      const addrOneLine = inv.subcontractor.address1.replace(/\n/g, ", ");
+      doc.text(`Registered Office: ${addrOneLine}`, pageWidth / 2, pageHeight - 22, { align: "center" });
+    }
+  }
+
+  return doc;
+}
+
 export function downloadInvoicePdf(
   inv: InvoicePayload,
   brandName?: string,
@@ -719,7 +947,7 @@ export function downloadInvoicePdf(
     mode === "invoice" && inv.lines[0]?.invoiceNumber
       ? inv.lines[0].invoiceNumber
       : inv.invoiceNumber;
-  const prefix = mode === "invoice" ? "Invoice" : "PaymentAdvice";
+  const prefix = mode === "invoice" ? "Invoice" : mode === "bc_invoice" ? "BC-Invoice" : "PaymentAdvice";
   const filename = `${prefix}_${baseNumber}_${subName}.pdf`;
   doc.save(filename);
 }

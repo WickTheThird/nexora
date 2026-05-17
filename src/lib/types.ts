@@ -90,6 +90,15 @@ export interface AppSettings {
   changes_request_email: string | null;
   // BC service fee per worker (minor units). Default 1700 = €17.
   service_fee_per_worker_minor: string | null;
+  // Bank details + footer for BC-issued PDF invoices.
+  bc_bank_account_name: string | null;
+  bc_bank_bic: string | null;
+  bc_bank_iban: string | null;
+  bc_bank_account_address: string | null;
+  bc_phone_roi: string | null;
+  bc_phone_ni: string | null;
+  bc_website: string | null;
+  bc_registered_number: string | null;
 }
 
 // Invoice template options surfaced in the InvoicePayload (parsed from
@@ -104,10 +113,32 @@ export interface InvoiceTemplate {
   showPrincipalRef: boolean;
 }
 
+// Optional extras the BC-side invoice generator needs. Populated by
+// the worker on the principal-invoice detail endpoint; absent on the
+// sub-side path.
+export interface BcInvoiceExtras {
+  bankAccountName: string | null;
+  bankBic: string | null;
+  bankIban: string | null;
+  bankAccountAddress: string | null;
+  phoneRoi: string | null;
+  phoneNi: string | null;
+  website: string | null;
+  registeredNumber: string | null;
+}
+
 export interface InvoicePayload {
   issuedAt: string;
   period: { from: string; to: string };
   invoiceNumber: string;
+  // Optional - present only for BC-issued primary invoices.
+  jobCardType?: string | null;
+  invoiceKind?: "labour" | "service" | null;
+  siteCodes?: string[];
+  bc?: BcInvoiceExtras;
+  vatAmountMinor?: number;
+  grossAmountMinor?: number;
+  netAmountMinor?: number;
   principal: {
     name: string | null;
     address: string | null;
@@ -403,6 +434,10 @@ export interface PrimaryInvoice {
   issuerVat?: string | null;
   issuerEmail?: string | null;
   template?: InvoiceTemplate;
+  // BC bank/footer config + the source Job Card type. Populated by the
+  // worker on the detail endpoint for use by the Enagh-style PDF.
+  jobCardType?: string | null;
+  bc?: BcInvoiceExtras;
 }
 
 // Top of the 3-tier hierarchy: Primary (developer/main contractor) →

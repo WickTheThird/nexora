@@ -8,7 +8,7 @@ import { Empty } from "@/components/ui/Empty";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { parseRosterCsv, type RosterRow } from "@/lib/rosterCsv";
-import { Users, UserPlus, Upload, Trash2, FileSpreadsheet } from "lucide-react";
+import { Users, UserPlus, Upload, Trash2, FileSpreadsheet, Pencil } from "lucide-react";
 
 // The principal's worker roster.
 //
@@ -26,6 +26,7 @@ export function PrimaryRoster() {
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [csvOpen, setCsvOpen] = useState(false);
+  const [editing, setEditing] = useState<RosterEntry | null>(null);
 
   const refresh = async () => {
     try {
@@ -122,14 +123,24 @@ export function PrimaryRoster() {
                   <td className="px-5 py-3 text-ink-700">{it.email}</td>
                   <td className="px-5 py-3 font-mono text-xs text-ink-600">{it.ppsMasked}</td>
                   <td className="px-5 py-3 text-right">
-                    <button
-                      type="button"
-                      onClick={() => remove(it.id)}
-                      className="text-ink-400 hover:text-red-700"
-                      title="Remove"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="inline-flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setEditing(it)}
+                        className="text-ink-400 hover:text-ink-900 p-1"
+                        title="Edit"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => remove(it.id)}
+                        className="text-ink-400 hover:text-red-700 p-1"
+                        title="Remove"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -153,7 +164,95 @@ export function PrimaryRoster() {
           await refresh();
         }}
       />
+
+      <EditSubModal
+        entry={editing}
+        onClose={() => setEditing(null)}
+        onSaved={async () => {
+          setEditing(null);
+          await refresh();
+        }}
+      />
     </>
+  );
+}
+
+function EditSubModal({ entry, onClose, onSaved }: {
+  entry: RosterEntry | null;
+  onClose: () => void;
+  onSaved: () => Promise<void>;
+}) {
+  const toast = useToast();
+  const [pps, setPps] = useState("");
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (entry) {
+      setPps("");           // blank means "don't change PPS" (we never expose the real PPS in UI)
+      setEmail(entry.email);
+      setName(entry.name);
+    }
+  }, [entry]);
+
+  if (!entry) return null;
+
+  const submit = async () => {
+    setBusy(true);
+    try {
+      const patch: { pps?: string; email?: string; name?: string } = {};
+      if (pps.trim()) patch.pps = pps.trim().toUpperCase();
+      if (email.trim() !== entry.email) patch.email = email.trim().toLowerCase();
+      if (name.trim() !== entry.name) patch.name = name.trim();
+      if (Object.keys(patch).length === 0) {
+        onClose();
+        return;
+      }
+      await api.primaryUpdateRosterEntry(entry.id, patch);
+      toast.success("Updated");
+      await onSaved();
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal
+      open={!!entry}
+      onClose={onClose}
+      title="Edit subcontractor"
+      description={`Update PPS / email / name for ${entry.name}. PPS is currently masked as ${entry.ppsMasked}; type a new value only if you need to correct it.`}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
+          <Button variant="accent" onClick={submit} loading={busy}>Save</Button>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        <Input
+          label="PPS number (leave blank to keep current)"
+          value={pps}
+          onChange={(e) => setPps(e.target.value.toUpperCase())}
+          placeholder={entry.ppsMasked}
+          hint="7 digits + 1 or 2 letters. Only fill if correcting a typo."
+        />
+        <Input
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <Input
+          label="Full name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+      </div>
+    </Modal>
   );
 }
 

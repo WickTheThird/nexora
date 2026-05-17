@@ -448,7 +448,6 @@ export function BulkAdvice() {
       {/* View tabs ----------------------------------------------------- */}
       <div className="flex gap-1 mb-5 border-b border-ink-200">
         <TabBtn label="Kanban" active={view === "kanban"} onClick={() => setView("kanban")} />
-        <TabBtn label="Bulk send" active={view === "bulk"} onClick={() => setView("bulk")} />
         <TabBtn label="From CSV upload" active={view === "csv"} onClick={() => setView("csv")} />
       </div>
 

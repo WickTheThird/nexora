@@ -128,9 +128,6 @@ export function PrimaryInvoiceDetail() {
       },
       rct: { byRate: [] },
       vat: {
-        // For BC->Primary invoices: BC charges VAT on the service kind.
-        // The 'subcontractor' slot is now BC, so subcontractorVatNumber
-        // is BC's VAT, principalVatNumber is the primary's VAT.
         subcontractorVatRegistered: !!data.invoice.issuerVat,
         subcontractorVatNumber: data.invoice.issuerVat || null,
         principalVatNumber: data.primary.vat,
@@ -139,6 +136,14 @@ export function PrimaryInvoiceDetail() {
         note: null,
       },
       accountantEmail: data.primary.accountantEmail,
+      // Extras for the Enagh-style BC invoice renderer
+      jobCardType: data.invoice.jobCardType || null,
+      invoiceKind: data.invoice.kind || null,
+      siteCodes: Array.from(new Set(data.lines.map((l: Record<string, unknown>) => l.site_ref).filter(Boolean))).map(String),
+      bc: data.invoice.bc || undefined,
+      grossAmountMinor: data.invoice.grossMinor,
+      vatAmountMinor: data.invoice.vatMinor || 0,
+      netAmountMinor: data.invoice.netMinor,
     };
   };
 
@@ -147,9 +152,8 @@ export function PrimaryInvoiceDetail() {
     if (!payload) return;
     try {
       const { downloadInvoicePdf } = await loadPdf();
-      // Reuse 'invoice' mode - sub→principal direction. Here the primary is
-      // in the 'subcontractor' slot as the recipient, BC is the principal/issuer.
-      downloadInvoicePdf(payload, brandName(), "invoice");
+      // Enagh-style BC->Primary layout.
+      downloadInvoicePdf(payload, brandName(), "bc_invoice");
       toast.success("Invoice PDF downloaded");
     } catch {
       toast.error("Failed to generate PDF");
@@ -164,8 +168,8 @@ export function PrimaryInvoiceDetail() {
     const payload = buildInvoicePayload();
     if (!payload) return;
     const { downloadInvoicePdf, invoiceMailto } = await loadPdf();
-    downloadInvoicePdf(payload, brandName(), "invoice");
-    window.location.href = invoiceMailto(payload, brandName(), "invoice");
+    downloadInvoicePdf(payload, brandName(), "bc_invoice");
+    window.location.href = invoiceMailto(payload, brandName(), "bc_invoice");
   };
 
   if (loading) return <div className="skeleton h-64" />;

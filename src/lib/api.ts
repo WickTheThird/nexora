@@ -1006,6 +1006,13 @@ export const api = {
       netPaidLast30Minor: number;
     }>("GET", "/admin/dashboard-stats"),
 
+  // One-shot: rewrite legacy SUB-NNNN refs to plaintext PPS for any
+  // subs that still have a numeric ref + a PPS on file.
+  adminMigrateSubRefs: () =>
+    request<{ updated: number; skipped: Array<{ id: string; reason: string }> }>(
+      "POST", "/admin/migrate-sub-refs",
+    ),
+
   // -------- settings (admin) --------
   getSettings: () => request<AppSettings>("GET", "/admin/settings"),
   putSettings: (data: Partial<AppSettings>) =>
@@ -1060,6 +1067,10 @@ export const api = {
     request<RosterEntry>("POST", "/me/primary/roster", { body: data }),
   primaryDeleteRosterEntry: (id: string) =>
     request<{ ok: true }>("DELETE", `/me/primary/roster/${id}`),
+  // Edit a roster entry (e.g. fix a PPS typo). Any combination of pps,
+  // email, name may be sent. PPS change re-runs the linkage.
+  primaryUpdateRosterEntry: (id: string, data: { pps?: string; email?: string; name?: string }) =>
+    request<RosterEntry>("PATCH", `/me/primary/roster/${id}`, { body: data }),
   // Bulk import - the worker validates again server-side, so the client
   // can send the pre-parsed rows directly.
   primaryImportRoster: (rows: Array<{ pps: string; email: string; name: string }>) =>

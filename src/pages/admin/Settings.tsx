@@ -30,6 +30,15 @@ const empty: AppSettings = {
   changes_request_email: null,
   // BC service fee per worker (minor units). Default 1700 = €17.
   service_fee_per_worker_minor: null,
+  // Bank + footer for BC-issued invoices.
+  bc_bank_account_name: null,
+  bc_bank_bic: null,
+  bc_bank_iban: null,
+  bc_bank_account_address: null,
+  bc_phone_roi: null,
+  bc_phone_ni: null,
+  bc_website: null,
+  bc_registered_number: null,
 };
 
 export function Settings() {
@@ -272,6 +281,70 @@ export function Settings() {
                   );
                 })}
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="card-padded">
+          <h2 className="text-base font-semibold text-ink-900 mb-1">Invoice footer + bank</h2>
+          <p className="text-sm text-ink-500 mb-5">
+            These render on every BC-issued invoice PDF (Payment Details
+            block + page footer with contact info + registered office).
+          </p>
+          <div className="space-y-4">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Input
+                label="Bank account name"
+                value={data.bc_bank_account_name || ""}
+                onChange={(e) => set("bc_bank_account_name", e.target.value || null)}
+                placeholder="Samwise Building Contractors Ltd"
+              />
+              <Input
+                label="BIC"
+                value={data.bc_bank_bic || ""}
+                onChange={(e) => set("bc_bank_bic", e.target.value || null)}
+                placeholder="TRWIBEB1XXX"
+              />
+              <Input
+                label="IBAN"
+                value={data.bc_bank_iban || ""}
+                onChange={(e) => set("bc_bank_iban", e.target.value || null)}
+                placeholder="IE12 BOFI 9000 1234 5678 90"
+              />
+              <Input
+                label="Registered number"
+                value={data.bc_registered_number || ""}
+                onChange={(e) => set("bc_registered_number", e.target.value || null)}
+                placeholder="575739"
+              />
+            </div>
+            <Textarea
+              label="Bank account address (optional)"
+              rows={3}
+              value={data.bc_bank_account_address || ""}
+              onChange={(e) => set("bc_bank_account_address", e.target.value || null)}
+              placeholder={"Wise's address: Avenue Louise 54, Room S52\nBrussels\n1050\nBelgium"}
+              hint="For Wise / non-IE accounts. Leave blank for a local IBAN."
+            />
+            <div className="grid sm:grid-cols-3 gap-4">
+              <Input
+                label="ROI phone"
+                value={data.bc_phone_roi || ""}
+                onChange={(e) => set("bc_phone_roi", e.target.value || null)}
+                placeholder="00353 (0) 19697857"
+              />
+              <Input
+                label="NI phone"
+                value={data.bc_phone_ni || ""}
+                onChange={(e) => set("bc_phone_ni", e.target.value || null)}
+                placeholder="0044 (0) 2895608636"
+              />
+              <Input
+                label="Website"
+                value={data.bc_website || ""}
+                onChange={(e) => set("bc_website", e.target.value || null)}
+                placeholder="www.samwisebc.com"
+              />
             </div>
           </div>
         </section>
