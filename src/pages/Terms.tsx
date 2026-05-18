@@ -46,9 +46,11 @@ export function Terms() {
         <h2>2. Acceptance of these Terms</h2>
         <p>
           By signing in to the Service you confirm that you have read,
-          understood and agree to be bound by these Terms and by the{" "}
-          <Link to="/legal/privacy" className="underline">Privacy Notice</Link>.
-          If you do not accept either, do not use the Service.
+          understood and agree to be bound by these Terms, the{" "}
+          <Link to="/legal/privacy" className="underline">Privacy Notice</Link>,
+          and (where you act as a Subcontractor) the{" "}
+          <Link to="/legal/contract" className="underline">Contract for Services</Link>.
+          If you do not accept any of these, do not use the Service.
         </p>
 
         <h2>3. Permitted use</h2>

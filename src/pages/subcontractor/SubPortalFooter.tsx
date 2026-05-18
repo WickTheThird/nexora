@@ -40,6 +40,13 @@ export function SubPortalFooter() {
           Email: <a href={`mailto:${b.contractorEmail}`} className="text-ink-700 hover:text-ink-900 underline">{b.contractorEmail}</a>
         </div>
       )}
+      <div className="mb-2 text-ink-500">
+        <a href="#/legal/contract" className="underline hover:text-ink-700">Contract for Services</a>
+        <span className="mx-2">·</span>
+        <a href="#/legal/privacy" className="underline hover:text-ink-700">Privacy notice</a>
+        <span className="mx-2">·</span>
+        <a href="#/legal/terms" className="underline hover:text-ink-700">Terms of service</a>
+      </div>
       <div className="text-ink-400">
         © {new Date().getFullYear()} {b.contractorName}, All Rights Reserved
       </div>

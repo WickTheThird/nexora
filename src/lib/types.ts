@@ -280,7 +280,35 @@ export interface DocumentRecord {
   reviewedBy: string | null;
   reviewedAt: number | null;
   uploadedAt: number;
+  // Card / cert metadata. Captured at upload time on the sub side via
+  // a mandatory data-entry modal; the admin can patch any of them
+  // later. expiresAt drives payment-eligibility: any approved document
+  // whose expiresAt is in the past blocks payment processing for that
+  // sub (see worker.js processPrimarySubmissionCore).
   expiresAt: number | null;
+  issuedAt: number | null;
+  cardNumber: string | null;
+  issuingBody: string | null;
+  holderName: string | null;
+  // 10-minute hold window after the sub's last save. While this is in
+  // the future the sub can keep editing the card metadata freely;
+  // once it passes, the row is read-only on the sub side and any
+  // change must go via the admin Change Requests inbox. Mirrors the
+  // principal Job Card hold pattern.
+  metadataHeldUntil: number | null;
+  metadataUpdatedAt: number | null;
+}
+
+// Patch shape for both sub-side and admin-side metadata writes.
+// All fields optional; sending null clears the value, sending
+// undefined leaves it alone. Dates are ms-epoch numbers (or
+// null to clear).
+export interface DocumentMetadataPatch {
+  expiresAt?: number | null;
+  issuedAt?: number | null;
+  cardNumber?: string | null;
+  issuingBody?: string | null;
+  holderName?: string | null;
 }
 
 export interface QuestionnaireRecord {

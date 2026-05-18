@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { api, ApiError } from "@/lib/api";
 import type {
   BankDetails,
+  DocumentMetadataPatch,
   DocumentRecord,
   PaymentRecord,
   Primary,
@@ -35,9 +36,55 @@ import {
   Download,
   UserX,
   Plus,
+  AlertTriangle,
+  CalendarClock,
+  Pencil,
 } from "lucide-react";
 
+// Date helpers + expiry classification, kept local to the admin file
+// so the admin detail view can render badges + colour-code dates the
+// same way the sub-side Documents page does. Mirrors the helpers in
+// pages/subcontractor/Documents.tsx; keep them in sync.
+function dateMsToYmd(ms: number | null | undefined): string {
+  if (!ms) return "";
+  const d = new Date(ms);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+function ymdToMs(s: string): number | null {
+  if (!s) return null;
+  const [y, m, d] = s.split("-").map((x) => parseInt(x, 10));
+  if (!y || !m || !d) return null;
+  return Date.UTC(y, m - 1, d);
+}
+function expiryState(expiresAt: number | null): "none" | "fresh" | "soon" | "expired" {
+  if (!expiresAt) return "none";
+  const now = Date.now();
+  if (expiresAt < now) return "expired";
+  const days = (expiresAt - now) / (1000 * 60 * 60 * 24);
+  if (days <= 30) return "soon";
+  return "fresh";
+}
+function expiryBadge(expiresAt: number | null) {
+  const s = expiryState(expiresAt);
+  if (s === "expired") return <Badge tone="danger" icon={<AlertTriangle className="h-3 w-3"/>}>Expired</Badge>;
+  if (s === "soon")    return <Badge tone="warn"   icon={<CalendarClock className="h-3 w-3"/>}>Expires soon</Badge>;
+  if (s === "fresh")   return <Badge tone="success" icon={<CheckCircle2 className="h-3 w-3"/>}>Valid</Badge>;
+  return null;
+}
+
 type Tab = "overview" | "documents" | "questionnaire" | "payments";
+
+// Same normalisation as the sub-portal ProfileEdit name-match check.
+// Trim, lowercase, strip diacritics, collapse punctuation/whitespace.
+// Keep them in sync if either is updated.
+const normalizeNameForMatch = (s: string | null | undefined): string =>
+  (s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[-_.,]/g, " ")
+    .replace(/\s+/g, " ");
 
 export function SubcontractorDetail() {
   const { id = "" } = useParams();
@@ -439,6 +486,27 @@ function OverviewTab({
           {fieldRow("Currency", bank?.currency)}
           {fieldRow("Bank ref", bank?.bankRef)}
         </div>
+        {(() => {
+          // Flag a name mismatch between the bank account holder and
+          // the legal name on file (which is what gets reported to
+          // Revenue under RCT and what the bank will match against).
+          // Display-only: doesn't block approval, but a loud amber
+          // banner gives the admin a chance to chase the sub before
+          // the first payment fails.
+          if (!bank?.accountHolderName || !sub.fullName) return null;
+          if (normalizeNameForMatch(bank.accountHolderName) === normalizeNameForMatch(sub.fullName)) return null;
+          return (
+            <div className="mt-5 rounded-lg bg-amber-50 border border-amber-200 p-3 flex items-start gap-2.5">
+              <AlertTriangle className="h-4 w-4 text-amber-700 mt-0.5 shrink-0" />
+              <div className="text-sm text-amber-900">
+                <div className="font-medium">Bank name does not match PPS-registered name</div>
+                <div className="text-xs mt-0.5">
+                  Account holder is <span className="font-medium">{bank.accountHolderName}</span> but the legal name on file is <span className="font-medium">{sub.fullName}</span>. Payments may be rejected by the receiving bank. Resolve with the sub before processing.
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
@@ -456,6 +524,10 @@ function DocumentsTab({ subId }: { subId: string }) {
   const [loading, setLoading] = useState(true);
   const [reviewing, setReviewing] = useState<{ doc: DocumentRecord; status: "approved" | "rejected" } | null>(null);
   const [note, setNote] = useState("");
+  // Metadata-edit modal state. Admin can edit any doc's card details
+  // anytime (no 10-minute window applies on this side - it's the
+  // override path the sub uses via change request).
+  const [editingMeta, setEditingMeta] = useState<DocumentRecord | null>(null);
 
   const refresh = async () => {
     const r = await api.adminListSubDocuments(subId);
@@ -479,64 +551,151 @@ function DocumentsTab({ subId }: { subId: string }) {
     }
   };
 
+  const saveMetadata = async (docId: string, patch: DocumentMetadataPatch) => {
+    try {
+      await api.adminPatchDocumentMetadata(subId, docId, patch);
+      await refresh();
+      toast.success("Document details updated");
+      setEditingMeta(null);
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Failed");
+    }
+  };
+
   if (loading) return <div className="skeleton h-64" />;
   if (docs.length === 0) return <div className="card p-6 text-sm text-ink-500">No documents uploaded yet.</div>;
 
+  // Payments-blocked banner: if any doc on file is past expiry, the
+  // worker refuses payment generation for this sub. Surface it loud
+  // at the top of the tab so the admin sees it before chasing
+  // unrelated issues.
+  const expiredCount = docs.filter((d) => expiryState(d.expiresAt) === "expired").length;
+  const soonCount = docs.filter((d) => expiryState(d.expiresAt) === "soon").length;
+
   return (
     <>
+      {expiredCount > 0 && (
+        <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-700 mt-0.5 shrink-0" />
+          <div className="text-sm text-red-900 flex-1">
+            <div className="font-semibold">
+              Payments blocked: {expiredCount} expired document{expiredCount === 1 ? "" : "s"}
+            </div>
+            <div className="text-xs mt-0.5">
+              Submissions involving this subcontractor will not generate payment advices until every expired document is renewed and re-uploaded.
+            </div>
+          </div>
+        </div>
+      )}
+      {soonCount > 0 && expiredCount === 0 && (
+        <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 p-3 flex items-start gap-2.5">
+          <CalendarClock className="h-4 w-4 text-amber-700 mt-0.5 shrink-0" />
+          <div className="text-sm text-amber-900">
+            <div className="font-medium">
+              {soonCount} document{soonCount === 1 ? "" : "s"} expiring within 30 days
+            </div>
+            <div className="text-xs mt-0.5">
+              Nudge the sub to renew before the expiry date to avoid payment interruption.
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-3">
         {docs.map((d) => (
-          <div key={d.id} className="card p-4 flex items-center gap-4 flex-wrap">
-            <div className="h-10 w-10 rounded-lg bg-ink-100 text-ink-700 grid place-items-center flex-shrink-0">
-              <FileText className="h-5 w-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="font-medium text-ink-900 truncate">{d.originalFilename}</div>
-                <Badge tone="neutral">{d.documentType.replace("_", " ")}</Badge>
-                {reviewBadge(d.reviewStatus)}
+          <div key={d.id} className="card p-4">
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="h-10 w-10 rounded-lg bg-ink-100 text-ink-700 grid place-items-center flex-shrink-0">
+                <FileText className="h-5 w-5" />
               </div>
-              <div className="text-xs text-ink-500 mt-0.5">
-                {fmtBytes(d.sizeBytes)} · {fmtDateTime(d.uploadedAt)}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="font-medium text-ink-900 truncate">{d.originalFilename}</div>
+                  <Badge tone="neutral">{d.documentType.replace(/_/g, " ")}</Badge>
+                  {reviewBadge(d.reviewStatus)}
+                  {expiryBadge(d.expiresAt)}
+                </div>
+                <div className="text-xs text-ink-500 mt-0.5">
+                  {fmtBytes(d.sizeBytes)} · {fmtDateTime(d.uploadedAt)}
+                </div>
+                {d.reviewNote && <div className="text-xs text-ink-600 mt-1">Note: {d.reviewNote}</div>}
               </div>
-              {d.reviewNote && <div className="text-xs text-ink-600 mt-1">Note: {d.reviewNote}</div>}
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              <a
-                className="btn-ghost"
-                href={api.adminDownloadSubDocumentUrl(subId, d.id)}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Download className="h-4 w-4" /> View
-              </a>
-              {d.reviewStatus === "pending" && (
-                <>
-                  {/* Request re-upload = reject with a default note.
-                      Saves the admin from typing the same 'please
-                      re-upload this' message every time. */}
-                  <Button
-                    variant="outline"
-                    onClick={() => { setReviewing({ doc: d, status: "rejected" }); setNote(`Please re-upload this ${d.documentType.replace(/_/g, " ")}. The current file is unclear / out of date / wrong type.`); }}
-                  >
-                    Request re-upload
-                  </Button>
-                  <Button variant="outline" onClick={() => { setReviewing({ doc: d, status: "rejected" }); setNote(""); }} className="hover:bg-red-50 hover:text-red-700">Reject</Button>
-                  <Button variant="accent" onClick={() => { setReviewing({ doc: d, status: "approved" }); setNote(""); }}>Approve</Button>
-                </>
-              )}
-              {/* Approved docs can be sent back for re-upload too
-                  (e.g. insurance renewed annually). */}
-              {d.reviewStatus === "approved" && (
+              <div className="flex gap-2 flex-wrap">
+                <a
+                  className="btn-ghost"
+                  href={api.adminDownloadSubDocumentUrl(subId, d.id)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Download className="h-4 w-4" /> View
+                </a>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => { setReviewing({ doc: d, status: "rejected" }); setNote(`This ${d.documentType.replace(/_/g, " ")} needs a refresh - please re-upload the current version.`); }}
+                  onClick={() => setEditingMeta(d)}
+                  leftIcon={<Pencil className="h-4 w-4" />}
                 >
-                  Request re-upload
+                  Edit details
                 </Button>
-              )}
+                {d.reviewStatus === "pending" && (
+                  <>
+                    {/* Request re-upload = reject with a default note.
+                        Saves the admin from typing the same 'please
+                        re-upload this' message every time. */}
+                    <Button
+                      variant="outline"
+                      onClick={() => { setReviewing({ doc: d, status: "rejected" }); setNote(`Please re-upload this ${d.documentType.replace(/_/g, " ")}. The current file is unclear / out of date / wrong type.`); }}
+                    >
+                      Request re-upload
+                    </Button>
+                    <Button variant="outline" onClick={() => { setReviewing({ doc: d, status: "rejected" }); setNote(""); }} className="hover:bg-red-50 hover:text-red-700">Reject</Button>
+                    <Button variant="accent" onClick={() => { setReviewing({ doc: d, status: "approved" }); setNote(""); }}>Approve</Button>
+                  </>
+                )}
+                {/* Approved docs can be sent back for re-upload too
+                    (e.g. insurance renewed annually). */}
+                {d.reviewStatus === "approved" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setReviewing({ doc: d, status: "rejected" }); setNote(`This ${d.documentType.replace(/_/g, " ")} needs a refresh - please re-upload the current version.`); }}
+                  >
+                    Request re-upload
+                  </Button>
+                )}
+              </div>
             </div>
+            {/* Card metadata strip. Read-only here; click "Edit details"
+                to open the modal. We show every field even when empty
+                so the admin can see at a glance what's missing. */}
+            <dl className="mt-4 border-t border-ink-100 pt-3 grid grid-cols-2 sm:grid-cols-5 gap-x-4 gap-y-1 text-xs">
+              <div>
+                <dt className="text-ink-400">Issuer</dt>
+                <dd className="text-ink-800">{d.issuingBody || <span className="text-ink-400 italic">empty</span>}</dd>
+              </div>
+              <div>
+                <dt className="text-ink-400">Card #</dt>
+                <dd className="text-ink-800">{d.cardNumber || <span className="text-ink-400 italic">empty</span>}</dd>
+              </div>
+              <div>
+                <dt className="text-ink-400">Holder</dt>
+                <dd className="text-ink-800">{d.holderName || <span className="text-ink-400 italic">empty</span>}</dd>
+              </div>
+              <div>
+                <dt className="text-ink-400">Issued</dt>
+                <dd className="text-ink-800">{d.issuedAt ? fmtDate(d.issuedAt) : <span className="text-ink-400 italic">empty</span>}</dd>
+              </div>
+              <div>
+                <dt className="text-ink-400">Expires</dt>
+                <dd className={`font-medium ${
+                  expiryState(d.expiresAt) === "expired" ? "text-red-700" :
+                  expiryState(d.expiresAt) === "soon" ? "text-amber-800" :
+                  "text-ink-800"
+                }`}>
+                  {d.expiresAt ? fmtDate(d.expiresAt) : <span className="text-ink-400 italic">empty</span>}
+                </dd>
+              </div>
+            </dl>
           </div>
         ))}
       </div>
@@ -556,7 +715,115 @@ function DocumentsTab({ subId }: { subId: string }) {
       >
         <Textarea label="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} rows={4} />
       </Modal>
+
+      <AdminMetadataModal
+        doc={editingMeta}
+        onClose={() => setEditingMeta(null)}
+        onSave={(patch) => editingMeta && saveMetadata(editingMeta.id, patch)}
+      />
     </>
+  );
+}
+
+// Admin-side metadata editor. Unlike the sub-side modal, this one
+// does NOT refuse expired dates - sometimes you need to record what
+// the card actually says even if it's already expired (e.g. to
+// satisfy an audit). Payments are blocked anyway via the gate in
+// processPrimarySubmissionCore.
+function AdminMetadataModal({
+  doc, onClose, onSave,
+}: {
+  doc: DocumentRecord | null;
+  onClose: () => void;
+  onSave: (patch: DocumentMetadataPatch) => void;
+}) {
+  const [issuingBody, setIssuingBody] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [holderName, setHolderName] = useState("");
+  const [issuedAt, setIssuedAt] = useState("");
+  const [expiresAt, setExpiresAt] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!doc) return;
+    setIssuingBody(doc.issuingBody || "");
+    setCardNumber(doc.cardNumber || "");
+    setHolderName(doc.holderName || "");
+    setIssuedAt(dateMsToYmd(doc.issuedAt));
+    setExpiresAt(dateMsToYmd(doc.expiresAt));
+    setErr(null);
+  }, [doc]);
+
+  const handleSave = () => {
+    setErr(null);
+    const expMs = ymdToMs(expiresAt);
+    const issMs = ymdToMs(issuedAt);
+    if (issMs && expMs && issMs > expMs) {
+      setErr("Issue date is after the expiry date.");
+      return;
+    }
+    onSave({
+      issuingBody: issuingBody.trim() || null,
+      cardNumber: cardNumber.trim() || null,
+      holderName: holderName.trim() || null,
+      issuedAt: issMs,
+      expiresAt: expMs,
+    });
+  };
+
+  return (
+    <Modal
+      open={!!doc}
+      onClose={onClose}
+      title="Edit document details"
+      description="Admin override - applies regardless of the sub's 10-minute hold window."
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="accent" onClick={handleSave}>Save</Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Input
+            label="Issuing body"
+            value={issuingBody}
+            onChange={(e) => setIssuingBody(e.target.value)}
+            placeholder="e.g. Solas, QQI, HSA"
+          />
+          <Input
+            label="Card number"
+            value={cardNumber}
+            onChange={(e) => setCardNumber(e.target.value)}
+          />
+          <Input
+            label="Holder name (on card)"
+            value={holderName}
+            onChange={(e) => setHolderName(e.target.value)}
+          />
+          <Input
+            label="Issue date"
+            type="date"
+            value={issuedAt}
+            onChange={(e) => setIssuedAt(e.target.value)}
+          />
+          <Input
+            label="Expiry date"
+            type="date"
+            value={expiresAt}
+            onChange={(e) => setExpiresAt(e.target.value)}
+            hint="A date in the past flags the document as expired and blocks payments."
+          />
+        </div>
+        {err && (
+          <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-800 flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>{err}</span>
+          </div>
+        )}
+      </div>
+    </Modal>
   );
 }
 

@@ -157,6 +157,8 @@ export function Login() {
           <p className="text-xs text-ink-400 mt-8 text-center">
             <a href="#/help" className="underline hover:text-ink-700">How it works</a>
             <span className="mx-2">·</span>
+            <a href="#/legal/contract" className="underline hover:text-ink-700">Contract for Services</a>
+            <span className="mx-2">·</span>
             <a href="#/legal/privacy" className="underline hover:text-ink-700">Privacy notice</a>
             <span className="mx-2">·</span>
             <a href="#/legal/terms" className="underline hover:text-ink-700">Terms of service</a>

@@ -7,7 +7,22 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { fmtDateTime } from "@/lib/format";
-import { Save, Send, MessageSquarePlus, Clock } from "lucide-react";
+import { Save, Send, MessageSquarePlus, Clock, AlertTriangle } from "lucide-react";
+
+// Normalize names for the PPS <-> bank account-holder match check.
+// Trim, lowercase, collapse internal whitespace, strip diacritics so
+// "ANA-MARIA POPESCU" and "ana maria popescu" compare equal. We do
+// NOT strip middle names or initials - the legal name on the PPS
+// must appear verbatim on the bank account or AIB / Revolut etc.
+// reject the payment.
+const normalizeName = (s: string | null | undefined): string =>
+  (s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[-_.,]/g, " ")
+    .replace(/\s+/g, " ");
 
 // Empty bank shape used when the sub has no bank_details row yet -
 // the form needs controlled values from the very first render.
@@ -130,6 +145,19 @@ export function ProfileEdit() {
   };
 
   const submit = async () => {
+    // Hard gate: the bank account holder name MUST match the legal
+    // name registered on PPS. Banks reject payments to mismatched
+    // names, and our RCT filing carries the PPS name to Revenue - if
+    // those don't reconcile, the worker doesn't get paid and we
+    // spend a fortnight on the phone to AIB. Catch it here.
+    if (sub && bank && bank.accountHolderName && sub.fullName) {
+      if (normalizeName(bank.accountHolderName) !== normalizeName(sub.fullName)) {
+        toast.error(
+          "Account holder name must match your PPS-registered name. Fix it before submitting.",
+        );
+        return;
+      }
+    }
     setSubmitting(true);
     try {
       const r = await api.submitMyProfile();
@@ -160,6 +188,15 @@ export function ProfileEdit() {
   }
 
   const isLocked = sub.submittedAt != null && sub.onboardingStatus !== "in_progress" && sub.onboardingStatus !== "changes_requested";
+
+  // Account-holder vs PPS name check. Renders an inline warning under
+  // the bank section. Only fires when both fields are populated -
+  // we don't nag the user before they've typed anything.
+  const accountHolderTouched = (bank.accountHolderName || "").trim().length > 0;
+  const ppsNameSet = (sub.fullName || "").trim().length > 0;
+  const nameMismatch =
+    accountHolderTouched && ppsNameSet &&
+    normalizeName(bank.accountHolderName) !== normalizeName(sub.fullName);
 
   return (
     <form onSubmit={save} className="space-y-8">
@@ -298,7 +335,13 @@ export function ProfileEdit() {
         </p>
         <div className="grid sm:grid-cols-2 gap-4">
           <Input label="Bank name" value={bank.bankName || ""} onChange={(e) => setB("bankName", e.target.value)} disabled={!editable} />
-          <Input label="Account holder name" value={bank.accountHolderName || ""} onChange={(e) => setB("accountHolderName", e.target.value)} disabled={!editable} />
+          <Input
+            label="Account holder name"
+            value={bank.accountHolderName || ""}
+            onChange={(e) => setB("accountHolderName", e.target.value)}
+            disabled={!editable}
+            hint="Must match your PPS-registered legal name exactly. Banks reject payments to mismatched names."
+          />
           <Input label="Account number" value={bank.accountNumber || ""} onChange={(e) => setB("accountNumber", e.target.value)} disabled={!editable} />
           <Input label="Sort code" value={bank.sortCode || ""} onChange={(e) => setB("sortCode", e.target.value)} disabled={!editable} />
           <Input label="IBAN" value={bank.iban || ""} onChange={(e) => setB("iban", e.target.value)} disabled={!editable} />
@@ -306,6 +349,19 @@ export function ProfileEdit() {
           <Input label="Currency" value={bank.currency} onChange={(e) => setB("currency", e.target.value.toUpperCase())} disabled={!editable} />
           <Input label="Bank reference" value={bank.bankRef || ""} onChange={(e) => setB("bankRef", e.target.value)} disabled={!editable} />
         </div>
+        {nameMismatch && (
+          <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 p-3 flex items-start gap-2.5">
+            <AlertTriangle className="h-4 w-4 text-amber-700 mt-0.5 shrink-0" />
+            <div className="text-sm text-amber-900">
+              <div className="font-medium">Name mismatch</div>
+              <div className="text-xs mt-0.5">
+                The account holder name does not match your registered name
+                {sub.fullName ? <> (<span className="font-medium">{sub.fullName}</span>)</> : null}.
+                Payments must go to an account in your own legal name as it appears on your PPS records. Update the field above to match before submitting.
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       {editable && (

@@ -9,7 +9,7 @@ import { Empty } from "@/components/ui/Empty";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { fmtDateTime } from "@/lib/format";
-import { MessagesSquare, Send, Download, UserX, ShieldCheck } from "lucide-react";
+import { MessagesSquare, Send, Download, UserX, ShieldCheck, FileText } from "lucide-react";
 
 function statusBadge(s: ChangeRequest["status"]) {
   const tone = {
@@ -176,6 +176,55 @@ export function Support() {
               </div>
             </div>
           </button>
+        </div>
+      </section>
+
+      <section className="mt-6 card-padded">
+        <div className="flex items-start gap-3 mb-5">
+          <div className="h-9 w-9 rounded-lg bg-ink-100 text-ink-700 grid place-items-center">
+            <FileText className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-ink-900">Legal documents</h2>
+            <p className="text-sm text-ink-500 mt-0.5">
+              The terms that govern your relationship with us. Read any of them at any time.
+            </p>
+          </div>
+        </div>
+        <div className="grid md:grid-cols-3 gap-4">
+          <a
+            href="#/legal/contract"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="card p-5 border border-ink-100 hover:border-ink-300 transition block"
+          >
+            <div className="font-medium text-ink-900">Contract for Services</div>
+            <p className="text-sm text-ink-500 mt-1">
+              The subcontractor agreement that applies whenever you accept payment from us.
+            </p>
+          </a>
+          <a
+            href="#/legal/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="card p-5 border border-ink-100 hover:border-ink-300 transition block"
+          >
+            <div className="font-medium text-ink-900">Privacy notice</div>
+            <p className="text-sm text-ink-500 mt-1">
+              How we collect, store and use your personal data under GDPR.
+            </p>
+          </a>
+          <a
+            href="#/legal/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="card p-5 border border-ink-100 hover:border-ink-300 transition block"
+          >
+            <div className="font-medium text-ink-900">Terms of service</div>
+            <p className="text-sm text-ink-500 mt-1">
+              The platform terms that apply to your use of the Samwise portal.
+            </p>
+          </a>
         </div>
       </section>
 

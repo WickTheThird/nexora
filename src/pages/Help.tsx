@@ -199,7 +199,7 @@ export function Help() {
               or call <span className="font-medium">+353 1 9697857</span>.
             </p>
             <p className="text-xs text-ink-400 mt-2">
-              <Link to="/legal/privacy" className="underline">Privacy notice</Link> · <Link to="/legal/terms" className="underline">Terms of service</Link>
+              <Link to="/legal/contract" className="underline">Contract for Services</Link> · <Link to="/legal/privacy" className="underline">Privacy notice</Link> · <Link to="/legal/terms" className="underline">Terms of service</Link>
             </p>
             <Link to={backHref} className="inline-flex items-center gap-1 text-sm text-ink-700 hover:text-ink-900 mt-4">
               {backLabel} <ArrowRight className="h-4 w-4" />

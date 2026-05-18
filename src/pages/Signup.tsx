@@ -260,8 +260,9 @@ export function Signup() {
           </Button>
           <p className="text-[11px] text-ink-400 text-center">
             By submitting you agree to our{" "}
-            <Link to="/legal/privacy" className="underline">Privacy Notice</Link> and{" "}
-            <Link to="/legal/terms" className="underline">Terms</Link>.
+            <Link to="/legal/privacy" className="underline">Privacy Notice</Link>,{" "}
+            <Link to="/legal/terms" className="underline">Terms</Link>, and{" "}
+            <Link to="/legal/contract" className="underline">Contract for Services</Link>.
           </p>
         </form>
       </div>

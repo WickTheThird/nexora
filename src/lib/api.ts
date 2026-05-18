@@ -6,6 +6,7 @@ import type {
   AppSettings,
   BankDetails,
   ChangeRequest,
+  DocumentMetadataPatch,
   DocumentRecord,
   InvoicePayload,
   JobApplication,
@@ -285,16 +286,26 @@ export const api = {
   // -------- documents --------
   listMyDocuments: () =>
     request<{ items: DocumentRecord[] }>("GET", "/me/documents"),
-  uploadMyDocument: (documentType: string, file: File) => {
+  uploadMyDocument: (documentType: string, file: File, metadata?: DocumentMetadataPatch) => {
     const fd = new FormData();
     fd.append("documentType", documentType);
     fd.append("file", file);
+    if (metadata) {
+      // Card metadata is captured up-front via the mandatory entry
+      // modal. Sent as JSON to keep the formdata flat.
+      fd.append("metadata", JSON.stringify(metadata));
+    }
     return request<DocumentRecord>("POST", "/me/documents", { formData: fd });
   },
   downloadMyDocumentUrl: (id: string) =>
     apiBase() + `/me/documents/${id}/download` + tokenQuery(),
   deleteMyDocument: (id: string) =>
     request<{ ok: true }>("DELETE", `/me/documents/${id}`),
+  // Sub-side metadata edit. Server enforces the 10-minute hold
+  // window via metadata_held_until; outside the window the worker
+  // returns 403 and the UI surfaces a "Submit change request" CTA.
+  patchMyDocumentMetadata: (id: string, metadata: DocumentMetadataPatch) =>
+    request<DocumentRecord>("PATCH", `/me/documents/${id}/metadata`, { body: metadata as Record<string, unknown> }),
 
   // -------- questionnaire --------
   getMyQuestionnaire: () =>
@@ -446,6 +457,20 @@ export const api = {
       "POST",
       `/admin/subcontractors/${subId}/documents/${docId}/review`,
       { body: { status, note } },
+    ),
+  // Admin can patch card metadata at any time, regardless of the
+  // 10-minute sub-side hold. Used both for filling in fields the
+  // sub left blank and for correcting typos when the sub raises a
+  // change request.
+  adminPatchDocumentMetadata: (
+    subId: string,
+    docId: string,
+    metadata: DocumentMetadataPatch,
+  ) =>
+    request<DocumentRecord>(
+      "PATCH",
+      `/admin/subcontractors/${subId}/documents/${docId}/metadata`,
+      { body: metadata as Record<string, unknown> },
     ),
 
   // -------- admin: questionnaire --------
