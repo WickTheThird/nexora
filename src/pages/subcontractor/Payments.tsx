@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/layout/PortalShell";
 import { IncomeSummary } from "@/components/payments/IncomeSummary";
 import { FilterBar, presetToRange, type DatePreset } from "@/components/ui/FilterBar";
 import { fmtDate, fmtMoney } from "@/lib/format";
-import { Download, Wallet, FileText, CheckCircle2, FileBarChart } from "lucide-react";
+import { Download, Wallet, FileText, CheckCircle2, FileBarChart, Folder, ArrowLeft } from "lucide-react";
 
 // Lazy-load PDF code (jsPDF + html2canvas) only when the user clicks Download.
 const loadPdf = () => import("@/lib/pdf");
@@ -60,6 +60,10 @@ export function Payments() {
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [sortMode, setSortMode] = useState<string>("date_desc");
+  // Year-folder browse state. null = show the folders view; number =
+  // drill into that year's advices. Declared up here so the `visible`
+  // useMemo below can include it in its deps list without TDZ.
+  const [folderYear, setFolderYear] = useState<number | null>(null);
 
   const refresh = async () => {
     const [allPayments, p] = await Promise.all([
@@ -168,6 +172,12 @@ export function Payments() {
     const q = search.trim().toLowerCase();
 
     const filtered = items.filter((p) => {
+      // Year folder filter: only show payments from the drilled-in year
+      if (folderYear !== null) {
+        const d = p.paymentDate ? new Date(p.paymentDate) : null;
+        if (!d || Number.isNaN(d.getTime())) return false;
+        if (d.getFullYear() !== folderYear) return false;
+      }
       // Status pill
       if (statusFilter === "advised" && !(p.status === "advised" || p.status === "processed")) return false;
       if (statusFilter === "invoiced" && p.status !== "invoiced") return false;
@@ -197,7 +207,7 @@ export function Payments() {
       return (b.paymentDate || "").localeCompare(a.paymentDate || "");
     });
     return filtered;
-  }, [items, statusFilter, search, datePreset, dateFrom, dateTo, sortMode]);
+  }, [items, statusFilter, search, datePreset, dateFrom, dateTo, sortMode, folderYear]);
 
   // Year-end Form 11 helper. Years derived from the dates we actually have
   // payment records for (descending), so the dropdown only ever shows years
@@ -207,6 +217,20 @@ export function Payments() {
   )).sort((a, b) => b - a);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   useEffect(() => { if (selectedYear == null && taxYears.length) setSelectedYear(taxYears[0]); }, [taxYears, selectedYear]);
+
+  // Group payments by calendar year for the "Available Folders" view.
+  const paymentsByYear: Array<{ year: number; count: number }> = useMemo(() => {
+    const m = new Map<number, number>();
+    for (const p of items) {
+      const d = p.paymentDate ? new Date(p.paymentDate) : null;
+      if (!d || Number.isNaN(d.getTime())) continue;
+      const y = d.getFullYear();
+      m.set(y, (m.get(y) || 0) + 1);
+    }
+    return Array.from(m.entries())
+      .map(([year, count]) => ({ year, count }))
+      .sort((a, b) => b.year - a.year);
+  }, [items]);
 
   const downloadRctSummary = async () => {
     if (!selectedYear) { toast.error("Pick a tax year first"); return; }
@@ -241,8 +265,7 @@ export function Payments() {
   return (
     <>
       <PageHeader
-        title="Payments & Income"
-        description="Payment advices from the principal appear here. Click ‘Generate invoice’ to issue your own invoice for any advice - that is the legal document."
+        title="Pay Advice"
         right={taxYears.length > 0 ? (
           <div className="flex items-center gap-2">
             <select
@@ -273,8 +296,59 @@ export function Payments() {
             rateUnit={sub?.rateUnit ?? null}
           />
 
-          <div className="mt-8">
-            <h2 className="text-lg font-semibold text-ink-900 mb-4">History</h2>
+          {/* Year-folder view (default). Mirrors Enagh's "Available
+              Folders" pattern: one row per calendar year, file count on
+              the right, "View Files" drills in. */}
+          {folderYear === null && paymentsByYear.length > 0 && (
+            <div className="mt-8">
+              <div className="card overflow-hidden">
+                <div className="bg-ink-50 px-5 py-3 border-b border-ink-100 flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-ink-700">Available Folders</h2>
+                  <span className="text-xs bg-ink-200 text-ink-700 px-2 py-0.5 rounded font-medium">
+                    {paymentsByYear.length}
+                  </span>
+                </div>
+                <table className="w-full">
+                  <thead className="text-left text-xs uppercase tracking-wider text-ink-500 font-semibold">
+                    <tr>
+                      <th className="px-5 py-3">Folder</th>
+                      <th className="px-5 py-3 text-right">Files</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paymentsByYear.map((row) => (
+                      <tr key={row.year} className="border-t border-ink-100 hover:bg-ink-50/50">
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-3">
+                            <Button variant="outline" size="sm" onClick={() => setFolderYear(row.year)}>
+                              View Files
+                            </Button>
+                            <Folder className="h-4 w-4 text-amber-500" />
+                            <span className="font-medium text-ink-900">{row.year}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3 text-right tabular-nums text-ink-700">{row.count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Drill-in view: existing filtered list, scoped to the
+              selected year. */}
+          <div className="mt-8" hidden={folderYear === null && paymentsByYear.length > 0}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-ink-900">
+                {folderYear !== null ? `${folderYear} Pay Advice` : "History"}
+              </h2>
+              {folderYear !== null && (
+                <Button variant="ghost" size="sm" onClick={() => setFolderYear(null)} leftIcon={<ArrowLeft className="h-4 w-4" />}>
+                  Back to folders
+                </Button>
+              )}
+            </div>
             {items.length === 0 ? (
               <Empty
                 icon={Wallet}

@@ -39,6 +39,7 @@ const empty: AppSettings = {
   bc_phone_ni: null,
   bc_website: null,
   bc_registered_number: null,
+  bc_signatory_name: null,
 };
 
 export function Settings() {
@@ -346,6 +347,13 @@ export function Settings() {
                 placeholder="www.samwisebc.com"
               />
             </div>
+            <Input
+              label="Contract signatory name"
+              value={data.bc_signatory_name || ""}
+              onChange={(e) => set("bc_signatory_name", e.target.value || null)}
+              placeholder="JP Donnelly"
+              hint="Printed in the Contractor-side signature block on /legal/contract."
+            />
           </div>
         </section>
 

@@ -99,6 +99,7 @@ export interface AppSettings {
   bc_phone_ni: string | null;
   bc_website: string | null;
   bc_registered_number: string | null;
+  bc_signatory_name: string | null;
 }
 
 // Invoice template options surfaced in the InvoicePayload (parsed from

@@ -4,39 +4,39 @@ import { BottomNav, type BottomTab } from "@/components/ui/BottomNav";
 import {
   LayoutDashboard,
   User,
-  FolderUp,
-  ClipboardCheck,
   Wallet,
   LifeBuoy,
   Menu,
+  FileBarChart,
 } from "lucide-react";
 import { Home } from "./Home";
 import { ProfileEdit } from "./ProfileEdit";
 import { Documents } from "./Documents";
 import { Questionnaire } from "./Questionnaire";
 import { Payments } from "./Payments";
+import { Statements } from "./Statements";
 import { Support } from "./Support";
+import { SubPortalFooter } from "./SubPortalFooter";
 
-// The sub is a receiver: a centralised place for their documents,
-// questionnaire, and payment advices. Contracts, timesheets and
-// clock-in were removed - Revenue's RCT covers contractual relations
-// and hours live on the principal's Job Card.
+// Sub portal nav mirrors Enagh's layout: Home / My Account /
+// Payment Records (dropdown) / Logout. Documents + Questionnaire
+// don't appear in the top nav anymore - they're reached via the
+// step cards on Home. Routes stay so deep links still work.
 
 const nav = [
-  { to: "/app", label: "Overview", icon: LayoutDashboard, end: true },
-  { to: "/app/profile", label: "My Details", icon: User },
-  { to: "/app/documents", label: "Documents", icon: FolderUp },
-  { to: "/app/questionnaire", label: "Questionnaire", icon: ClipboardCheck },
-  { to: "/app/payments", label: "Payments", icon: Wallet },
-  { to: "/app/support", label: "Support", icon: LifeBuoy },
+  { to: "/app", label: "Home", icon: LayoutDashboard, end: true },
+  { to: "/app/profile", label: "My Account", icon: User },
+  { to: "/app/payments", label: "Pay Advice", icon: Wallet, groupBefore: "Payment Records" },
+  { to: "/app/statements", label: "Monthly Certificates", icon: FileBarChart },
+  { to: "/app/support", label: "Support", icon: LifeBuoy, groupBefore: "Help" },
 ];
 
 export function SubcontractorApp() {
   const bottomTabs: BottomTab[] = [
     { to: "/app", label: "Home", icon: LayoutDashboard, end: true },
     { to: "/app/payments", label: "Pay", icon: Wallet },
-    { to: "/app/documents", label: "Docs", icon: FolderUp },
-    { to: "/app/profile", label: "More", icon: Menu },
+    { to: "/app/profile", label: "Account", icon: User },
+    { to: "/app/support", label: "More", icon: Menu },
   ];
 
   return (
@@ -47,8 +47,10 @@ export function SubcontractorApp() {
         <Route path="documents" element={<Documents />} />
         <Route path="questionnaire" element={<Questionnaire />} />
         <Route path="payments" element={<Payments />} />
+        <Route path="statements" element={<Statements />} />
         <Route path="support" element={<Support />} />
       </Routes>
+      <SubPortalFooter />
       <BottomNav tabs={bottomTabs} />
     </PortalShell>
   );

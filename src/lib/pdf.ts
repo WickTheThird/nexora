@@ -315,10 +315,18 @@ function generatePaymentAdvicePdf(inv: InvoicePayload, brandName: string): jsPDF
       legalY += 10;
     }
   };
-  writeLines("This payment is made in accordance with the written terms agreed between us.", pageWidth - margin * 2);
+  // Canonical acceptance clause - user's verbatim wording, with the
+  // contractor name interpolated from the payload + the contract URL.
+  const contractorName = inv.principal.name || `${brandName} Building Contractors Ltd`;
+  // Strip protocol from the URL for the rendered clause.
+  const contractUrl = "samwisebc.com/legal/contract";
+  writeLines(
+    `By accepting this payment, and by continuing to provide services to ${contractorName} or its clients, you acknowledge that you have had the opportunity to review the Contract for Services available at ${contractUrl}, and agree to be bound by its terms in respect of all services provided.`,
+    pageWidth - margin * 2,
+  );
   legalY += 4;
   writeLines(
-    "By accepting this payment you acknowledge that you have read, understood and accepted the Contract for Services agreed between us and that they are a true reflection of the agreement between us. In particular that you acknowledge that we can only treat you as self-employed because you have agreed that the following statements are true:",
+    "In particular you acknowledge that we can only treat you as self-employed because the following statements are true:",
     pageWidth - margin * 2,
   );
   legalY += 4;
@@ -326,16 +334,11 @@ function generatePaymentAdvicePdf(inv: InvoicePayload, brandName: string): jsPDF
     "I.    You are a self-employed Subcontractor.",
     "II.   You have the right to send a suitably qualified substitute to provide the Services.",
     "III.  There is no obligation on you to do work and no obligation on us to provide work.",
-    "IV.   You are responsible for the Services provided and that we nor our clients have a right to supervise, direct or control how you provide the Services.",
+    "IV.   You are responsible for the Services provided and neither we nor our clients have a right to supervise, direct or control how you provide the Services.",
   ];
   for (const c of clauses) {
     writeLines(c, pageWidth - margin * 2 - 12);
   }
-  legalY += 4;
-  writeLines(
-    "By accepting this payment you warrant that the above statements and the contract (that you have agreed to) in its entirety are true and reflect the agreement between us and that the above statements have been relied upon by us and any future declaration by you that contradicts the above statements or the contract will render you liable for any costs or losses suffered by us as a result of said declaration.",
-    pageWidth - margin * 2,
-  );
 
   // ---- "DO NOT DESTROY" banner ----
   doc.setFillColor(15, 23, 34);

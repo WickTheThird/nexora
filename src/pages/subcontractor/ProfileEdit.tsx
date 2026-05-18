@@ -159,11 +159,12 @@ export function ProfileEdit() {
     );
   }
 
+  const isLocked = sub.submittedAt != null && sub.onboardingStatus !== "in_progress" && sub.onboardingStatus !== "changes_requested";
+
   return (
     <form onSubmit={save} className="space-y-8">
       <PageHeader
-        title="My Details"
-        description="Keep your personal, work and bank information up to date."
+        title="My Account"
         right={
           <>
             <Button variant="outline" type="submit" loading={saving} leftIcon={<Save className="h-4 w-4"/>}>Save</Button>
@@ -185,10 +186,45 @@ export function ProfileEdit() {
         }
       />
 
+      {/* Lock banner once the sub has formally submitted. They can
+          still save individual edits (server is unlocked); the banner
+          just sets expectations + tells them how to escalate. */}
+      {isLocked && (
+        <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-900">
+          Thank you. This form has been submitted. For changes / updates please contact us.
+        </div>
+      )}
+
       {error && (
         <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-800">
           {error}
         </div>
+      )}
+
+      {/* Identity row - Client Ref + Sub code (PPS). Read-only;
+          purely informational so the sub knows their own canonical
+          identifiers when calling support. */}
+      {(sub.clientRef || sub.subcontractorRef) && (
+        <section className="card-padded">
+          <div className="grid sm:grid-cols-3 gap-4 text-sm">
+            {sub.clientRef && (
+              <div>
+                <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-1">Client Ref</div>
+                <div className="font-mono text-ink-900">{sub.clientRef}</div>
+              </div>
+            )}
+            {sub.subcontractorRef && (
+              <div>
+                <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-1">Subcontractor</div>
+                <div className="font-mono text-ink-900">{sub.subcontractorRef}</div>
+              </div>
+            )}
+            <div>
+              <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-1">Status</div>
+              <div><Badge tone={sub.onboardingStatus === "approved" || sub.onboardingStatus === "active" ? "success" : sub.onboardingStatus === "rejected" ? "danger" : "info"}>{sub.onboardingStatus.replace(/_/g, " ")}</Badge></div>
+            </div>
+          </div>
+        </section>
       )}
 
       {/* Personal */}
@@ -277,6 +313,24 @@ export function ProfileEdit() {
           <Button variant="outline" type="submit" loading={saving} leftIcon={<Save className="h-4 w-4"/>}>Save</Button>
           <Button type="button" variant="accent" loading={submitting} onClick={submit} leftIcon={<Send className="h-4 w-4" />}>Submit for review</Button>
         </div>
+      )}
+
+      {/* Signature block - rendered once the sub has submitted. Mirrors
+          the Enagh "SIGNATURE" footer on Edit Details: the typed full
+          name, submission timestamp, and an opaque signstamp derived
+          from sub.id + submittedAt (so the rendered value is stable
+          across reloads but doesn't leak anything sensitive). */}
+      {sub.submittedAt && (
+        <section className="card-padded bg-ink-50/40 border border-ink-100">
+          <div className="text-xs uppercase tracking-wider text-ink-500 font-semibold mb-2">Signature</div>
+          <div className="text-lg font-semibold uppercase tracking-wide text-ink-900 mb-2">
+            {sub.fullName || "-"}
+          </div>
+          <div className="text-xs text-ink-600 flex flex-wrap gap-x-6 gap-y-1 font-mono">
+            <span><strong className="text-ink-700">Date:</strong> {fmtDateTime(sub.submittedAt)}</span>
+            <span><strong className="text-ink-700">Signstamp:</strong> {sub.id.replace(/-/g, "").slice(0, 16).toUpperCase()}</span>
+          </div>
+        </section>
       )}
 
       {/* Sub-initiated "request changes" panel. Visible always - it's

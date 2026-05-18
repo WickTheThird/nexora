@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Textarea } from "@/components/ui/Input";
+import { useToast } from "@/components/ui/Toast";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { PushOptInCard } from "@/components/ui/PushOptInCard";
 import type {
@@ -22,6 +25,10 @@ import {
   User,
   ShieldCheck,
   ArrowRight,
+  FileText,
+  ExternalLink,
+  MessageSquarePlus,
+  Send,
 } from "lucide-react";
 
 const stepMeta: Record<StepKey, { label: string; icon: React.ComponentType<{className?: string}>; href: string; hint: string }> = {
@@ -63,9 +70,14 @@ function statusBadge(s: OnboardingStatus) {
 
 export function Home() {
   const { me } = useAuth();
+  const toast = useToast();
   const [onboarding, setOnboarding] = useState<OnboardingView | null>(null);
   const [profile, setProfile] = useState<{ fullName: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
+  // "Need changes or updates?" widget. Posts to the existing
+  // change_requests API; admin sees it in their inbox.
+  const [changeMsg, setChangeMsg] = useState("");
+  const [changeBusy, setChangeBusy] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -93,6 +105,24 @@ export function Home() {
   const progress = Math.round((doneCount / totalSteps) * 100);
 
   const greeting = profile?.fullName?.split(" ")[0] || me?.email?.split("@")[0] || "there";
+
+  const submitChange = async () => {
+    const msg = changeMsg.trim();
+    if (msg.length < 4) {
+      toast.error("Tell us briefly what needs changing.");
+      return;
+    }
+    setChangeBusy(true);
+    try {
+      await api.postMyChangeRequest(msg);
+      toast.success("Sent to the office.");
+      setChangeMsg("");
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Could not send");
+    } finally {
+      setChangeBusy(false);
+    }
+  };
 
   return (
     <>
@@ -138,7 +168,11 @@ export function Home() {
         </div>
       </div>
 
-      {/* Steps grid */}
+      {/* Steps grid - the 4 onboarding gates + the View Contract link
+          card (5th tile). Contract is intentionally NOT a gated step:
+          it's a public document the worker can read at any time; their
+          acceptance happens by accepting payment, not by clicking
+          here. */}
       <div className="grid md:grid-cols-2 gap-4">
         {(Object.keys(stepMeta) as StepKey[]).map((key) => {
           const s = steps?.[key] || "not_started";
@@ -173,9 +207,51 @@ export function Home() {
             <Link key={key} to={meta.href}>{body}</Link>
           );
         })}
+
+        {/* Contract terms - public link card. Opens in a new tab. */}
+        <a
+          href={`${window.location.origin}/#/legal/contract`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="card p-5 flex items-start gap-4 transition hover:shadow-elev hover:-translate-y-0.5"
+        >
+          <div className="h-10 w-10 rounded-full grid place-items-center bg-ink-100 text-ink-600">
+            <FileText className="h-5 w-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-ink-900">View Contract Terms</h3>
+            <p className="text-sm text-ink-500 mt-0.5">Contract for Services - read anytime</p>
+            <div className="mt-3">
+              <Badge tone="neutral">Reference</Badge>
+            </div>
+          </div>
+          <ArrowRight className="h-4 w-4 text-ink-400 mt-1" />
+        </a>
       </div>
 
       {loading && <div className="text-sm text-ink-400 mt-4">Loading…</div>}
+
+      {/* Need changes / updates widget - posts to admin's change
+          request inbox. Replaces the duplicate widget that used to
+          live only on /app/profile. */}
+      <section className="card-padded mt-10">
+        <div className="flex items-center gap-2 mb-1">
+          <MessageSquarePlus className="h-4 w-4 text-ink-500" />
+          <h3 className="font-semibold text-ink-900">Need changes or updates added?</h3>
+        </div>
+        <p className="text-xs text-ink-500 mb-3">Tell us briefly what needs changing; the office will get back to you.</p>
+        <Textarea
+          rows={3}
+          value={changeMsg}
+          onChange={(e) => setChangeMsg(e.target.value)}
+          placeholder="Enter changes..."
+        />
+        <div className="mt-3 flex justify-end">
+          <Button variant="accent" onClick={submitChange} loading={changeBusy} leftIcon={<Send className="h-4 w-4" />}>
+            Email Changes
+          </Button>
+        </div>
+      </section>
 
       <div className="mt-10 flex items-center gap-2 text-xs text-ink-400">
         <ShieldCheck className="h-4 w-4" />

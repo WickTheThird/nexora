@@ -11,6 +11,7 @@ import { ChangePassword } from "./pages/ChangePassword";
 import { ConsentGate } from "./pages/ConsentGate";
 import { PrivacyPolicy } from "./pages/Privacy";
 import { Terms } from "./pages/Terms";
+import { LegalContract } from "./pages/LegalContract";
 import { SubcontractorApp } from "./pages/subcontractor/SubcontractorApp";
 import { AdminApp } from "./pages/admin/AdminApp";
 import { PrimaryApp } from "./pages/primary/PrimaryApp";
@@ -68,6 +69,7 @@ export default function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/legal/privacy" element={<PrivacyPolicy />} />
         <Route path="/legal/terms" element={<Terms />} />
+        <Route path="/legal/contract" element={<LegalContract />} />
         <Route
           path="/change-password"
           element={
