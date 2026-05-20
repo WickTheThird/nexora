@@ -269,6 +269,11 @@
       "does": "Subcontractorul",
       "is": "Subcontractorul este"
     },
+    "guidance": {
+      "bannerTitle": "De ce contează răspunsurile",
+      "bannerBody": "Revenue folosește răspunsurile tale pentru a stabili rata de reținere RCT. Răspunde pe baza modului real în care lucrezi - nu alege ce sună mai bine. Rezultatul acestor întrebări este raportat la ROS și te însoțește la fiecare plată.",
+      "riskWarning": "Acest răspuns poate indica faptul că nu ești cu adevărat self-employed. Dacă Revenue îți clasifică contractul ca relație de tip angajat, rata de reținere RCT poate fi 35% în loc de 0% sau 20%. Răspunde pe baza realității modului în care lucrezi."
+    },
     "questions": {
       "notLabourOnly": "Ești convins că acest contract NU este unul doar pentru manoperă?",
       "supplyMaterials": "Furniza materiale?",

@@ -269,6 +269,11 @@
       "does": "Does the Subcontractor",
       "is": "Is the Subcontractor"
     },
+    "guidance": {
+      "bannerTitle": "Why these answers matter",
+      "bannerBody": "Revenue uses your answers to set your RCT deduction rate. Answer based on your actual working arrangement - do not pick what sounds better. The result of these questions is reported to ROS and follows you on every payment.",
+      "riskWarning": "This answer may indicate that you are not genuinely self-employed. If Revenue classifies your contract as employment-like, your RCT deduction rate can be 35% instead of 0% or 20%. Answer based on your real working arrangement."
+    },
     "questions": {
       "notLabourOnly": "Are you satisfied that the contract is NOT a labour only contract?",
       "supplyMaterials": "Supply materials?",

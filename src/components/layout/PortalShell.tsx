@@ -84,9 +84,8 @@ export function PortalShell({
           footer (avatar + bell + logout) sits below the scroll area
           and stays pinned to the bottom of the viewport. */}
       <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col border-r border-ink-100 bg-white z-30">
-        <div className="h-16 px-5 flex items-center justify-between border-b border-ink-100 gap-3">
+        <div className="h-16 px-5 flex items-center border-b border-ink-100">
           <Logo />
-          {showLocaleSwitcher && <LocaleSwitcher size="sm" />}
         </div>
         <div className="px-4 py-5 text-xs uppercase tracking-wider text-ink-400 font-semibold">
           {title}
@@ -138,7 +137,12 @@ export function PortalShell({
           <HelpCircle className="h-4 w-4" />
           <span>How it works</span>
         </a>
-        <div className="p-3 border-t border-ink-100">
+        <div className="p-3 border-t border-ink-100 space-y-2">
+          {showLocaleSwitcher && (
+            <div className="flex justify-center">
+              <LocaleSwitcher size="sm" />
+            </div>
+          )}
           <div className="flex items-center gap-2 p-2">
             <div className="h-9 w-9 rounded-full bg-ink-900 text-white text-xs font-bold grid place-items-center">
               {initials(me?.email || "?")}

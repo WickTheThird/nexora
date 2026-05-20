@@ -32,13 +32,16 @@ interface FlagButtonProps {
 
 function FlagButton({ locale, flag, label, active, size, onClick }: FlagButtonProps) {
   const base =
-    "inline-flex items-center gap-1.5 rounded-md font-medium border transition select-none";
+    "inline-flex items-center justify-center gap-1.5 rounded-md font-medium border transition select-none";
+  // sm = compact (sidebar footer, public page corner). md = touch-
+  // friendly (mobile inline). We always show flag + locale label so
+  // people who can't read the language still find their flag.
   const sizes = size === "sm"
-    ? "px-2 py-1 text-xs"
-    : "px-3 py-2 text-sm min-h-[44px]";
+    ? "px-2.5 py-1 text-[11px] min-w-[52px]"
+    : "px-3 py-2 text-sm min-h-[44px] min-w-[68px]";
   const tone = active
     ? "bg-ink-900 text-white border-ink-900 shadow-sm"
-    : "bg-white text-ink-600 border-ink-200 hover:border-ink-400 hover:text-ink-900";
+    : "bg-white text-ink-500 border-ink-200 hover:border-ink-400 hover:text-ink-800";
   return (
     <button
       type="button"
@@ -47,7 +50,7 @@ function FlagButton({ locale, flag, label, active, size, onClick }: FlagButtonPr
       aria-label={`${label} (${locale.toUpperCase()})`}
       className={`${base} ${sizes} ${tone}`}
     >
-      <span className="text-base leading-none" aria-hidden>{flag}</span>
+      <span className="text-sm leading-none" aria-hidden>{flag}</span>
       <span className="font-semibold tracking-wider uppercase">{locale}</span>
     </button>
   );

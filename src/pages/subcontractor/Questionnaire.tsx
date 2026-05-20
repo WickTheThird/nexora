@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { fmtDateTime } from "@/lib/format";
-import { ClipboardCheck, CheckCircle2, XCircle, Clock, Send } from "lucide-react";
+import { ClipboardCheck, CheckCircle2, XCircle, Clock, Send, AlertTriangle, Info } from "lucide-react";
 
 // Revenue-aligned Contract Notification questionnaire (v2). Each
 // question is the same wording the Revenue "Relevant Contracts Tax -
@@ -28,32 +28,43 @@ type YNA = "yes" | "no" | "na";
 // edit. `sectionKey` resolves via i18n questionnaire.sections.*; the
 // optional `noteKey` adds the Revenue health-and-safety footnote on
 // the freeToChooseMethod row.
+//
+// `risky` is the set of answers that suggest an employee-like
+// arrangement under Revenue's classification tests. When the sub
+// picks one of these AFTER answering, we render an amber warning
+// strip under the question explaining the RCT implication. We do
+// NOT pre-prescribe answers - the sub must answer based on reality.
 type Section = { kind: "section"; key: string; sectionKey: string };
 type Question =
-  | { kind: "yesno";   key: string; noteKey?: string }
-  | { kind: "yesnona"; key: string; noteKey?: string };
+  | { kind: "yesno";   key: string; noteKey?: string; risky?: YN[]  }
+  | { kind: "yesnona"; key: string; noteKey?: string; risky?: YNA[] };
 export type RevenueItem = Section | Question;
 
+// All Revenue tests follow the same direction: "no" is the answer
+// that points toward employment-like classification. For the
+// pension/sick-pay question, BOTH "no" answer AND staying employee-
+// bound are risky; "yes" (excluded, sole trader) and "na" (Limited
+// Company) are safe.
 export const REVENUE_QUESTIONS: RevenueItem[] = [
   { kind: "section", key: "_sec_contract", sectionKey: "contract" },
-  { kind: "yesno",   key: "notLabourOnly" },
+  { kind: "yesno",   key: "notLabourOnly",            risky: ["no"] },
 
   { kind: "section", key: "_sec_will", sectionKey: "will" },
-  { kind: "yesno",   key: "supplyMaterials" },
-  { kind: "yesno",   key: "providePlantMachinery" },
-  { kind: "yesno",   key: "engageOthersOwnExpense" },
-  { kind: "yesno",   key: "agreedPaymentNoOvertime" },
-  { kind: "yesnona", key: "excludedPensionSickScheme" },
-  { kind: "yesno",   key: "ownTransport" },
+  { kind: "yesno",   key: "supplyMaterials",          risky: ["no"] },
+  { kind: "yesno",   key: "providePlantMachinery",    risky: ["no"] },
+  { kind: "yesno",   key: "engageOthersOwnExpense",   risky: ["no"] },
+  { kind: "yesno",   key: "agreedPaymentNoOvertime",  risky: ["no"] },
+  { kind: "yesnona", key: "excludedPensionSickScheme", risky: ["no"] },
+  { kind: "yesno",   key: "ownTransport",             risky: ["no"] },
 
   { kind: "section", key: "_sec_does", sectionKey: "does" },
-  { kind: "yesno",   key: "costAndAgreePrices" },
-  { kind: "yesno",   key: "ownInsurance" },
+  { kind: "yesno",   key: "costAndAgreePrices",       risky: ["no"] },
+  { kind: "yesno",   key: "ownInsurance",             risky: ["no"] },
 
   { kind: "section", key: "_sec_is", sectionKey: "is" },
-  { kind: "yesno",   key: "freeToChooseMethod", noteKey: "freeToChooseMethodNote" },
-  { kind: "yesno",   key: "ownAccountConcurrent" },
-  { kind: "yesno",   key: "exposedFinancialRisk" },
+  { kind: "yesno",   key: "freeToChooseMethod", noteKey: "freeToChooseMethodNote", risky: ["no"] },
+  { kind: "yesno",   key: "ownAccountConcurrent",     risky: ["no"] },
+  { kind: "yesno",   key: "exposedFinancialRisk",     risky: ["no"] },
 ];
 
 function statusBadge(s: QuestionnaireRecord["status"]) {
@@ -67,7 +78,7 @@ function statusBadge(s: QuestionnaireRecord["status"]) {
 // left, radios on the right, red asterisk on the label. Compact
 // enough to fit ~12 items without scrolling on desktop.
 function YesNoRow({
-  label, note, value, options, disabled, onChange,
+  label, note, value, options, disabled, onChange, riskWarning,
 }: {
   label: string;
   note?: string;
@@ -75,6 +86,10 @@ function YesNoRow({
   options: { value: string; label: string }[];
   disabled?: boolean;
   onChange: (v: string) => void;
+  // Localised warning to render under the row when the current
+  // answer is considered "risky" (employee-like) by the schema.
+  // Computed by the parent so this component stays presentational.
+  riskWarning?: string;
 }) {
   return (
     <div className="py-3 first:pt-0 last:pb-0 border-t border-ink-100 first:border-t-0">
@@ -106,6 +121,12 @@ function YesNoRow({
           ))}
         </div>
       </div>
+      {riskWarning && (
+        <div className="mt-2 rounded-md bg-amber-50 border border-amber-200 p-2.5 flex items-start gap-2">
+          <AlertTriangle className="h-3.5 w-3.5 text-amber-700 mt-0.5 shrink-0" />
+          <div className="text-xs text-amber-900 leading-relaxed">{riskWarning}</div>
+        </div>
+      )}
     </div>
   );
 }
