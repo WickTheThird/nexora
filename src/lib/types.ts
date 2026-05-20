@@ -34,7 +34,6 @@ export type DocumentType =
   | "insurance"
   | "cert"
   | "safe_pass"
-  | "cscs"
   | "manual_handling"
   | "first_aid"
   | "ppe"

@@ -34,7 +34,13 @@ database_id = "b9f5a8bb-38e2-4c60-b360-c331e4a3de96"
 binding = "BUCKET"
 bucket_name = "nexora-projects"
 
-# No scheduled triggers. The daily clock-in reminder cron was removed
-# along with the sub-side timesheet flow (2026-05-15). Held Job Card
-# submissions auto-release via lazy promotion on the next admin read,
-# not via a cron tick.
+# Scheduled triggers.
+#   - 0 6 * * *  daily 06:00 UTC: document-expiry sweep. Sends the
+#                14-day pre-expiry warning email + the at-expiry
+#                alert (sub + admin), dedup'd via the
+#                document_expiry_notifications table.
+#
+# Held Job Card submissions auto-release via lazy promotion on the
+# next admin read, not via a cron tick.
+[triggers]
+crons = ["0 6 * * *"]

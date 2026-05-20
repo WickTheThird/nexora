@@ -22,7 +22,6 @@ import {
   FilePlus,
   HardHat,
   HeartPulse,
-  Hammer,
   Boxes,
   FolderOpen,
   AlertTriangle,
@@ -68,7 +67,6 @@ const folders: DocFolder[] = [
     types: [
       { value: "hs_card",         label: "H&S card",          icon: ShieldCheck, hint: "Current safety card", required: true },
       { value: "safe_pass",       label: "Safe Pass",         icon: HardHat,     hint: "Solas Safe Pass card (3-year cycle)" },
-      { value: "cscs",            label: "CSCS",              icon: Hammer,      hint: "Construction Skills Cert Scheme" },
       { value: "manual_handling", label: "Manual Handling",   icon: Boxes,       hint: "Manual handling cert (typically annual)" },
       { value: "first_aid",       label: "First Aid",         icon: HeartPulse,  hint: "Occupational first-aid cert (if applicable)" },
       { value: "ppe",             label: "PPE",               icon: HardHat,     hint: "PPE training / sign-off" },

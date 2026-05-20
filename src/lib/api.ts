@@ -191,6 +191,30 @@ export const api = {
   adminRejectSignupRequest: (id: string, reason: string) =>
     request<{ rejected: true }>("POST", `/admin/signup-requests/${id}/reject`, { body: { reason } as Json }),
 
+  // Cross-principal invitations dashboard. Returns every
+  // principal_roster row joined to its linked sub (if any), with a
+  // derived invitationStatus so the admin can filter "invited but
+  // never signed up" vs "signed up + awaiting approval" vs
+  // "approved" / "rejected".
+  adminListInvitations: () =>
+    request<{ items: Array<{
+      id: string;
+      primaryId: string;
+      primaryName: string | null;
+      rosterEmail: string;
+      rosterName: string;
+      linkedSubId: string | null;
+      subFullName: string | null;
+      subEmail: string | null;
+      subcontractorRef: string | null;
+      onboardingStatus: string | null;
+      submittedAt: number | null;
+      userVerifiedAt: number | null;
+      invitationStatus: "invited" | "signed_up" | "submitted" | "approved" | "rejected";
+      createdAt: number;
+      updatedAt: number;
+    }> }>("GET", "/admin/invitations"),
+
   // -------- bulk actions --------
   adminBulkSubcontractors: (
     action: "approve" | "set-rct-rate" | "anonymise",

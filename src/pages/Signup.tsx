@@ -42,6 +42,10 @@ export function Signup() {
   const toast = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  // Set when the worker returns 409 on /public/signup. We swap the
+  // page for a clear "email already registered" message so the user
+  // doesn't waste a retry guessing at what went wrong.
+  const [duplicateEmail, setDuplicateEmail] = useState(false);
   // Prefill from invite link query params (?email=...&name=...).
   const initial = parseInviteParams(location.search);
   const [fullName, setFullName] = useState(initial.name || "");
@@ -85,9 +89,22 @@ export function Signup() {
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
+        // Specific UX for duplicate email: worker returns 409 CONFLICT
+        // when a verified account already exists for this email. Show
+        // a clear message instead of the generic "Signup failed" toast
+        // so users land on the right next step (sign in / reset
+        // password) without bouncing through support.
+        if (res.status === 409 || data?.error?.code === "CONFLICT") {
+          setDuplicateEmail(true);
+          return;
+        }
         toast.error(data?.error?.message || "Signup failed");
         return;
       }
+      // Server returns status='verification_resent' if the email was
+      // already registered but unverified; we still surface the
+      // "check your email" screen for that case (matches the worker's
+      // resend behaviour).
       setDone(true);
     } catch {
       toast.error("Couldn't reach the server. Try again?");
@@ -95,6 +112,40 @@ export function Signup() {
       setSubmitting(false);
     }
   };
+
+  if (duplicateEmail) {
+    return (
+      <div className="min-h-screen grid place-items-center px-4 py-12 bg-ink-50">
+        <div className="max-w-md w-full text-center">
+          <div className="h-12 w-12 mx-auto mb-4 rounded-full bg-amber-100 text-amber-700 grid place-items-center">
+            <Mail className="h-6 w-6" />
+          </div>
+          <h1 className="text-2xl font-bold text-ink-900 mb-2">Email already registered</h1>
+          <p className="text-ink-600 mb-2">
+            An account already exists for <strong className="text-ink-900">{email}</strong>.
+          </p>
+          <p className="text-sm text-ink-500 mb-6">
+            We require a unique email for every account. Try signing in instead, or reset your password if you have forgotten it.
+          </p>
+          <div className="flex flex-col gap-3">
+            <Link to="/login" className="inline-flex items-center justify-center gap-1 rounded-md bg-ink-900 text-white text-sm font-medium px-4 py-2 hover:bg-ink-800">
+              Go to sign in <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link to="/forgot-password" className="text-sm text-ink-600 hover:text-ink-900 underline-offset-2 hover:underline">
+              Forgot your password?
+            </Link>
+            <button
+              type="button"
+              onClick={() => setDuplicateEmail(false)}
+              className="text-xs text-ink-500 hover:text-ink-800 underline-offset-2 hover:underline"
+            >
+              Use a different email
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (done) {
     return (

@@ -14,6 +14,7 @@ import {
   Briefcase,
   Activity,
   Zap,
+  Mail,
 } from "lucide-react";
 import { Dashboard } from "./Dashboard";
 import { Subcontractors } from "./Subcontractors";
@@ -23,6 +24,7 @@ import { PrimaryDetail } from "./PrimaryDetail";
 import { AdminPrimarySubmissions } from "./PrimarySubmissions";
 import { AdminPrimarySubmissionDetail } from "./AdminPrimarySubmissionDetail";
 import { AdminSignupRequests } from "./SignupRequests";
+import { AdminInvitations } from "./Invitations";
 import { BulkAdvice } from "./BulkAdvice";
 import { ChangeRequests } from "./ChangeRequests";
 import { Settings } from "./Settings";
@@ -42,6 +44,7 @@ const nav = [
   // Workflow inboxes
   { to: "/admin/primary-submissions", label: "Submissions", icon: Inbox, groupBefore: "Inboxes" },
   { to: "/admin/change-requests", label: "Change Requests", icon: MessagesSquare },
+  { to: "/admin/invitations", label: "Invitations", icon: Mail },
   { to: "/admin/signup-requests", label: "Recent Activity", icon: Activity },
   // Actions
   { to: "/admin/actions", label: "Actions", icon: Zap, groupBefore: "Actions" },
@@ -104,6 +107,7 @@ export function AdminApp() {
         <Route path="primary-submissions" element={<AdminPrimarySubmissions />} />
         <Route path="primary-submissions/:id" element={<AdminPrimarySubmissionDetail />} />
         <Route path="signup-requests" element={<AdminSignupRequests />} />
+        <Route path="invitations" element={<AdminInvitations />} />
         <Route path="subcontractors" element={<Subcontractors />} />
         <Route path="subcontractors/:id" element={<SubcontractorDetail />} />
         <Route path="jobs" element={<AdminJobs />} />

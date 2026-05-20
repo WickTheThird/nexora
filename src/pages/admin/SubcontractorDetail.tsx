@@ -21,6 +21,7 @@ import { IncomeSummary } from "@/components/payments/IncomeSummary";
 import { InvoiceModal } from "@/components/payments/InvoiceModal";
 import { Select, Checkbox } from "@/components/ui/Input";
 import { exportRowsAsCsv } from "@/lib/csv";
+import { REVENUE_QUESTIONS } from "@/pages/subcontractor/Questionnaire";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -861,10 +862,60 @@ function QuestionnaireTab({ subId }: { subId: string }) {
   if (loading) return <div className="skeleton h-64" />;
   if (!q) return <div className="card p-6 text-sm text-ink-500">Not submitted yet.</div>;
 
+  // v2+ questionnaires are the Revenue-aligned 12-question form.
+  // v1 records are the legacy long-form questionnaire; we just dump
+  // the raw answers for those so the admin can still read what was
+  // submitted under the old schema.
+  const renderAnswers = () => {
+    if (q.version >= 2) {
+      const ans = (q.answers || {}) as Record<string, string>;
+      return (
+        <div className="rounded-lg border border-ink-100 divide-y divide-ink-100">
+          {REVENUE_QUESTIONS.map((item) => {
+            if (item.kind === "section") {
+              return (
+                <div key={item.key} className="px-4 py-2 bg-ink-50/60 text-xs font-semibold uppercase tracking-wider text-ink-700">
+                  {item.label}
+                </div>
+              );
+            }
+            const v = ans[item.key];
+            const tone =
+              v === "yes" ? "success" :
+              v === "no"  ? "danger"  :
+              v === "na"  ? "neutral" : "warn";
+            const label =
+              v === "yes" ? "Yes" :
+              v === "no"  ? "No"  :
+              v === "na"  ? "N/A" : "(no answer)";
+            return (
+              <div key={item.key} className="flex items-start justify-between gap-6 px-4 py-3">
+                <div className="text-sm text-ink-800 flex-1 min-w-0">
+                  {item.label}
+                </div>
+                <div className="shrink-0">
+                  <Badge tone={tone as "success" | "danger" | "neutral" | "warn"}>{label}</Badge>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+    // Legacy v1 fallback: raw JSON. These records pre-date the Revenue
+    // alignment so a labelled list would invent labels for keys that
+    // no longer exist in the app.
+    return (
+      <pre className="bg-ink-50 rounded-lg p-4 text-xs text-ink-800 overflow-auto whitespace-pre-wrap">
+        {JSON.stringify(q.answers, null, 2)}
+      </pre>
+    );
+  };
+
   return (
     <>
       <div className="card-padded space-y-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <Badge tone="neutral">v{q.version}</Badge>
           <Badge tone={q.status === "approved" ? "success" : q.status === "rejected" ? "danger" : "info"}>
             {q.status}
@@ -873,9 +924,7 @@ function QuestionnaireTab({ subId }: { subId: string }) {
             Submitted {fmtDateTime(q.submittedAt)}
           </div>
         </div>
-        <pre className="bg-ink-50 rounded-lg p-4 text-xs text-ink-800 overflow-auto whitespace-pre-wrap">
-          {JSON.stringify(q.answers, null, 2)}
-        </pre>
+        {renderAnswers()}
         {q.status === "submitted" && (
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => { setReviewing("rejected"); setNote(""); }}>Reject</Button>
