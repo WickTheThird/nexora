@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { api, ApiError } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import type { BankDetails, ChangeRequest, Subcontractor } from "@/lib/types";
@@ -32,6 +33,7 @@ const EMPTY_BANK: BankDetails = {
 };
 
 export function ProfileEdit() {
+  const { t } = useTranslation();
   const toast = useToast();
   const [sub, setSub] = useState<Subcontractor | null>(null);
   const [bank, setBank] = useState<BankDetails | null>(null);
@@ -201,10 +203,10 @@ export function ProfileEdit() {
   return (
     <form onSubmit={save} className="space-y-8">
       <PageHeader
-        title="My Account"
+        title={t("profile.title")}
         right={
           <>
-            <Button variant="outline" type="submit" loading={saving} leftIcon={<Save className="h-4 w-4"/>}>Save</Button>
+            <Button variant="outline" type="submit" loading={saving} leftIcon={<Save className="h-4 w-4"/>}>{t("common.save")}</Button>
             {/* Submit for review only makes sense before approval. After
                 approval the sub can still edit (save), but there's no
                 "review" workflow to enter. */}
@@ -216,7 +218,7 @@ export function ProfileEdit() {
                 onClick={submit}
                 leftIcon={<Send className="h-4 w-4" />}
               >
-                Submit for review
+                {t("profile.submitForReview")}
               </Button>
             )}
           </>

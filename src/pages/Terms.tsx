@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Logo } from "@/components/ui/Logo";
+import { LocaleSwitcher } from "@/components/ui/LocaleSwitcher";
 import { ArrowLeft } from "lucide-react";
 
 export const TERMS_VERSION = "1.0";
@@ -7,14 +8,17 @@ export const TERMS_VERSION = "1.0";
 export function Terms() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex items-center justify-between gap-3 flex-wrap">
         <Logo />
-        <Link
-          to="/login"
-          className="inline-flex items-center gap-1 text-sm text-ink-600 hover:text-ink-900"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to sign in
-        </Link>
+        <div className="flex items-center gap-3">
+          <LocaleSwitcher size="sm" />
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-1 text-sm text-ink-600 hover:text-ink-900"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to sign in
+          </Link>
+        </div>
       </div>
 
       <article className="prose prose-ink max-w-none">

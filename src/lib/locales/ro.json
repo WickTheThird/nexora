@@ -1,0 +1,317 @@
+{
+  "locale": {
+    "english": "English",
+    "romanian": "Română",
+    "switchLanguage": "Schimbă limba"
+  },
+  "common": {
+    "loading": "Se încarcă…",
+    "save": "Salvează",
+    "cancel": "Anulează",
+    "submit": "Trimite",
+    "edit": "Modifică",
+    "delete": "Șterge",
+    "remove": "Elimină",
+    "close": "Închide",
+    "back": "Înapoi",
+    "next": "Următorul",
+    "yes": "Da",
+    "no": "Nu",
+    "na": "N/A",
+    "optional": "opțional",
+    "required": "obligatoriu",
+    "search": "Caută",
+    "actions": "Acțiuni",
+    "status": "Stare",
+    "open": "Deschide",
+    "send": "Trimite",
+    "download": "Descarcă",
+    "upload": "Încarcă",
+    "confirm": "Confirmă",
+    "reload": "Reîncarcă",
+    "needHelp": "Ai nevoie de ajutor?"
+  },
+  "nav": {
+    "home": "Acasă",
+    "myAccount": "Contul meu",
+    "payAdvice": "Aviz de plată",
+    "monthlyCertificates": "Certificate lunare",
+    "support": "Asistență",
+    "documents": "Documente",
+    "questionnaire": "Chestionar",
+    "paymentRecords": "Plăți",
+    "help": "Ajutor"
+  },
+  "auth": {
+    "signIn": "Autentificare",
+    "signOut": "Deconectare",
+    "email": "Email",
+    "password": "Parolă",
+    "confirmPassword": "Confirmă parola",
+    "forgotPassword": "Ai uitat parola?",
+    "createAccount": "Creează cont",
+    "haveAccount": "Ai deja cont?",
+    "noAccount": "Nu ai cont?",
+    "fullName": "Nume complet",
+    "loginTitle": "Autentifică-te în portal",
+    "loginSubtitle": "Bine ai revenit pe Samwise.",
+    "signupSubcontractor": "Înregistrează-te ca Subcontractor",
+    "signupPrimary": "Înregistrează-te ca Principal",
+    "checkYourEmail": "Verifică-ți emailul",
+    "emailRegisteredTitle": "Emailul este deja înregistrat",
+    "emailRegisteredBody": "Există deja un cont pentru {{email}}.",
+    "emailRegisteredHint": "Avem nevoie de un email unic pentru fiecare cont. Încearcă să te autentifici, sau resetează-ți parola dacă ai uitat-o.",
+    "goToSignIn": "Mergi la autentificare",
+    "useDifferentEmail": "Folosește alt email"
+  },
+  "home": {
+    "welcome": "Bun venit, {{name}}",
+    "subtitle": "Completează fiecare pas de mai jos pentru a finaliza înscrierea.",
+    "onboardingStatus": "Stare înscriere",
+    "percentComplete": "{{percent}}% finalizat",
+    "stepsComplete": "{{done}} din {{total}} pași finalizați.",
+    "continueOnboarding": "Continuă mai jos pentru a finaliza înscrierea.",
+    "waitingApproval": "Așteptăm aprobarea finală de la admin.",
+    "step": {
+      "applicationForm": "Formular de înscriere",
+      "applicationFormHint": "Date personale, profesionale și bancare",
+      "questionnaire": "Chestionar",
+      "questionnaireHint": "Declarații de conformitate",
+      "photoId": "Act de identitate cu fotografie",
+      "photoIdHint": "Încarcă un act de identitate clar",
+      "hsCard": "Card de sănătate și securitate (H&S)",
+      "hsCardHint": "Încarcă cardul tău actual de securitate"
+    },
+    "stepState": {
+      "completed": "Finalizat",
+      "inProgress": "În curs",
+      "notStarted": "Neînceput",
+      "locked": "Blocat",
+      "rejected": "Necesită atenție"
+    },
+    "contractCard": {
+      "title": "Vezi termenii contractuali",
+      "subtitle": "Contract pentru servicii - poți citi oricând",
+      "badge": "Referință"
+    },
+    "changesWidget": {
+      "title": "Ai nevoie de modificări sau actualizări?",
+      "subtitle": "Spune-ne pe scurt ce trebuie modificat; biroul te va contacta.",
+      "placeholder": "Scrie modificările…",
+      "send": "Trimite modificările",
+      "sent": "Trimis la birou.",
+      "tooShort": "Spune-ne pe scurt ce trebuie modificat.",
+      "failed": "Nu s-a putut trimite"
+    },
+    "footerNote": "Datele tale sunt criptate. Contactează Asistența dacă ai nevoie de ajutor."
+  },
+  "profile": {
+    "title": "Contul meu",
+    "submitForReview": "Trimite pentru verificare",
+    "lockedTitle": "Mulțumim. Formularul a fost trimis.",
+    "lockedBody": "Pentru modificări, contactează-ne prin Asistență.",
+    "submitted": "Trimis",
+    "personal": "Date personale",
+    "work": "Date profesionale",
+    "bank": "Bancă",
+    "bankIntro": "Date pentru plată. Criptate la stocare. Doar tu și administratorii autorizați le pot vedea.",
+    "fields": {
+      "clientRef": "Cod client",
+      "subcontractor": "Subcontractor (PPS)",
+      "fullName": "Nume complet",
+      "address1": "Adresă - linia 1",
+      "address2": "Adresă - linia 2",
+      "town": "Oraș",
+      "postcode": "Cod poștal / Eircode",
+      "dob": "Data nașterii",
+      "placeOfBirth": "Locul nașterii",
+      "tel": "Telefon fix",
+      "mob": "Telefon mobil",
+      "email": "Email",
+      "pps": "Număr PPS",
+      "natureOfServices": "Natura serviciilor",
+      "workType": "Tipul lucrării",
+      "vatRegistered": "Plătitor de TVA",
+      "vatNumber": "Cod TVA",
+      "accountantEmail": "Emailul contabilului tău",
+      "accountantHint": "Facturile tale pot fi trimise CC aici când le generezi.",
+      "bankName": "Numele băncii",
+      "accountHolder": "Numele titularului contului",
+      "accountHolderHint": "Trebuie să fie identic cu numele legal de pe PPS. Băncile refuză plățile dacă numele nu corespunde.",
+      "accountNumber": "Numărul contului",
+      "sortCode": "Sort code",
+      "iban": "IBAN",
+      "bic": "BIC / SWIFT",
+      "currency": "Monedă",
+      "bankRef": "Referință bancară"
+    },
+    "nameMismatch": {
+      "title": "Nume neconcordant",
+      "body": "Numele titularului contului nu corespunde cu numele tău înregistrat ({{name}}). Plățile trebuie să meargă într-un cont pe numele tău legal, așa cum apare pe PPS. Modifică numele de mai sus înainte de a trimite.",
+      "blockSubmit": "Numele titularului contului trebuie să corespundă cu numele tău de pe PPS. Corectează-l înainte de a trimite."
+    },
+    "signature": {
+      "label": "Semnătură"
+    }
+  },
+  "payments": {
+    "title": "Aviz de plată",
+    "availableFolders": "Dosare disponibile",
+    "year": "An",
+    "files": "Fișiere",
+    "view": "Vezi fișierele",
+    "backToFolders": "Înapoi la dosare",
+    "noPayments": "Nu există încă avize de plată",
+    "noPaymentsHint": "Odată ce BC procesează prima ta fișă de lucru, avizele vor apărea aici.",
+    "columns": {
+      "date": "Data",
+      "reference": "Referință",
+      "site": "Șantier",
+      "hours": "Ore",
+      "gross": "Brut",
+      "rct": "RCT",
+      "net": "Net",
+      "status": "Stare",
+      "invoice": "Factură"
+    },
+    "status": {
+      "advised": "Avizat",
+      "invoiced": "Facturat",
+      "paid": "Plătit",
+      "cancelled": "Anulat"
+    },
+    "downloadSummary": "Descarcă sumarul RCT anual (Form 11)"
+  },
+  "statements": {
+    "title": "Certificate lunare",
+    "emptyState": "Nu există certificate disponibile pentru conturi din Republica Irlanda în acest moment."
+  },
+  "documents": {
+    "title": "Documente",
+    "intro": "Încarcă documentele de identitate, securitate și profesionale. Fiecare încărcare este verificată de BC înainte de a fi luată în calcul pentru înscriere.",
+    "expiredBanner": "Ai {{count}} document(e) expirat(e). Plățile sunt blocate până la reînnoire.",
+    "soonBanner": "{{count}} document(e) expiră în următoarele 30 de zile.",
+    "folders": {
+      "identity": "Identitate",
+      "identityDesc": "Cine ești. Necesar înainte ca BC să te poată plăti.",
+      "cardsCerts": "Carduri și certificate",
+      "cardsCertsDesc": "Acreditările tale de pregătire și securitate.",
+      "other": "Altele",
+      "otherDesc": "Asigurări, certificate profesionale, orice altceva."
+    },
+    "types": {
+      "photo_id": "Act de identitate cu fotografie",
+      "photo_idHint": "Pașaport sau permis de conducere",
+      "hs_card": "Card H&S",
+      "hs_cardHint": "Card actual de securitate",
+      "safe_pass": "Safe Pass",
+      "safe_passHint": "Card Solas Safe Pass (ciclu de 3 ani)",
+      "manual_handling": "Manual Handling",
+      "manual_handlingHint": "Certificat de manipulare manuală (de obicei anual)",
+      "first_aid": "Prim ajutor",
+      "first_aidHint": "Certificat de prim ajutor ocupațional (dacă este cazul)",
+      "ppe": "PPE",
+      "ppeHint": "Instruire / aprobare echipament de protecție",
+      "insurance": "Asigurare",
+      "insuranceHint": "Răspundere civilă publică etc.",
+      "cert": "Certificate profesionale",
+      "certHint": "Certificări specifice meseriei",
+      "other": "Altele",
+      "otherHint": "Orice altceva relevant"
+    },
+    "expiry": {
+      "fresh": "Valid",
+      "soon": "Expiră curând",
+      "expired": "Expirat",
+      "noExpiry": "Fără termen"
+    },
+    "review": {
+      "pending": "În așteptare",
+      "approved": "Aprobat",
+      "rejected": "Respins"
+    },
+    "uploadCta": "Încarcă",
+    "modalTitle": "Detalii document",
+    "modalSubtitle": "Introdu detaliile imprimate pe card. Toate câmpurile sunt obligatorii.",
+    "fields": {
+      "issuingBody": "Emis de",
+      "issuingBodyHint": "ex. Solas, QQI, RCSI",
+      "holderName": "Numele de pe card",
+      "cardNumber": "Numărul cardului / certificatului",
+      "issuedAt": "Data emiterii",
+      "expiresAt": "Data expirării"
+    },
+    "errors": {
+      "expired": "Acest document este deja expirat. Reînnoiește-l înainte de a-l încărca.",
+      "issuedAfterExpiry": "Data emiterii nu poate fi după data expirării.",
+      "holdExpired": "Fereastra de modificare s-a închis. Trimite o cerere de modificare.",
+      "failed": "Încărcarea a eșuat - încearcă din nou."
+    },
+    "hold": {
+      "remaining": "{{minutes}} min rămase pentru modificare",
+      "expired": "Doar citire - trimite o cerere de modificare"
+    },
+    "raiseChangeRequest": "Trimite o cerere de modificare"
+  },
+  "questionnaire": {
+    "title": "Notificare contract RCT - Chestionar subcontractor",
+    "subtitle": "Douăsprezece declarații pe care Revenue le cere înainte ca BC să poată înregistra contractul pe ROS. Răspunde cu Da sau Nu la fiecare. Toate sunt obligatorii.",
+    "submittedAt": "Trimis la {{date}}",
+    "approvedAt": "Aprobat la {{date}}",
+    "awaitingReview": "Se așteaptă verificarea de către admin",
+    "resubmit": "Retrimite",
+    "submit": "Trimite chestionarul",
+    "missingAnswers": "Te rugăm să răspunzi la fiecare întrebare înainte de trimitere.",
+    "submitted": "Chestionar trimis",
+    "sections": {
+      "contract": "Tipul contractului",
+      "will": "Subcontractorul va",
+      "does": "Subcontractorul",
+      "is": "Subcontractorul este"
+    },
+    "questions": {
+      "notLabourOnly": "Ești convins că acest contract NU este unul doar pentru manoperă?",
+      "supplyMaterials": "Furniza materiale?",
+      "providePlantMachinery": "Furniza utilaje și echipamente necesare lucrării, în afara uneltelor de mână?",
+      "engageOthersOwnExpense": "Angaja alte persoane care să lucreze la contract pe cheltuiala sa?",
+      "agreedPaymentNoOvertime": "Primi o plată contractuală agreată fără dreptul la plată pentru ore suplimentare, concedii, diurnă, transport și subzistență sau alte cheltuieli?",
+      "excludedPensionSickScheme": "Fi exclus din schema de pensii și concedii medicale a industriei, dacă este persoană fizică autorizată?",
+      "ownTransport": "Își organiza propriul transport către și de la șantiere?",
+      "costAndAgreePrices": "Calculează și agreează prețuri pentru lucrări?",
+      "ownInsurance": "Asigură propria acoperire prin asigurare, ex. răspundere civilă publică?",
+      "freeToChooseMethod": "Liber să aleagă metoda folosită în executarea lucrării, fără îndrumarea sau controlul șefului de șantier / supraveghetorului?",
+      "freeToChooseMethodNote": "În sectorul construcțiilor, din motive de sănătate și securitate, toate persoanele sunt sub îndrumarea șefului de șantier / supraveghetorului.",
+      "ownAccountConcurrent": "Activează pe cont propriu și poate furniza aceleași servicii concomitent și altor clienți?",
+      "exposedFinancialRisk": "Expus la risc financiar, inclusiv suportarea costurilor de remediere a lucrărilor defectuoase / sub-standard și a depășirilor?"
+    }
+  },
+  "support": {
+    "title": "Asistență",
+    "subtitle": "Ai nevoie de modificări la cont? Lasă-ne un mesaj și un admin va răspunde.",
+    "newRequest": "Cerere nouă",
+    "message": "Mesaj",
+    "placeholder": "ex. Te rog actualizează-mi numărul de mobil la +353…",
+    "sendRequest": "Trimite",
+    "noRequests": "Nu există cereri",
+    "noRequestsHint": "Mesajele anterioare de asistență vor apărea aici.",
+    "sent": "Cerere trimisă. Un admin o va analiza.",
+    "yourDataRights": "Drepturile tale asupra datelor",
+    "yourDataRightsBody": "Conform GDPR poți exporta o copie a datelor tale sau poți cere ștergerea lor. Vezi nota de confidențialitate pentru toate detaliile.",
+    "exportData": "Exportă datele mele",
+    "exportDataBody": "Descarcă o copie JSON cu tot ce avem despre tine: plăți, documente, contracte și istoric de audit.",
+    "requestErasure": "Solicită ștergerea contului",
+    "requestErasureBody": "Vom șterge imediat ce putem. Datele pe care le suntem obligați legal să le păstrăm (plăți, contracte semnate) vor fi anonimizate.",
+    "legalDocuments": "Documente legale",
+    "legalDocumentsBody": "Termenii care reglementează relația ta cu noi. Le poți citi oricând.",
+    "contract": "Contract pentru servicii",
+    "contractBody": "Acordul de subcontractare aplicabil ori de câte ori accepți o plată de la noi.",
+    "privacy": "Notă de confidențialitate",
+    "privacyBody": "Cum colectăm, stocăm și folosim datele tale personale conform GDPR.",
+    "terms": "Termeni și condiții",
+    "termsBody": "Termenii platformei aplicabili folosirii portalului Samwise."
+  },
+  "footer": {
+    "rights": "© {{year}} {{name}}, Toate drepturile rezervate",
+    "email": "Email"
+  }
+}

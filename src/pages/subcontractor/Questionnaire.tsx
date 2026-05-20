@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { api, ApiError } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import type { QuestionnaireRecord } from "@/lib/types";
@@ -20,45 +21,39 @@ const QUESTIONNAIRE_VERSION = 2;
 
 type YN = "yes" | "no";
 type YNA = "yes" | "no" | "na";
-type Section = { kind: "section"; key: string; label: string };
+
+// Schema describes structure only; the actual question text lives in
+// the locale files (questionnaire.questions.*) so admin renders the
+// same labels in the active locale + new questions only need a JSON
+// edit. `sectionKey` resolves via i18n questionnaire.sections.*; the
+// optional `noteKey` adds the Revenue health-and-safety footnote on
+// the freeToChooseMethod row.
+type Section = { kind: "section"; key: string; sectionKey: string };
 type Question =
-  | { kind: "yesno";   key: string; label: string; note?: string }
-  | { kind: "yesnona"; key: string; label: string; note?: string };
-type Item = Section | Question;
+  | { kind: "yesno";   key: string; noteKey?: string }
+  | { kind: "yesnona"; key: string; noteKey?: string };
+export type RevenueItem = Section | Question;
 
-export const REVENUE_QUESTIONS: Item[] = [
-  { kind: "section", key: "_sec_contract", label: "Contract type" },
-  { kind: "yesno",   key: "notLabourOnly",
-    label: "Are you satisfied that the contract is NOT a labour only contract?" },
+export const REVENUE_QUESTIONS: RevenueItem[] = [
+  { kind: "section", key: "_sec_contract", sectionKey: "contract" },
+  { kind: "yesno",   key: "notLabourOnly" },
 
-  { kind: "section", key: "_sec_will", label: "Will the Subcontractor" },
-  { kind: "yesno",   key: "supplyMaterials",
-    label: "Supply materials?" },
-  { kind: "yesno",   key: "providePlantMachinery",
-    label: "Provide plant and machinery necessary for the job, other than hand tools?" },
-  { kind: "yesno",   key: "engageOthersOwnExpense",
-    label: "Engage other people to work on the contract at his/her own expense?" },
-  { kind: "yesno",   key: "agreedPaymentNoOvertime",
-    label: "Receive an agreed contract payment(s) without entitlement to pay for overtime, holidays, country money, travel and subsistence or other expenses payment?" },
-  { kind: "yesnona", key: "excludedPensionSickScheme",
-    label: "Be excluded from the industry pension and sick pay scheme, if a sole trader?" },
-  { kind: "yesno",   key: "ownTransport",
-    label: "Organise his/her own transport to and from sites?" },
+  { kind: "section", key: "_sec_will", sectionKey: "will" },
+  { kind: "yesno",   key: "supplyMaterials" },
+  { kind: "yesno",   key: "providePlantMachinery" },
+  { kind: "yesno",   key: "engageOthersOwnExpense" },
+  { kind: "yesno",   key: "agreedPaymentNoOvertime" },
+  { kind: "yesnona", key: "excludedPensionSickScheme" },
+  { kind: "yesno",   key: "ownTransport" },
 
-  { kind: "section", key: "_sec_does", label: "Does the Subcontractor" },
-  { kind: "yesno",   key: "costAndAgreePrices",
-    label: "Cost and agree prices for jobs?" },
-  { kind: "yesno",   key: "ownInsurance",
-    label: "Provide his/her own insurance cover as appropriate e.g. public liability, etc?" },
+  { kind: "section", key: "_sec_does", sectionKey: "does" },
+  { kind: "yesno",   key: "costAndAgreePrices" },
+  { kind: "yesno",   key: "ownInsurance" },
 
-  { kind: "section", key: "_sec_is", label: "Is the Subcontractor" },
-  { kind: "yesno",   key: "freeToChooseMethod",
-    label: "Free to choose the method to be employed in carrying out the work without the direction or control of the site foreman/overseer?",
-    note: "In the construction sector, for health and safety reasons, all individuals are under the direction of the site foreman/overseer." },
-  { kind: "yesno",   key: "ownAccountConcurrent",
-    label: "In business on his/her own account and able to provide the same services concurrently to others?" },
-  { kind: "yesno",   key: "exposedFinancialRisk",
-    label: "Exposed to financial risk including bearing the cost of making good faulty/substandard work and overruns?" },
+  { kind: "section", key: "_sec_is", sectionKey: "is" },
+  { kind: "yesno",   key: "freeToChooseMethod", noteKey: "freeToChooseMethodNote" },
+  { kind: "yesno",   key: "ownAccountConcurrent" },
+  { kind: "yesno",   key: "exposedFinancialRisk" },
 ];
 
 function statusBadge(s: QuestionnaireRecord["status"]) {
@@ -116,6 +111,7 @@ function YesNoRow({
 }
 
 export function Questionnaire() {
+  const { t } = useTranslation();
   const toast = useToast();
   const [existing, setExisting] = useState<QuestionnaireRecord | null>(null);
   const [loading, setLoading] = useState(true);
@@ -155,14 +151,14 @@ export function Questionnaire() {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!allAnswered) {
-      toast.error("Please answer every question before submitting.");
+      toast.error(t("questionnaire.missingAnswers"));
       return;
     }
     setSubmitting(true);
     try {
       const updated = await api.submitMyQuestionnaire(QUESTIONNAIRE_VERSION, answers);
       setExisting(updated);
-      toast.success("Questionnaire submitted");
+      toast.success(t("questionnaire.submitted"));
     } catch (e) {
       toast.error(
         e instanceof Error ? e.message : e instanceof ApiError ? e.message : "Failed",
@@ -175,7 +171,7 @@ export function Questionnaire() {
   if (loading) {
     return (
       <>
-        <PageHeader title="Questionnaire" />
+        <PageHeader title={t("nav.questionnaire")} />
         <div className="skeleton h-64" />
       </>
     );
@@ -184,8 +180,8 @@ export function Questionnaire() {
   return (
     <>
       <PageHeader
-        title="RCT Contract Notification - Subcontractor Questionnaire"
-        description="Twelve declarations Revenue requires before BC can register the contract on ROS. Answer Yes or No to each. All are required."
+        title={t("questionnaire.title")}
+        description={t("questionnaire.subtitle")}
         right={existing ? statusBadge(existing.status) : statusBadge("not_started")}
       />
 
@@ -197,13 +193,13 @@ export function Questionnaire() {
             </div>
             <div>
               <div className="font-medium text-ink-900">
-                Submitted {fmtDateTime(existing.submittedAt)}
+                {t("questionnaire.submittedAt", { date: fmtDateTime(existing.submittedAt) })}
               </div>
               <div className="text-sm text-ink-500">
                 {existing.status === "approved" && existing.reviewedAt
-                  ? `Approved ${fmtDateTime(existing.reviewedAt)}`
+                  ? t("questionnaire.approvedAt", { date: fmtDateTime(existing.reviewedAt) })
                   : existing.status === "submitted"
-                  ? "Awaiting admin review"
+                  ? t("questionnaire.awaitingReview")
                   : null}
               </div>
             </div>
@@ -216,26 +212,26 @@ export function Questionnaire() {
           if (item.kind === "section") {
             return (
               <div key={item.key} className="pt-4 pb-1 mt-2 border-t border-ink-200 first:border-t-0 first:mt-0 first:pt-0">
-                <h3 className="text-sm font-semibold text-ink-900">{item.label}</h3>
+                <h3 className="text-sm font-semibold text-ink-900">{t(`questionnaire.sections.${item.sectionKey}`)}</h3>
               </div>
             );
           }
           const opts =
             item.kind === "yesnona"
               ? [
-                  { value: "yes", label: "Yes" },
-                  { value: "no",  label: "No"  },
-                  { value: "na",  label: "N/A" },
+                  { value: "yes", label: t("common.yes") },
+                  { value: "no",  label: t("common.no")  },
+                  { value: "na",  label: t("common.na")  },
                 ]
               : [
-                  { value: "yes", label: "Yes" },
-                  { value: "no",  label: "No"  },
+                  { value: "yes", label: t("common.yes") },
+                  { value: "no",  label: t("common.no")  },
                 ];
           return (
             <YesNoRow
               key={item.key}
-              label={item.label}
-              note={item.note}
+              label={t(`questionnaire.questions.${item.key}`)}
+              note={item.noteKey ? t(`questionnaire.questions.${item.noteKey}`) : undefined}
               value={answers[item.key]}
               options={opts}
               disabled={!editable}
@@ -255,7 +251,7 @@ export function Questionnaire() {
               leftIcon={<Send className="h-4 w-4" />}
               disabled={!allAnswered}
             >
-              {existing ? "Resubmit" : "Submit questionnaire"}
+              {existing ? t("questionnaire.resubmit") : t("questionnaire.submit")}
             </Button>
           </div>
         )}

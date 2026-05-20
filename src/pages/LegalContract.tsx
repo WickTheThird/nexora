@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Logo } from "@/components/ui/Logo";
+import { LocaleSwitcher } from "@/components/ui/LocaleSwitcher";
 import {
   CONTRACT_SECTIONS,
   RECITALS,
@@ -73,14 +74,17 @@ export function LegalContract() {
             <ArrowLeft className="h-4 w-4" />
             <Logo />
           </Link>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 text-sm text-ink-700 hover:text-ink-900 px-3 py-1.5 rounded-md border border-ink-200 hover:border-ink-300"
-          >
-            <Printer className="h-4 w-4" />
-            Print / Save as PDF
-          </button>
+          <div className="flex items-center gap-3">
+            <LocaleSwitcher size="sm" />
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-1.5 text-sm text-ink-700 hover:text-ink-900 px-3 py-1.5 rounded-md border border-ink-200 hover:border-ink-300"
+            >
+              <Printer className="h-4 w-4" />
+              Print / Save as PDF
+            </button>
+          </div>
         </div>
       </div>
 

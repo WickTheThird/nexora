@@ -15,11 +15,14 @@
     "d1:file": "wrangler d1 execute nexora --remote --file"
   },
   "dependencies": {
+    "i18next": "^26.2.0",
+    "i18next-browser-languagedetector": "^8.2.1",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",
     "lucide-react": "^0.462.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-i18next": "^17.0.8",
     "react-router-dom": "^6.28.0"
   },
   "devDependencies": {

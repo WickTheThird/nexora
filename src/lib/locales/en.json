@@ -1,0 +1,317 @@
+{
+  "locale": {
+    "english": "English",
+    "romanian": "Română",
+    "switchLanguage": "Switch language"
+  },
+  "common": {
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "edit": "Edit",
+    "delete": "Delete",
+    "remove": "Remove",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "yes": "Yes",
+    "no": "No",
+    "na": "N/A",
+    "optional": "optional",
+    "required": "required",
+    "search": "Search",
+    "actions": "Actions",
+    "status": "Status",
+    "open": "Open",
+    "send": "Send",
+    "download": "Download",
+    "upload": "Upload",
+    "confirm": "Confirm",
+    "reload": "Reload",
+    "needHelp": "Need help?"
+  },
+  "nav": {
+    "home": "Home",
+    "myAccount": "My Account",
+    "payAdvice": "Pay Advice",
+    "monthlyCertificates": "Monthly Certificates",
+    "support": "Support",
+    "documents": "Documents",
+    "questionnaire": "Questionnaire",
+    "paymentRecords": "Payment Records",
+    "help": "Help"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "forgotPassword": "Forgot your password?",
+    "createAccount": "Create account",
+    "haveAccount": "Already have an account?",
+    "noAccount": "Don't have an account?",
+    "fullName": "Full name",
+    "loginTitle": "Sign in to your portal",
+    "loginSubtitle": "Welcome back to Samwise.",
+    "signupSubcontractor": "Sign up as a Subcontractor",
+    "signupPrimary": "Sign up as a Principal",
+    "checkYourEmail": "Check your email",
+    "emailRegisteredTitle": "Email already registered",
+    "emailRegisteredBody": "An account already exists for {{email}}.",
+    "emailRegisteredHint": "We require a unique email for every account. Try signing in instead, or reset your password if you have forgotten it.",
+    "goToSignIn": "Go to sign in",
+    "useDifferentEmail": "Use a different email"
+  },
+  "home": {
+    "welcome": "Welcome, {{name}}",
+    "subtitle": "Complete each step below to finish your onboarding.",
+    "onboardingStatus": "Onboarding status",
+    "percentComplete": "{{percent}}% complete",
+    "stepsComplete": "{{done}} of {{total}} steps complete.",
+    "continueOnboarding": "Continue below to complete your onboarding.",
+    "waitingApproval": "Waiting for final admin approval.",
+    "step": {
+      "applicationForm": "Application form",
+      "applicationFormHint": "Personal, work & bank details",
+      "questionnaire": "Questionnaire",
+      "questionnaireHint": "Compliance declarations",
+      "photoId": "Photographic ID",
+      "photoIdHint": "Upload a clear photo ID",
+      "hsCard": "H&S card",
+      "hsCardHint": "Upload your current safety card"
+    },
+    "stepState": {
+      "completed": "Completed",
+      "inProgress": "In progress",
+      "notStarted": "Not started",
+      "locked": "Locked",
+      "rejected": "Needs attention"
+    },
+    "contractCard": {
+      "title": "View Contract Terms",
+      "subtitle": "Contract for Services - read anytime",
+      "badge": "Reference"
+    },
+    "changesWidget": {
+      "title": "Need changes or updates added?",
+      "subtitle": "Tell us briefly what needs changing; the office will get back to you.",
+      "placeholder": "Enter changes…",
+      "send": "Email Changes",
+      "sent": "Sent to the office.",
+      "tooShort": "Tell us briefly what needs changing.",
+      "failed": "Could not send"
+    },
+    "footerNote": "Your data is encrypted at rest. See Support if you need help."
+  },
+  "profile": {
+    "title": "My Account",
+    "submitForReview": "Submit for review",
+    "lockedTitle": "Thank you. This form has been submitted.",
+    "lockedBody": "For changes contact us via Support.",
+    "submitted": "Submitted",
+    "personal": "Personal details",
+    "work": "Work details",
+    "bank": "Bank",
+    "bankIntro": "Payment details. Encrypted at rest. Only you and authorised admins can see these.",
+    "fields": {
+      "clientRef": "Client Ref",
+      "subcontractor": "Subcontractor (PPS)",
+      "fullName": "Full name",
+      "address1": "Address line 1",
+      "address2": "Address line 2",
+      "town": "Town / city",
+      "postcode": "Postcode / Eircode",
+      "dob": "Date of birth",
+      "placeOfBirth": "Place of birth",
+      "tel": "Telephone",
+      "mob": "Mobile",
+      "email": "Email",
+      "pps": "PPS number",
+      "natureOfServices": "Nature of services",
+      "workType": "Work type",
+      "vatRegistered": "VAT registered",
+      "vatNumber": "VAT number",
+      "accountantEmail": "Your accountant's email",
+      "accountantHint": "Your invoices can be CC'd here when you generate them.",
+      "bankName": "Bank name",
+      "accountHolder": "Account holder name",
+      "accountHolderHint": "Must match your PPS-registered legal name exactly. Banks reject payments to mismatched names.",
+      "accountNumber": "Account number",
+      "sortCode": "Sort code",
+      "iban": "IBAN",
+      "bic": "BIC / SWIFT",
+      "currency": "Currency",
+      "bankRef": "Bank reference"
+    },
+    "nameMismatch": {
+      "title": "Name mismatch",
+      "body": "The account holder name does not match your registered name ({{name}}). Payments must go to an account in your own legal name as it appears on your PPS records. Update the field above to match before submitting.",
+      "blockSubmit": "Account holder name must match your PPS-registered name. Fix it before submitting."
+    },
+    "signature": {
+      "label": "Signature"
+    }
+  },
+  "payments": {
+    "title": "Pay Advice",
+    "availableFolders": "Available Folders",
+    "year": "Year",
+    "files": "Files",
+    "view": "View files",
+    "backToFolders": "Back to folders",
+    "noPayments": "No payment advices yet",
+    "noPaymentsHint": "Once BC processes your first job card, your payment advices will appear here.",
+    "columns": {
+      "date": "Date",
+      "reference": "Reference",
+      "site": "Site",
+      "hours": "Hours",
+      "gross": "Gross",
+      "rct": "RCT",
+      "net": "Net",
+      "status": "Status",
+      "invoice": "Invoice"
+    },
+    "status": {
+      "advised": "Advised",
+      "invoiced": "Invoiced",
+      "paid": "Paid",
+      "cancelled": "Cancelled"
+    },
+    "downloadSummary": "Download year RCT summary (Form 11)"
+  },
+  "statements": {
+    "title": "Monthly Certificates",
+    "emptyState": "There are no Statements available for ROI accounts at this time."
+  },
+  "documents": {
+    "title": "Documents",
+    "intro": "Upload your identity, safety, and trade documents. Each upload is reviewed by BC before it counts toward your onboarding.",
+    "expiredBanner": "You have {{count}} expired document(s). Payments are blocked until they are renewed.",
+    "soonBanner": "{{count}} document(s) expire in the next 30 days.",
+    "folders": {
+      "identity": "Identity",
+      "identityDesc": "Who you are. Required before BC can pay you.",
+      "cardsCerts": "Cards & Certs",
+      "cardsCertsDesc": "Your training and safety credentials.",
+      "other": "Other",
+      "otherDesc": "Insurance, trade certs, anything else."
+    },
+    "types": {
+      "photo_id": "Photographic ID",
+      "photo_idHint": "Passport or driving licence",
+      "hs_card": "H&S card",
+      "hs_cardHint": "Current safety card",
+      "safe_pass": "Safe Pass",
+      "safe_passHint": "Solas Safe Pass card (3-year cycle)",
+      "manual_handling": "Manual Handling",
+      "manual_handlingHint": "Manual handling cert (typically annual)",
+      "first_aid": "First Aid",
+      "first_aidHint": "Occupational first-aid cert (if applicable)",
+      "ppe": "PPE",
+      "ppeHint": "PPE training / sign-off",
+      "insurance": "Insurance",
+      "insuranceHint": "Public liability etc.",
+      "cert": "Trade certs",
+      "certHint": "Trade-specific certifications",
+      "other": "Other",
+      "otherHint": "Anything else relevant"
+    },
+    "expiry": {
+      "fresh": "Valid",
+      "soon": "Expires soon",
+      "expired": "Expired",
+      "noExpiry": "No expiry"
+    },
+    "review": {
+      "pending": "Pending review",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "uploadCta": "Upload",
+    "modalTitle": "Document details",
+    "modalSubtitle": "Enter the details printed on the card. All fields are required.",
+    "fields": {
+      "issuingBody": "Issued by",
+      "issuingBodyHint": "e.g. Solas, QQI, RCSI",
+      "holderName": "Name on card",
+      "cardNumber": "Card / certificate number",
+      "issuedAt": "Issue date",
+      "expiresAt": "Expiry date"
+    },
+    "errors": {
+      "expired": "This document is already expired. Renew it before uploading.",
+      "issuedAfterExpiry": "Issue date cannot be after the expiry date.",
+      "holdExpired": "Edit window has closed. Raise a change request to update.",
+      "failed": "Upload failed - please try again."
+    },
+    "hold": {
+      "remaining": "{{minutes}} min left to edit",
+      "expired": "Read-only - raise a change request to update"
+    },
+    "raiseChangeRequest": "Raise a change request"
+  },
+  "questionnaire": {
+    "title": "RCT Contract Notification - Subcontractor Questionnaire",
+    "subtitle": "Twelve declarations Revenue requires before BC can register the contract on ROS. Answer Yes or No to each. All are required.",
+    "submittedAt": "Submitted {{date}}",
+    "approvedAt": "Approved {{date}}",
+    "awaitingReview": "Awaiting admin review",
+    "resubmit": "Resubmit",
+    "submit": "Submit questionnaire",
+    "missingAnswers": "Please answer every question before submitting.",
+    "submitted": "Questionnaire submitted",
+    "sections": {
+      "contract": "Contract type",
+      "will": "Will the Subcontractor",
+      "does": "Does the Subcontractor",
+      "is": "Is the Subcontractor"
+    },
+    "questions": {
+      "notLabourOnly": "Are you satisfied that the contract is NOT a labour only contract?",
+      "supplyMaterials": "Supply materials?",
+      "providePlantMachinery": "Provide plant and machinery necessary for the job, other than hand tools?",
+      "engageOthersOwnExpense": "Engage other people to work on the contract at his/her own expense?",
+      "agreedPaymentNoOvertime": "Receive an agreed contract payment(s) without entitlement to pay for overtime, holidays, country money, travel and subsistence or other expenses payment?",
+      "excludedPensionSickScheme": "Be excluded from the industry pension and sick pay scheme, if a sole trader?",
+      "ownTransport": "Organise his/her own transport to and from sites?",
+      "costAndAgreePrices": "Cost and agree prices for jobs?",
+      "ownInsurance": "Provide his/her own insurance cover as appropriate e.g. public liability, etc?",
+      "freeToChooseMethod": "Free to choose the method to be employed in carrying out the work without the direction or control of the site foreman/overseer?",
+      "freeToChooseMethodNote": "In the construction sector, for health and safety reasons, all individuals are under the direction of the site foreman/overseer.",
+      "ownAccountConcurrent": "In business on his/her own account and able to provide the same services concurrently to others?",
+      "exposedFinancialRisk": "Exposed to financial risk including bearing the cost of making good faulty/substandard work and overruns?"
+    }
+  },
+  "support": {
+    "title": "Support",
+    "subtitle": "Need changes made to your account? Drop us a note and an admin will respond.",
+    "newRequest": "New request",
+    "message": "Message",
+    "placeholder": "e.g. Please update my mobile number to +353…",
+    "sendRequest": "Send",
+    "noRequests": "No requests yet",
+    "noRequestsHint": "Your previous support messages will appear here.",
+    "sent": "Request sent. An admin will review it.",
+    "yourDataRights": "Your data rights",
+    "yourDataRightsBody": "Under GDPR you can export a copy of your data or ask us to erase it. See the privacy notice for the full details.",
+    "exportData": "Export my data",
+    "exportDataBody": "Download a JSON copy of everything we hold on you, including payments, documents, contracts and audit history.",
+    "requestErasure": "Request account erasure",
+    "requestErasureBody": "We'll delete what we can immediately. Records we are legally required to keep (payments, signed contracts) will be anonymised.",
+    "legalDocuments": "Legal documents",
+    "legalDocumentsBody": "The terms that govern your relationship with us. Read any of them at any time.",
+    "contract": "Contract for Services",
+    "contractBody": "The subcontractor agreement that applies whenever you accept payment from us.",
+    "privacy": "Privacy notice",
+    "privacyBody": "How we collect, store and use your personal data under GDPR.",
+    "terms": "Terms of service",
+    "termsBody": "The platform terms that apply to your use of the Samwise portal."
+  },
+  "footer": {
+    "rights": "© {{year}} {{name}}, All Rights Reserved",
+    "email": "Email"
+  }
+}

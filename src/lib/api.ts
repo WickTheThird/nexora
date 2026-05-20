@@ -175,6 +175,12 @@ export const api = {
   setMyNotificationPrefs: (prefs: Record<string, "both" | "email" | "in_app" | "none">) =>
     request<{ prefs: Record<string, "both" | "email" | "in_app" | "none"> }>("PUT", "/me/notification-prefs", { body: { prefs } as Json }),
 
+  // Locale preference - persisted server-side so email + push
+  // templates pick the right language. localStorage is the source of
+  // truth on the client; this is the mirror for backend rendering.
+  patchMyPreferences: (prefs: { locale?: "en" | "ro" }) =>
+    request<{ preferredLocale: "en" | "ro" }>("PATCH", "/me/preferences", { body: prefs as Json }),
+
   // -------- admin: signup requests inbox --------
   adminListSignupRequests: (status: "pending" | "approved" | "rejected" = "pending") =>
     request<{ items: Array<{

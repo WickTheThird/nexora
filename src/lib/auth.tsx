@@ -8,6 +8,24 @@ import {
 } from "react";
 import { api, ApiError, tokenStore } from "./api";
 import type { Me } from "./types";
+import { setLocale, type SupportedLocale } from "./i18n";
+
+// Hand off the server-side preferred_locale to i18next on every
+// /auth/me load. localStorage still wins if the user has flipped the
+// switcher locally - we only adopt the server value when there's no
+// local override stored. That way a sub who picks RO on their phone
+// keeps RO even if their server row got reset (or vice versa for a
+// freshly logged-in device).
+function syncServerLocale(me: Me | null) {
+  if (!me || !me.preferredLocale) return;
+  try {
+    const stored = window.localStorage.getItem("nexora_locale");
+    if (stored) return;
+  } catch { /* private mode - fall through to set */ }
+  if (me.preferredLocale === "en" || me.preferredLocale === "ro") {
+    setLocale(me.preferredLocale as SupportedLocale);
+  }
+}
 
 interface AuthCtx {
   me: Me | null;
@@ -28,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const m = await api.me();
       setMe(m);
+      syncServerLocale(m);
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         setMe(null);
@@ -59,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const m = await api.login(email, password);
     if (m.sessionToken) tokenStore.set(m.sessionToken);
     setMe(m);
+    syncServerLocale(m);
     return m;
   };
 

@@ -1,13 +1,16 @@
 import { useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Logo } from "@/components/ui/Logo";
+import { LocaleSwitcher } from "@/components/ui/LocaleSwitcher";
 import { ArrowRight } from "lucide-react";
 
 export function Login() {
+  const { t } = useTranslation();
   const { login } = useAuth();
   const nav = useNavigate();
   const [email, setEmail] = useState("");
@@ -70,7 +73,14 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-full grid lg:grid-cols-2">
+    <div className="min-h-full grid lg:grid-cols-2 relative">
+      {/* Locale switcher pinned to the very top-right of the viewport so
+          it appears on every public page in the same spot (Login,
+          Signup, ForgotPassword). Above the form on mobile, above the
+          right panel on desktop. */}
+      <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10">
+        <LocaleSwitcher size="sm" />
+      </div>
       {/* Left panel */}
       <div className="hidden lg:flex flex-col justify-between p-10 bg-ink-950 text-white overflow-hidden relative">
         <div className="absolute inset-0 opacity-[0.07]" style={{
@@ -95,13 +105,13 @@ export function Login() {
       <div className="flex items-center justify-center p-6 sm:p-10">
         <div className="w-full max-w-sm">
           <div className="lg:hidden mb-8"><Logo /></div>
-          <h1 className="text-2xl font-bold text-ink-900">Welcome back</h1>
+          <h1 className="text-2xl font-bold text-ink-900">{t("auth.loginTitle")}</h1>
           <p className="text-ink-500 mt-1.5 mb-8">
-            Sign in to your Samwise portal.
+            {t("auth.loginSubtitle")}
           </p>
           <form onSubmit={submit} className="space-y-5">
             <Input
-              label="Email"
+              label={t("auth.email")}
               type="email"
               autoComplete="email"
               autoFocus
@@ -111,7 +121,7 @@ export function Login() {
               placeholder="you@example.com"
             />
             <Input
-              label="Password"
+              label={t("auth.password")}
               type="password"
               autoComplete="current-password"
               required
@@ -146,12 +156,12 @@ export function Login() {
               loading={loading}
               rightIcon={<ArrowRight className="h-4 w-4" />}
             >
-              Sign in
+              {t("auth.signIn")}
             </Button>
           </form>
           <p className="text-sm text-ink-600 mt-6 text-center">
             <Link to="/forgot-password" className="hover:text-ink-900 underline">
-              Forgot your password?
+              {t("auth.forgotPassword")}
             </Link>
           </p>
           <p className="text-xs text-ink-400 mt-8 text-center">

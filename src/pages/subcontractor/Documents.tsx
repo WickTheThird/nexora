@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api, ApiError } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import type { DocumentRecord, DocumentMetadataPatch, DocumentType } from "@/lib/types";
@@ -337,6 +338,7 @@ function ChangeRequestModal({
 }
 
 export function Documents() {
+  const { t } = useTranslation();
   const toast = useToast();
   const [docs, setDocs] = useState<DocumentRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -463,8 +465,8 @@ export function Documents() {
   return (
     <>
       <PageHeader
-        title="Documents"
-        description="Upload your compliance documents. Admins will review each one."
+        title={t("documents.title")}
+        description={t("documents.intro")}
       />
 
       {/* Block-banner if ANY document on file is expired. Visual hint

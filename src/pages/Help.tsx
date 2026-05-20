@@ -8,6 +8,7 @@
 
 import { Link } from "react-router-dom";
 import { Logo } from "@/components/ui/Logo";
+import { LocaleSwitcher } from "@/components/ui/LocaleSwitcher";
 import { useAuth } from "@/lib/auth";
 import {
   Building2, Hammer, ShieldCheck, ArrowRight, ArrowLeft, Eye, EyeOff,
@@ -51,11 +52,14 @@ export function Help() {
   return (
     <div className="min-h-screen bg-ink-50">
       <div className="max-w-3xl mx-auto px-6 py-10">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex items-center justify-between gap-3 flex-wrap">
           <Logo />
-          <Link to={backHref} className="text-sm text-ink-700 hover:text-ink-900 inline-flex items-center gap-1">
-            <ArrowLeft className="h-4 w-4" /> {backLabel}
-          </Link>
+          <div className="flex items-center gap-3">
+            <LocaleSwitcher size="sm" />
+            <Link to={backHref} className="text-sm text-ink-700 hover:text-ink-900 inline-flex items-center gap-1">
+              <ArrowLeft className="h-4 w-4" /> {backLabel}
+            </Link>
+          </div>
         </div>
 
         <h1 className="text-3xl font-bold text-ink-900 mb-2">How Samwise works</h1>

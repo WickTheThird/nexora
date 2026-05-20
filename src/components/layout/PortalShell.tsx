@@ -7,6 +7,7 @@ import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import { CommandPalette, type PaletteItem } from "@/components/ui/CommandPalette";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 import { HelpButton } from "@/components/ui/HelpButton";
+import { LocaleSwitcher } from "@/components/ui/LocaleSwitcher";
 
 export interface NavItem {
   to: string;
@@ -24,6 +25,7 @@ export function PortalShell({
   nav,
   children,
   paletteItems,
+  showLocaleSwitcher = false,
 }: {
   title: string;
   nav: NavItem[];
@@ -32,6 +34,10 @@ export function PortalShell({
   // per-portal via the AppShell wrapper. Optional: if absent we still
   // render a Cmd+K affordance with just the page list.
   paletteItems?: PaletteItem[];
+  // When true, mounts the EN/RO LocaleSwitcher in the desktop sidebar
+  // header AND mobile top bar. Sub portal sets this to true (operative
+  // audience is RO-leaning); admin + principal leave it false for now.
+  showLocaleSwitcher?: boolean;
 }) {
   const { me, logout } = useAuth();
   const nav_ = useNavigate();
@@ -78,8 +84,9 @@ export function PortalShell({
           footer (avatar + bell + logout) sits below the scroll area
           and stays pinned to the bottom of the viewport. */}
       <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col border-r border-ink-100 bg-white z-30">
-        <div className="h-16 px-5 flex items-center border-b border-ink-100">
+        <div className="h-16 px-5 flex items-center justify-between border-b border-ink-100 gap-3">
           <Logo />
+          {showLocaleSwitcher && <LocaleSwitcher size="sm" />}
         </div>
         <div className="px-4 py-5 text-xs uppercase tracking-wider text-ink-400 font-semibold">
           {title}
@@ -153,8 +160,11 @@ export function PortalShell({
       </aside>
 
       {/* Mobile header */}
-      <div className="lg:hidden fixed top-0 inset-x-0 z-40 h-14 bg-white border-b border-ink-100 flex items-center justify-between px-4">
-        <Logo mark />
+      <div className="lg:hidden fixed top-0 inset-x-0 z-40 h-14 bg-white border-b border-ink-100 flex items-center justify-between px-3">
+        <div className="flex items-center gap-2">
+          <Logo mark />
+          {showLocaleSwitcher && <LocaleSwitcher size="sm" />}
+        </div>
         <div className="flex items-center gap-1">
           <NotificationBell />
           <button

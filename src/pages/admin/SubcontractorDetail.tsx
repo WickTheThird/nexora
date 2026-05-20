@@ -22,6 +22,7 @@ import { InvoiceModal } from "@/components/payments/InvoiceModal";
 import { Select, Checkbox } from "@/components/ui/Input";
 import { exportRowsAsCsv } from "@/lib/csv";
 import { REVENUE_QUESTIONS } from "@/pages/subcontractor/Questionnaire";
+import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -830,6 +831,7 @@ function AdminMetadataModal({
 
 
 function QuestionnaireTab({ subId }: { subId: string }) {
+  const { t } = useTranslation();
   const toast = useToast();
   const [q, setQ] = useState<QuestionnaireRecord | null>(null);
   const [loading, setLoading] = useState(true);
@@ -875,7 +877,7 @@ function QuestionnaireTab({ subId }: { subId: string }) {
             if (item.kind === "section") {
               return (
                 <div key={item.key} className="px-4 py-2 bg-ink-50/60 text-xs font-semibold uppercase tracking-wider text-ink-700">
-                  {item.label}
+                  {t(`questionnaire.sections.${item.sectionKey}`)}
                 </div>
               );
             }
@@ -885,13 +887,13 @@ function QuestionnaireTab({ subId }: { subId: string }) {
               v === "no"  ? "danger"  :
               v === "na"  ? "neutral" : "warn";
             const label =
-              v === "yes" ? "Yes" :
-              v === "no"  ? "No"  :
-              v === "na"  ? "N/A" : "(no answer)";
+              v === "yes" ? t("common.yes") :
+              v === "no"  ? t("common.no")  :
+              v === "na"  ? t("common.na")  : "(no answer)";
             return (
               <div key={item.key} className="flex items-start justify-between gap-6 px-4 py-3">
                 <div className="text-sm text-ink-800 flex-1 min-w-0">
-                  {item.label}
+                  {t(`questionnaire.questions.${item.key}`)}
                 </div>
                 <div className="shrink-0">
                   <Badge tone={tone as "success" | "danger" | "neutral" | "warn"}>{label}</Badge>

@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { api, ApiError } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import type { ChangeRequest } from "@/lib/types";
@@ -23,6 +24,7 @@ function statusBadge(s: ChangeRequest["status"]) {
 }
 
 export function Support() {
+  const { t } = useTranslation();
   const toast = useToast();
   const [items, setItems] = useState<ChangeRequest[]>([]);
   const [msg, setMsg] = useState("");
@@ -49,7 +51,7 @@ export function Support() {
       await api.postMyChangeRequest(msg.trim());
       setMsg("");
       await refresh();
-      toast.success("Request sent. An admin will review it.");
+      toast.success(t("support.sent"));
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : "Failed to send");
     } finally {
@@ -75,18 +77,18 @@ export function Support() {
   return (
     <>
       <PageHeader
-        title="Support"
-        description="Need changes made to your account? Drop us a note and an admin will respond."
+        title={t("support.title")}
+        description={t("support.subtitle")}
       />
 
       <div className="grid lg:grid-cols-5 gap-6">
         <form onSubmit={send} className="card-padded lg:col-span-2 space-y-4 h-fit">
-          <h2 className="font-semibold text-ink-900">New request</h2>
+          <h2 className="font-semibold text-ink-900">{t("support.newRequest")}</h2>
           <Textarea
-            label="Message"
+            label={t("support.message")}
             value={msg}
             onChange={(e) => setMsg(e.target.value)}
-            placeholder="e.g. Please update my mobile number to +353…"
+            placeholder={t("support.placeholder")}
             rows={6}
             maxLength={4000}
           />
@@ -99,7 +101,7 @@ export function Support() {
               leftIcon={<Send className="h-4 w-4" />}
               disabled={msg.trim().length === 0}
             >
-              Send
+              {t("support.sendRequest")}
             </Button>
           </div>
         </form>
@@ -110,8 +112,8 @@ export function Support() {
           ) : items.length === 0 ? (
             <Empty
               icon={MessagesSquare}
-              title="No requests yet"
-              description="Your previous support messages will appear here."
+              title={t("support.noRequests")}
+              description={t("support.noRequestsHint")}
             />
           ) : (
             items.map((cr) => (
@@ -133,13 +135,8 @@ export function Support() {
             <ShieldCheck className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="font-semibold text-ink-900">Your data rights</h2>
-            <p className="text-sm text-ink-500 mt-0.5">
-              Under GDPR you can export a copy of your data or ask us to erase it.
-              See the{" "}
-              <a href="#/legal/privacy" className="underline hover:text-ink-800">privacy notice</a>{" "}
-              for the full details.
-            </p>
+            <h2 className="font-semibold text-ink-900">{t("support.yourDataRights")}</h2>
+            <p className="text-sm text-ink-500 mt-0.5">{t("support.yourDataRightsBody")}</p>
           </div>
         </div>
 
@@ -151,11 +148,8 @@ export function Support() {
             <div className="flex items-start gap-3">
               <Download className="h-5 w-5 text-ink-700 mt-0.5" />
               <div>
-                <div className="font-medium text-ink-900">Export my data</div>
-                <p className="text-sm text-ink-500 mt-1">
-                  Download a JSON copy of everything we hold on you,
-                  including payments, documents, contracts and audit history.
-                </p>
+                <div className="font-medium text-ink-900">{t("support.exportData")}</div>
+                <p className="text-sm text-ink-500 mt-1">{t("support.exportDataBody")}</p>
               </div>
             </div>
           </a>
@@ -168,11 +162,8 @@ export function Support() {
             <div className="flex items-start gap-3">
               <UserX className="h-5 w-5 text-red-600 mt-0.5" />
               <div>
-                <div className="font-medium text-ink-900">Request account erasure</div>
-                <p className="text-sm text-ink-500 mt-1">
-                  We'll delete what we can immediately. Records we are legally required to keep
-                  (payments, signed contracts) will be anonymised.
-                </p>
+                <div className="font-medium text-ink-900">{t("support.requestErasure")}</div>
+                <p className="text-sm text-ink-500 mt-1">{t("support.requestErasureBody")}</p>
               </div>
             </div>
           </button>
@@ -185,45 +176,22 @@ export function Support() {
             <FileText className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="font-semibold text-ink-900">Legal documents</h2>
-            <p className="text-sm text-ink-500 mt-0.5">
-              The terms that govern your relationship with us. Read any of them at any time.
-            </p>
+            <h2 className="font-semibold text-ink-900">{t("support.legalDocuments")}</h2>
+            <p className="text-sm text-ink-500 mt-0.5">{t("support.legalDocumentsBody")}</p>
           </div>
         </div>
         <div className="grid md:grid-cols-3 gap-4">
-          <a
-            href="#/legal/contract"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="card p-5 border border-ink-100 hover:border-ink-300 transition block"
-          >
-            <div className="font-medium text-ink-900">Contract for Services</div>
-            <p className="text-sm text-ink-500 mt-1">
-              The subcontractor agreement that applies whenever you accept payment from us.
-            </p>
+          <a href="#/legal/contract" target="_blank" rel="noopener noreferrer" className="card p-5 border border-ink-100 hover:border-ink-300 transition block">
+            <div className="font-medium text-ink-900">{t("support.contract")}</div>
+            <p className="text-sm text-ink-500 mt-1">{t("support.contractBody")}</p>
           </a>
-          <a
-            href="#/legal/privacy"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="card p-5 border border-ink-100 hover:border-ink-300 transition block"
-          >
-            <div className="font-medium text-ink-900">Privacy notice</div>
-            <p className="text-sm text-ink-500 mt-1">
-              How we collect, store and use your personal data under GDPR.
-            </p>
+          <a href="#/legal/privacy" target="_blank" rel="noopener noreferrer" className="card p-5 border border-ink-100 hover:border-ink-300 transition block">
+            <div className="font-medium text-ink-900">{t("support.privacy")}</div>
+            <p className="text-sm text-ink-500 mt-1">{t("support.privacyBody")}</p>
           </a>
-          <a
-            href="#/legal/terms"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="card p-5 border border-ink-100 hover:border-ink-300 transition block"
-          >
-            <div className="font-medium text-ink-900">Terms of service</div>
-            <p className="text-sm text-ink-500 mt-1">
-              The platform terms that apply to your use of the Samwise portal.
-            </p>
+          <a href="#/legal/terms" target="_blank" rel="noopener noreferrer" className="card p-5 border border-ink-100 hover:border-ink-300 transition block">
+            <div className="font-medium text-ink-900">{t("support.terms")}</div>
+            <p className="text-sm text-ink-500 mt-1">{t("support.termsBody")}</p>
           </a>
         </div>
       </section>

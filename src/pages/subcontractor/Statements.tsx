@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/layout/PortalShell";
 
 // Monthly Certificates / Statements page.
@@ -9,12 +10,13 @@ import { PageHeader } from "@/components/layout/PortalShell";
 // the data spec.
 
 export function Statements() {
+  const { t } = useTranslation();
   return (
     <>
-      <PageHeader title="Statements" />
+      <PageHeader title={t("statements.title")} />
       <div className="card-padded bg-sky-50/60 border border-sky-100">
         <p className="text-sm text-sky-900">
-          There are no Statements available for ROI accounts at this time.
+          {t("statements.emptyState")}
         </p>
       </div>
     </>

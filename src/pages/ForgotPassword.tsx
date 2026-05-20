@@ -4,6 +4,7 @@ import { api } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Logo } from "@/components/ui/Logo";
+import { LocaleSwitcher } from "@/components/ui/LocaleSwitcher";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 
 // Forgot-password page. Always shows the same "if the email exists" message
@@ -31,7 +32,8 @@ export function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-full grid place-items-center p-6">
+    <div className="min-h-full grid place-items-center p-6 relative">
+      <div className="absolute top-3 right-3 sm:top-4 sm:right-4"><LocaleSwitcher size="sm" /></div>
       <div className="w-full max-w-sm">
         <div className="mb-8"><Logo /></div>
         {submitted ? (

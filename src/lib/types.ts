@@ -194,6 +194,10 @@ export interface Me {
   mustChangePassword: boolean;
   privacyAccepted: boolean;
   privacyVersion: string;
+  // Server-side locale preference. UI defaults to localStorage; this
+  // mirror exists so email + push templates render in the right
+  // language. "en" if the user hasn't picked one yet.
+  preferredLocale?: "en" | "ro";
   // Only present on /auth/login responses; persisted in localStorage so the
   // frontend can authenticate via Authorization: Bearer in environments that
   // block third-party cookies (incognito Chrome, Safari ITP, etc.).

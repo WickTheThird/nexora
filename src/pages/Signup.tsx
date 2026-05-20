@@ -13,8 +13,10 @@
 // keeps principals in control of who's on their roster.
 
 import { useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
 import { Logo } from "@/components/ui/Logo";
+import { LocaleSwitcher } from "@/components/ui/LocaleSwitcher";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
@@ -35,6 +37,7 @@ function parseInviteParams(search: string): { email?: string; name?: string } {
 }
 
 export function Signup() {
+  const { t } = useTranslation();
   const { kind: rawKind } = useParams<{ kind: string }>();
   const location = useLocation();
   const kind: "primary" | "subcontractor" = rawKind === "primary" ? "primary" : "subcontractor";
@@ -115,31 +118,32 @@ export function Signup() {
 
   if (duplicateEmail) {
     return (
-      <div className="min-h-screen grid place-items-center px-4 py-12 bg-ink-50">
+      <div className="min-h-screen grid place-items-center px-4 py-12 bg-ink-50 relative">
+        <div className="absolute top-3 right-3 sm:top-4 sm:right-4"><LocaleSwitcher size="sm" /></div>
         <div className="max-w-md w-full text-center">
           <div className="h-12 w-12 mx-auto mb-4 rounded-full bg-amber-100 text-amber-700 grid place-items-center">
             <Mail className="h-6 w-6" />
           </div>
-          <h1 className="text-2xl font-bold text-ink-900 mb-2">Email already registered</h1>
+          <h1 className="text-2xl font-bold text-ink-900 mb-2">{t("auth.emailRegisteredTitle")}</h1>
           <p className="text-ink-600 mb-2">
-            An account already exists for <strong className="text-ink-900">{email}</strong>.
+            <span dangerouslySetInnerHTML={{ __html: t("auth.emailRegisteredBody", { email: `<strong>${email}</strong>` }) }} />
           </p>
           <p className="text-sm text-ink-500 mb-6">
-            We require a unique email for every account. Try signing in instead, or reset your password if you have forgotten it.
+            {t("auth.emailRegisteredHint")}
           </p>
           <div className="flex flex-col gap-3">
             <Link to="/login" className="inline-flex items-center justify-center gap-1 rounded-md bg-ink-900 text-white text-sm font-medium px-4 py-2 hover:bg-ink-800">
-              Go to sign in <ArrowRight className="h-4 w-4" />
+              {t("auth.goToSignIn")} <ArrowRight className="h-4 w-4" />
             </Link>
             <Link to="/forgot-password" className="text-sm text-ink-600 hover:text-ink-900 underline-offset-2 hover:underline">
-              Forgot your password?
+              {t("auth.forgotPassword")}
             </Link>
             <button
               type="button"
               onClick={() => setDuplicateEmail(false)}
               className="text-xs text-ink-500 hover:text-ink-800 underline-offset-2 hover:underline"
             >
-              Use a different email
+              {t("auth.useDifferentEmail")}
             </button>
           </div>
         </div>
@@ -149,7 +153,8 @@ export function Signup() {
 
   if (done) {
     return (
-      <div className="min-h-screen grid place-items-center px-4 py-12 bg-ink-50">
+      <div className="min-h-screen grid place-items-center px-4 py-12 bg-ink-50 relative">
+        <div className="absolute top-3 right-3 sm:top-4 sm:right-4"><LocaleSwitcher size="sm" /></div>
         <div className="max-w-md w-full text-center">
           <Mail className="h-12 w-12 mx-auto text-emerald-600 mb-4" />
           <h1 className="text-2xl font-bold text-ink-900 mb-2">Check your email</h1>
@@ -192,7 +197,8 @@ export function Signup() {
   const Icon = isPrimary ? Building2 : Hammer;
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2 bg-ink-50">
+    <div className="min-h-screen grid lg:grid-cols-2 bg-ink-50 relative">
+      <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10"><LocaleSwitcher size="sm" /></div>
       <aside className="hidden lg:flex flex-col justify-between p-10 bg-ink-950 text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: "radial-gradient(circle at 20% 20%, #F59E0B 0, transparent 40%), radial-gradient(circle at 80% 60%, #fff 0, transparent 30%)" }} />
         <div className="relative"><Logo inverse /></div>

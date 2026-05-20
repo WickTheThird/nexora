@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 // Sub-portal-only footer. Matches Enagh's layout: ROI/NI phones,
 // support email, copyright. Pulled from /public/branding (open
@@ -15,6 +16,7 @@ const API_URL = (window as { __SAMWISE_CONFIG__?: { apiUrl?: string } }).__SAMWI
   || "https://nexora-api.bumbufilip22.workers.dev";
 
 export function SubPortalFooter() {
+  const { t } = useTranslation();
   const [b, setB] = useState<Branding | null>(null);
 
   useEffect(() => {
@@ -37,18 +39,18 @@ export function SubPortalFooter() {
       )}
       {b.contractorEmail && (
         <div className="mb-1">
-          Email: <a href={`mailto:${b.contractorEmail}`} className="text-ink-700 hover:text-ink-900 underline">{b.contractorEmail}</a>
+          {t("footer.email")}: <a href={`mailto:${b.contractorEmail}`} className="text-ink-700 hover:text-ink-900 underline">{b.contractorEmail}</a>
         </div>
       )}
       <div className="mb-2 text-ink-500">
-        <a href="#/legal/contract" className="underline hover:text-ink-700">Contract for Services</a>
+        <a href="#/legal/contract" className="underline hover:text-ink-700">{t("support.contract")}</a>
         <span className="mx-2">·</span>
-        <a href="#/legal/privacy" className="underline hover:text-ink-700">Privacy notice</a>
+        <a href="#/legal/privacy" className="underline hover:text-ink-700">{t("support.privacy")}</a>
         <span className="mx-2">·</span>
-        <a href="#/legal/terms" className="underline hover:text-ink-700">Terms of service</a>
+        <a href="#/legal/terms" className="underline hover:text-ink-700">{t("support.terms")}</a>
       </div>
       <div className="text-ink-400">
-        © {new Date().getFullYear()} {b.contractorName}, All Rights Reserved
+        {t("footer.rights", { year: new Date().getFullYear(), name: b.contractorName })}
       </div>
     </footer>
   );

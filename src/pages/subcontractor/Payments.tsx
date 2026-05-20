@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api, ApiError, brandName } from "@/lib/api";
 import type { PaymentRecord, Subcontractor, BankDetails } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
@@ -44,6 +45,7 @@ async function loadAll(): Promise<PaymentRecord[]> {
 }
 
 export function Payments() {
+  const { t } = useTranslation();
   const toast = useToast();
   const [items, setItems] = useState<PaymentRecord[]>([]);
   const [sub, setSub] = useState<Subcontractor | null>(null);
@@ -265,7 +267,7 @@ export function Payments() {
   return (
     <>
       <PageHeader
-        title="Pay Advice"
+        title={t("payments.title")}
         right={taxYears.length > 0 ? (
           <div className="flex items-center gap-2">
             <select

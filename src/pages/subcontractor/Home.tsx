@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -31,11 +32,13 @@ import {
   Send,
 } from "lucide-react";
 
-const stepMeta: Record<StepKey, { label: string; icon: React.ComponentType<{className?: string}>; href: string; hint: string }> = {
-  application_form: { label: "Application form", icon: User, href: "/app/profile", hint: "Personal, work & bank details" },
-  questionnaire:    { label: "Questionnaire",    icon: ClipboardCheck, href: "/app/questionnaire", hint: "Compliance declarations" },
-  photo_id:         { label: "Photographic ID",  icon: FolderUp, href: "/app/documents", hint: "Upload a clear photo ID" },
-  hs_card:          { label: "H&S card",         icon: FolderUp, href: "/app/documents", hint: "Upload your current safety card" },
+// Step metadata. label + hint are i18n keys (resolved inside the
+// component via t()) so the cards re-render in the active locale.
+const stepMeta: Record<StepKey, { labelKey: string; icon: React.ComponentType<{className?: string}>; href: string; hintKey: string }> = {
+  application_form: { labelKey: "home.step.applicationForm", icon: User,           href: "/app/profile",       hintKey: "home.step.applicationFormHint" },
+  questionnaire:    { labelKey: "home.step.questionnaire",   icon: ClipboardCheck, href: "/app/questionnaire", hintKey: "home.step.questionnaireHint"   },
+  photo_id:         { labelKey: "home.step.photoId",         icon: FolderUp,       href: "/app/documents",     hintKey: "home.step.photoIdHint"         },
+  hs_card:          { labelKey: "home.step.hsCard",          icon: FolderUp,       href: "/app/documents",     hintKey: "home.step.hsCardHint"          },
 };
 
 function StepIcon({ s }: { s: StepStatus }) {
@@ -69,6 +72,7 @@ function statusBadge(s: OnboardingStatus) {
 }
 
 export function Home() {
+  const { t } = useTranslation();
   const { me } = useAuth();
   const toast = useToast();
   const [onboarding, setOnboarding] = useState<OnboardingView | null>(null);
@@ -109,16 +113,16 @@ export function Home() {
   const submitChange = async () => {
     const msg = changeMsg.trim();
     if (msg.length < 4) {
-      toast.error("Tell us briefly what needs changing.");
+      toast.error(t("home.changesWidget.tooShort"));
       return;
     }
     setChangeBusy(true);
     try {
       await api.postMyChangeRequest(msg);
-      toast.success("Sent to the office.");
+      toast.success(t("home.changesWidget.sent"));
       setChangeMsg("");
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : "Could not send");
+      toast.error(e instanceof ApiError ? e.message : t("home.changesWidget.failed"));
     } finally {
       setChangeBusy(false);
     }
@@ -127,8 +131,8 @@ export function Home() {
   return (
     <>
       <PageHeader
-        title={`Welcome, ${greeting}`}
-        description="Complete each step below to finish your onboarding."
+        title={t("home.welcome", { name: greeting })}
+        description={t("home.subtitle")}
       />
 
       {/* Web push opt-in card (renders only when supported AND not yet
@@ -142,19 +146,19 @@ export function Home() {
         }}/>
         <div className="relative flex items-start justify-between gap-6 flex-wrap">
           <div>
-            <div className="text-ink-400 text-sm uppercase tracking-wider font-semibold mb-2">Onboarding status</div>
+            <div className="text-ink-400 text-sm uppercase tracking-wider font-semibold mb-2">{t("home.onboardingStatus")}</div>
             <div className="flex items-center gap-3">
               <h2 className="text-3xl font-bold">
-                {progress}% complete
+                {t("home.percentComplete", { percent: progress })}
               </h2>
               {onboarding && statusBadge(onboarding.onboardingStatus)}
             </div>
             <p className="text-ink-300 mt-2 text-sm max-w-md">
-              {doneCount} of {totalSteps} steps complete.
+              {t("home.stepsComplete", { done: doneCount, total: totalSteps })}
               {" "}
               {progress === 100
-                ? "Waiting for final admin approval."
-                : "Continue below to complete your onboarding."}
+                ? t("home.waitingApproval")
+                : t("home.continueOnboarding")}
             </p>
           </div>
           <div className="w-full max-w-xs">
@@ -187,15 +191,15 @@ export function Home() {
               <StepIcon s={s} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-ink-900">{meta.label}</h3>
+                  <h3 className="font-semibold text-ink-900">{t(meta.labelKey)}</h3>
                 </div>
-                <p className="text-sm text-ink-500 mt-0.5">{meta.hint}</p>
+                <p className="text-sm text-ink-500 mt-0.5">{t(meta.hintKey)}</p>
                 <div className="mt-3">
-                  {s === "completed" && <Badge tone="success" icon={<Check className="h-3 w-3" />}>Completed</Badge>}
-                  {s === "in_progress" && <Badge tone="warn">In progress</Badge>}
-                  {s === "not_started" && <Badge tone="neutral">Not started</Badge>}
-                  {s === "locked" && <Badge tone="neutral" icon={<Lock className="h-3 w-3" />}>Locked</Badge>}
-                  {s === "rejected" && <Badge tone="danger">Needs attention</Badge>}
+                  {s === "completed"   && <Badge tone="success" icon={<Check className="h-3 w-3" />}>{t("home.stepState.completed")}</Badge>}
+                  {s === "in_progress" && <Badge tone="warn">{t("home.stepState.inProgress")}</Badge>}
+                  {s === "not_started" && <Badge tone="neutral">{t("home.stepState.notStarted")}</Badge>}
+                  {s === "locked"      && <Badge tone="neutral" icon={<Lock className="h-3 w-3" />}>{t("home.stepState.locked")}</Badge>}
+                  {s === "rejected"    && <Badge tone="danger">{t("home.stepState.rejected")}</Badge>}
                 </div>
               </div>
               {!disabled && <ArrowRight className="h-4 w-4 text-ink-400 mt-1" />}
@@ -219,17 +223,17 @@ export function Home() {
             <FileText className="h-5 w-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-ink-900">View Contract Terms</h3>
-            <p className="text-sm text-ink-500 mt-0.5">Contract for Services - read anytime</p>
+            <h3 className="font-semibold text-ink-900">{t("home.contractCard.title")}</h3>
+            <p className="text-sm text-ink-500 mt-0.5">{t("home.contractCard.subtitle")}</p>
             <div className="mt-3">
-              <Badge tone="neutral">Reference</Badge>
+              <Badge tone="neutral">{t("home.contractCard.badge")}</Badge>
             </div>
           </div>
           <ArrowRight className="h-4 w-4 text-ink-400 mt-1" />
         </a>
       </div>
 
-      {loading && <div className="text-sm text-ink-400 mt-4">Loading…</div>}
+      {loading && <div className="text-sm text-ink-400 mt-4">{t("common.loading")}</div>}
 
       {/* Need changes / updates widget - posts to admin's change
           request inbox. Replaces the duplicate widget that used to
@@ -237,25 +241,25 @@ export function Home() {
       <section className="card-padded mt-10">
         <div className="flex items-center gap-2 mb-1">
           <MessageSquarePlus className="h-4 w-4 text-ink-500" />
-          <h3 className="font-semibold text-ink-900">Need changes or updates added?</h3>
+          <h3 className="font-semibold text-ink-900">{t("home.changesWidget.title")}</h3>
         </div>
-        <p className="text-xs text-ink-500 mb-3">Tell us briefly what needs changing; the office will get back to you.</p>
+        <p className="text-xs text-ink-500 mb-3">{t("home.changesWidget.subtitle")}</p>
         <Textarea
           rows={3}
           value={changeMsg}
           onChange={(e) => setChangeMsg(e.target.value)}
-          placeholder="Enter changes..."
+          placeholder={t("home.changesWidget.placeholder")}
         />
         <div className="mt-3 flex justify-end">
           <Button variant="accent" onClick={submitChange} loading={changeBusy} leftIcon={<Send className="h-4 w-4" />}>
-            Email Changes
+            {t("home.changesWidget.send")}
           </Button>
         </div>
       </section>
 
       <div className="mt-10 flex items-center gap-2 text-xs text-ink-400">
         <ShieldCheck className="h-4 w-4" />
-        Your data is encrypted at rest. See Support if you need help.
+        {t("home.footerNote")}
       </div>
     </>
   );
