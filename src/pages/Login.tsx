@@ -165,13 +165,13 @@ export function Login() {
             </Link>
           </p>
           <p className="text-xs text-ink-400 mt-8 text-center">
-            <a href="#/help" className="underline hover:text-ink-700">How it works</a>
+            <a href="#/help" className="underline hover:text-ink-700">{t("nav.help")}</a>
             <span className="mx-2">·</span>
-            <a href="#/legal/contract" className="underline hover:text-ink-700">Contract for Services</a>
+            <a href="#/legal/contract" className="underline hover:text-ink-700">{t("support.contract")}</a>
             <span className="mx-2">·</span>
-            <a href="#/legal/privacy" className="underline hover:text-ink-700">Privacy notice</a>
+            <a href="#/legal/privacy" className="underline hover:text-ink-700">{t("support.privacy")}</a>
             <span className="mx-2">·</span>
-            <a href="#/legal/terms" className="underline hover:text-ink-700">Terms of service</a>
+            <a href="#/legal/terms" className="underline hover:text-ink-700">{t("support.terms")}</a>
           </p>
         </div>
       </div>

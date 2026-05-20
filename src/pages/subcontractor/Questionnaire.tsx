@@ -122,9 +122,9 @@ function YesNoRow({
         </div>
       </div>
       {riskWarning && (
-        <div className="mt-2 rounded-md bg-amber-50 border border-amber-200 p-2.5 flex items-start gap-2">
-          <AlertTriangle className="h-3.5 w-3.5 text-amber-700 mt-0.5 shrink-0" />
-          <div className="text-xs text-amber-900 leading-relaxed">{riskWarning}</div>
+        <div className="mt-2 rounded-md bg-red-50 border border-red-200 p-2.5 flex items-start gap-2">
+          <AlertTriangle className="h-3.5 w-3.5 text-red-700 mt-0.5 shrink-0" />
+          <div className="text-xs text-red-900 leading-relaxed font-medium">{riskWarning}</div>
         </div>
       )}
     </div>
@@ -228,6 +228,19 @@ export function Questionnaire() {
         </div>
       )}
 
+      {/* Context banner. Education-only - doesn't block submit, just
+          frames what the questions are for so the worker doesn't
+          pick "what sounds good" - they pick what matches reality. */}
+      {editable && (
+        <div className="mb-5 rounded-lg bg-sky-50 border border-sky-200 p-4 flex items-start gap-3">
+          <Info className="h-4 w-4 text-sky-700 mt-0.5 shrink-0" />
+          <div className="text-sm text-sky-900 leading-relaxed">
+            <div className="font-medium mb-1">{t("questionnaire.guidance.bannerTitle")}</div>
+            <div className="text-xs">{t("questionnaire.guidance.bannerBody")}</div>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={submit} className="card-padded space-y-1">
         {REVENUE_QUESTIONS.map((item) => {
           if (item.kind === "section") {
@@ -248,17 +261,26 @@ export function Questionnaire() {
                   { value: "yes", label: t("common.yes") },
                   { value: "no",  label: t("common.no")  },
                 ];
+          // Instant inline warning: as soon as the sub picks an
+          // answer in the "risky" set for this question, render a
+          // red warning strip under the row. Doesn't block submit -
+          // the sub may still answer truthfully even if it looks
+          // employee-like - but they see the RCT implication first.
+          const currentValue = answers[item.key];
+          const isRisky =
+            currentValue && item.risky && (item.risky as string[]).includes(currentValue);
           return (
             <YesNoRow
               key={item.key}
               label={t(`questionnaire.questions.${item.key}`)}
               note={item.noteKey ? t(`questionnaire.questions.${item.noteKey}`) : undefined}
-              value={answers[item.key]}
+              value={currentValue}
               options={opts}
               disabled={!editable}
               onChange={(v) =>
                 setAnswers((prev) => ({ ...prev, [item.key]: v as YN | YNA }))
               }
+              riskWarning={isRisky ? t("questionnaire.guidance.riskWarning") : undefined}
             />
           );
         })}
