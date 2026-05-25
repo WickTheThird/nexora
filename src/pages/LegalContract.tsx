@@ -172,8 +172,15 @@ export function LegalContract() {
           <div>
             <div className="font-semibold mb-2">For and on Behalf of the Contractor:</div>
             <div className="border-t border-ink-300 pt-2 mt-10">
-              <div className="font-semibold">{branding.contractorSignatoryName}</div>
-              <div className="text-xs text-ink-500 mt-1">{branding.contractorName}</div>
+              {/* Generic "Authorised Signatory" instead of a specific
+                  director name. The page is a public reference set of
+                  terms (paid-acceptance model) - naming a person here
+                  adds no legal weight and breaks every time
+                  personnel change. If a bespoke wet-signed copy is
+                  ever needed, the admin can issue it offline with
+                  the actual signer's name filled in then. */}
+              <div className="font-semibold">{branding.contractorName}</div>
+              <div className="text-xs text-ink-500 mt-1">Authorised Signatory</div>
             </div>
           </div>
           <div>
