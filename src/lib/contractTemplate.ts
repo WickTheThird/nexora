@@ -1,47 +1,59 @@
-// Canonical Subcontractor Contract for Services.
+// Canonical Subcontractor Contract for Services - bilingual EN/RO.
 //
-// This is the same text every sub is bound to. We render it as a
-// public, statically-laid-out document at /legal/contract; no
-// per-worker variation in the body, no DB-stored signatures. The
-// agreement is established by:
+// Public, statically-laid-out at /legal/contract. No per-worker
+// variation, no DB-stored signatures. Agreement formed by:
+//   1. terms publicly accessible at a stable URL
+//   2. acceptance clause printed on every payment advice
+//   3. the sub accepting the payment
 //
-//   1. The terms being publicly accessible at a stable URL
-//   2. The acceptance clause printed on every payment advice the sub
-//      receives (see ACCEPTANCE_CLAUSE below)
-//   3. The sub accepting the payment (cash flow = implicit agreement)
+// Bilingual model:
+//   - EN is the legally binding version. RO is a courtesy
+//     translation rendered when the user's active locale is "ro".
+//   - LegalContract.tsx shows a banner explaining the EN version
+//     prevails for any dispute.
+//   - Both copies stay structurally identical (same section numbers,
+//     same paragraph count) so the rendering code doesn't need to
+//     branch on locale beyond picking the array.
 //
-// Structure mirrors the Enagh reference document the user provided:
-// preamble + recitals A-E + 6 numbered sections + legally-binding
-// banner + two-column signature footer.
+// Adding a clause: add it to BOTH _EN and _RO. The two arrays MUST
+// stay parallel.
 
 export interface ContractContext {
-  // BC's identity. Hard-coded from app_settings on the page that
-  // renders the contract.
-  contractorName: string;        // e.g. "Samwise Building Contractors Ltd"
-  contractorRegNumber: string;   // e.g. "575739"
-  contractorAddress: string;     // full address
-  contractorSignatoryName: string; // e.g. "JP Donnelly"
-  // Public URL of this contract (used in the body where it
-  // self-references, and in the acceptance clause below).
+  contractorName: string;
+  contractorRegNumber: string;
+  contractorAddress: string;
+  contractorSignatoryName: string;
   publicUrl: string;
 }
 
-// The canonical acceptance clause the user specified verbatim. We
-// interpolate {contractorName} + {publicUrl} but otherwise the wording
-// is fixed.
-export function acceptanceClause(ctx: Pick<ContractContext, "contractorName" | "publicUrl">): string {
-  return `By accepting this payment, and by continuing to provide services to ${ctx.contractorName} or its clients, you acknowledge that you have had the opportunity to review the Contract for Services available at ${ctx.publicUrl}, and agree to be bound by its terms in respect of all services provided.`;
-}
+export type Locale = "en" | "ro";
 
-// Section structure. Renderer maps over this and renders each section
-// with proper hierarchical numbering. Body text is the user's
-// reference document with one tweak: "the Contractor" / "the
-// Subcontractor" stay generic so the same body works for every reader.
-export const CONTRACT_SECTIONS: Array<{
+export interface SectionBlock {
   number: string;
   title: string;
   paragraphs: string[];
-}> = [
+}
+
+export interface RecitalBlock {
+  letter: string;
+  text: string;
+}
+
+// ---------- Acceptance clause (interpolated on payment advice + page) ----------
+
+export function acceptanceClause(
+  ctx: Pick<ContractContext, "contractorName" | "publicUrl">,
+  locale: Locale = "en",
+): string {
+  if (locale === "ro") {
+    return `Prin acceptarea acestei plăți și prin continuarea prestării serviciilor către ${ctx.contractorName} sau clienții acestuia, recunoști că ai avut posibilitatea de a consulta Contractul pentru Servicii disponibil la ${ctx.publicUrl} și ești de acord să fii obligat de termenii acestuia pentru toate serviciile prestate.`;
+  }
+  return `By accepting this payment, and by continuing to provide services to ${ctx.contractorName} or its clients, you acknowledge that you have had the opportunity to review the Contract for Services available at ${ctx.publicUrl}, and agree to be bound by its terms in respect of all services provided.`;
+}
+
+// ---------- EN: legally binding source ----------
+
+const CONTRACT_SECTIONS_EN: SectionBlock[] = [
   {
     number: "1",
     title: "The Services",
@@ -132,7 +144,7 @@ export const CONTRACT_SECTIONS: Array<{
   },
 ];
 
-export const RECITALS: Array<{ letter: string; text: string }> = [
+const RECITALS_EN: RecitalBlock[] = [
   { letter: "A", text: "The Contractor engages with Subcontractors for the provision of the Services (the \"Services\")." },
   { letter: "B", text: "These terms and conditions shall apply for each engagement unless varied, amended or otherwise agreed (whether verbally or otherwise) in accordance with the specific provisions of this contract." },
   { letter: "C", text: "Under these terms the Subcontractor has the right to use substitutes, subcontractor employees or hired assistants (the \"Delegates\") to provide the agreed services. The term Subcontractor in this contract is deemed to include any Delegates that the Subcontractor engages to provide the services." },
@@ -140,4 +152,128 @@ export const RECITALS: Array<{ letter: string; text: string }> = [
   { letter: "E", text: "The Subcontractor is engaged in his own commercial undertaking and, subject to the terms of this contract, it is for him to decide how and when, subject to site operating hours, the work associated with it is carried out using sound management in the scheduling of engagements and the performance of tasks." },
 ];
 
-export const LEGALLY_BINDING_BANNER = "The parties agree that they have read and understood the terms above and that they are a true reflection of the agreement between the parties and that both parties have had the opportunity to seek advice prior to the agreement of these terms. By continuing to provide services and by accepting payment under this contract the parties warrant that the contract in its entirety is true and reflects the actual agreement between the parties.";
+const LEGALLY_BINDING_BANNER_EN = "The parties agree that they have read and understood the terms above and that they are a true reflection of the agreement between the parties and that both parties have had the opportunity to seek advice prior to the agreement of these terms. By continuing to provide services and by accepting payment under this contract the parties warrant that the contract in its entirety is true and reflects the actual agreement between the parties.";
+
+// ---------- RO: courtesy translation ----------
+
+const CONTRACT_SECTIONS_RO: SectionBlock[] = [
+  {
+    number: "1",
+    title: "Serviciile",
+    paragraphs: [
+      "1.1 Subcontractorul va presta serviciile specifice activității sale către Contractor. Datorită naturii fluctuante a lucrărilor disponibile, sfera și amploarea serviciilor vor fi convenite verbal de către părți, periodic, sau vor fi confirmate în programe scrise emise de către Contractor sau furnizate în alt mod Subcontractorului.",
+      "1.2 Subcontractorul se va asigura că Serviciile sunt prestate la standardul așteptat de Contractor și impus de orice legislație și reglementare aplicabilă, precum și că respectă orice standarde convenite în scris, periodic, între părți.",
+      "1.3 Subcontractorul va avea libertatea de a alege metodele folosite pentru a presta Serviciile convenite, asigurându-se întotdeauna că sunt respectate cerințele relevante de sănătate și securitate, reglementare, securitate și termenele de șantier.",
+      "1.4 Părțile recunosc că Contractorul nu va avea dreptul (și nu va încerca) să supervizeze, să direcționeze sau să controleze modul în care Subcontractorul sau Delegații prestează Serviciile.",
+      "1.5 Datorită naturii Serviciilor de prestat, Subcontractorul va presta Serviciile la șantierul sau locația notificată de către Contractor. Acel șantier sau locație nu reprezintă sediul fix de activitate al Subcontractorului.",
+      "1.6 Subcontractorul este responsabil pentru prestarea Serviciilor în baza acestui Contract. Subcontractorul este de acord că este răspunzător legal pentru Servicii și pentru asigurarea existenței polițelor de asigurare relevante, inclusiv asigurarea de răspundere civilă publică, care să acopere prestarea Serviciilor. Subcontractorul acceptă faptul că, deși Contractorul are asigurări care îi acoperă răspunderea pentru Serviciile Contractorului, această acoperire nu se extinde și asupra răspunderii Subcontractorului pentru Servicii.",
+      "1.7 Cu excepția cazului în care s-a convenit altfel verbal sau în scris, Subcontractorul nu este obligat să furnizeze utilaje sau echipamente majore pentru prestarea Serviciilor. Subcontractorul va fi responsabil pentru depozitarea propriilor materiale și echipamente.",
+      "1.8 Subcontractorul este responsabil și suportă riscul financiar al remedierii oricărei lucrări defectuoase sau a oricărei pagube cauzate de Subcontractor sau de Delegații Subcontractorului. Contractorul va avea libertatea de a decide dacă Subcontractorul remediază lucrarea defectuoasă sau dacă Subcontractorului i se cere să suporte costul remedierii de către o altă parte.",
+      "1.9 Atunci când Subcontractorului i se cere să suporte costul oricărei remedieri, acesta este de acord ca Contractorul să poată deduce costul remedierii din orice sume datorate de Contractor Subcontractorului.",
+      "1.10 Contractorul nu este obligat să ofere Subcontractorului lucrări la nicio misiune, în niciun moment, iar Subcontractorul nu este obligat să accepte lucrări la nicio misiune, în niciun moment.",
+      "1.11 Orice ofertă de lucrare din partea Contractorului nu obligă Contractorul în vreun fel să ofere lucrări suplimentare și nici nu împiedică Contractorul să retragă lucrările deja oferite, cu excepția Serviciilor prevăzute la Clauza 1.1 pentru care prestarea a început deja.",
+      "1.12 Acceptarea oricărei lucrări de către Subcontractor nu îl obligă să accepte lucrări suplimentare și nici nu îl împiedică să se retragă din lucrările deja acceptate, cu excepția Serviciilor prevăzute la Clauza 1.1. Această clauză nu aduce atingere Clauzelor 1.8 și 1.9 din prezentul Acord privind remedierea.",
+      "1.13 Subcontractorul poate presta servicii și altor Contractori pe durata acestui Contract, inclusiv concurenți ai Contractorului; cu toate acestea, Subcontractorul nu va divulga niciodată unei terțe părți informații confidențiale sau secrete comerciale ale Contractorului.",
+    ],
+  },
+  {
+    number: "2",
+    title: "Termeni de plată",
+    paragraphs: [
+      "2.1 Părțile convin că Subcontractorul nu este obligat să depună oferte pentru lucrări.",
+      "2.2 Părțile convin că tariful pentru Servicii va fi negociat și convenit verbal, periodic.",
+      "2.3 Părțile convin că plățile vor fi procesate astfel:",
+      "2.3.1 Data începerii la care se face referire mai jos va fi prima zi a lunii ce urmează începerii lucrărilor pe șantier.",
+      "2.3.2 Prima dată de solicitare a plății va fi la 30 de zile după data începerii.",
+      "2.3.3 Fiecare dată ulterioară de solicitare a plății va fi la 30 de zile după data prevăzută la 2.3.2 de mai sus, până la data finalizării substanțiale. Finalizarea substanțială reprezintă data finalizării lucrărilor, excluzând orice lucrări de remediere și/sau de snagging.",
+      "2.3.4 Data finală de solicitare a plății va fi la 30 de zile după finalizarea finală. Finalizarea finală reprezintă data la care Subcontractorul a finalizat toate lucrările, inclusiv lucrările de remediere și/sau snagging.",
+      "2.3.5 În cazul în care durata lucrărilor este mai mică de 45 de zile, data finală de solicitare a plății prevăzută la 2.3.4 de mai sus va fi înlocuită cu 14 zile după finalizarea finală.",
+      "2.3.6 Plata va fi efectuată în cel mult 30 de zile după datele de solicitare a plății menționate mai sus.",
+      "2.3.7 Plățile intermediare vor reprezenta diferența dintre valoarea brută cumulată a lucrărilor finalizate în baza contractului de construcții, minus orice deduceri prevăzute în construcție, și totalul plăților intermediare deja efectuate la acea dată de solicitare a plății.",
+      "2.4 Calculul costurilor lucrării va fi în responsabilitatea Subcontractorului.",
+      "2.5 Contractorul va furniza Subcontractorului un extras de remitere conform acestui Acord și cu o frecvență agreată verbal, periodic, iar acesta va funcționa ca o factură self-billed (auto-emisă).",
+      "2.6 Subcontractorul recunoaște că, în calitate de subcontractor independent (self-employed), nu are dreptul la plata concediului, plata concediului medical sau orice altă plată în perioadele în care nu prestează servicii, inclusiv atunci când Serviciile sunt anulate de Contractor.",
+      "2.7 Părțile convin că Serviciile fac obiectul regimului fiscal Relevant Contracts Tax (\"RCT\") și că acest contract este un 'relevant contract' în acest sens.",
+      "2.8 La cererea Contractorului, Subcontractorul va furniza fără întârziere și în orice caz în termen de 30 de zile orice informație aflată în posesia sau controlul său, necesară pentru ca Contractorul să își îndeplinească obligațiile de 'principal contractor' RCT. Subcontractorul este responsabil să se asigure că informațiile furnizate sunt adevărate și exacte și îl despăgubește pe Contractor pentru orice costuri sau pierderi suferite ca urmare a unor informații inexacte sau false furnizate de Subcontractor sau a neîndeplinirii furnizării respectivelor informații în termen de 30 de zile de la cererea Contractorului.",
+      "2.9 Subcontractorul va fi responsabil pentru plata sau achitarea oricăror taxe sau impozite datorate din sumele care i se plătesc în baza acestui contract, inclusiv în ceea ce privește Delegații.",
+      "2.10 Subcontractorul este responsabil pentru plata cheltuielilor suportate în cursul lucrărilor sale.",
+    ],
+  },
+  {
+    number: "3",
+    title: "Sfera contractului și încetare",
+    paragraphs: [
+      "3.1 Fiecare angajament separat al Subcontractorului (dacă există) va constitui, cu excepția cazului în care se convine altfel în scris, un contract separat și distinct căruia i se aplică acești termeni și condiții.",
+      "3.2 Părțile convin că relația dintre ele nu este una de angajator și angajat și că Subcontractorul nu este un lucrător al Contractorului și, în consecință, nu are drepturile statutare asociate. În calitate de persoană care desfășoară activități independente pe cont propriu, Subcontractorul este de acord că este responsabil pentru propriile demersuri privind ținerea contabilității și plata impozitului pe venit și a contribuțiilor PRSI, după caz.",
+      "3.3 Subcontractorul nu este agent al Contractorului și nu are autoritatea, expresă, aparentă sau implicită, de a obliga Contractorul.",
+      "3.4 Subcontractorul nu are dreptul să participe la procedura de plângere și disciplinară a Contractorului, dacă există.",
+      "3.5 Acest Contract poate fi reziliat imediat de oricare parte prin notificarea celeilalte.",
+      "3.6 Acest Contract este exclusiv între Contractor și Subcontractor și nu reprezintă sau implică un contract între Contractor și Delegații Subcontractorului sau între clientul Contractorului și Subcontractor sau Delegații Subcontractorului.",
+    ],
+  },
+  {
+    number: "4",
+    title: "Sănătate și securitate",
+    paragraphs: [
+      "4.1 Subcontractorul se va asigura că respectă toate regulile operaționale ale șantierului privind programul de lucru al șantierului, securitatea șantierului și siguranța șantierului, în conformitate cu obligațiile de sănătate și securitate ale Contractorului și ale șantierului.",
+      "4.2 Atunci când Serviciile prestate sunt specializate, Subcontractorul garantează că deține autorizările și licențele necesare pentru prestarea Serviciilor. Subcontractorul va informa imediat Contractorul în cazul în care aceste autorizări sau licențe sunt revocate, anulate, invalidate, suspendate sau nu mai sunt operaționale.",
+    ],
+  },
+  {
+    number: "5",
+    title: "Personalul Subcontractorului",
+    paragraphs: [
+      "5.1 Subcontractorul poate trimite Delegați pentru a presta Serviciile. Delegații nu pot fi respinși de Contractor, cu excepția cazului în care, în opinia rezonabilă a Contractorului, aceștia nu au competențele sau calificările necesare pentru a presta Serviciile.",
+      "5.2 Subcontractorul se va asigura că Delegații dețin autorizările și/sau licențele necesare pentru prestarea Serviciilor. Subcontractorul va notifica imediat Contractorul în cazul în care vreuna dintre licențele menționate este revocată, anulată, invalidată, suspendată sau nu mai este operațională.",
+      "5.3 Atunci când Subcontractorul folosește Delegați, nu există nicio relație contractuală sau financiară între Contractor și Delegați. Subcontractorul este singurul responsabil pentru efectuarea plăților către Delegații pe care îi angajează pentru prestarea Serviciilor.",
+      "5.4 Subcontractorul nu are dreptul la plăți suplimentare atunci când angajează Delegați pentru a presta Serviciile convenite.",
+      "5.5 Subcontractorul este responsabil pentru informarea Contractorului sau, atunci când este mai practic, a șefului de șantier, despre faptul că vor fi trimiși Delegați pentru a presta Serviciile, pentru a asigura respectarea măsurilor de sănătate, securitate și a măsurilor de securitate pe șantier.",
+      "5.6 Atunci când Subcontractorul folosește Delegați pentru a presta Serviciile, Subcontractorul este responsabil pentru Serviciile prestate de Delegați și pentru asigurarea respectării de către aceștia a acestor termeni contractuali. Mai mult, Subcontractorul este de acord că este responsabil și suportă riscul financiar al remedierii oricărei lucrări defectuoase realizate de orice Delegat pe care îl angajează pentru prestarea Serviciilor. Subcontractorul este de acord ca Contractorul să decidă modul în care se remediază lucrarea defectuoasă și ca costurile remedierii să poată fi deduse din orice sume datorate de Contractor Subcontractorului.",
+      "5.7 Subcontractorul este responsabil pentru orice plăți statutare, inclusiv, fără limitare, indemnizația de concediu, indemnizația de concediu medical și indemnizația de concediu protejat, datorate Delegaților angajați de Subcontractor pentru prestarea Serviciilor, iar Subcontractorul îl despăgubește pe Contractor pentru orice costuri sau pierderi rezultate din eventuale pretenții ale Delegaților împotriva Contractorului pentru aceste plăți.",
+      "5.8 Subcontractorul este responsabil pentru modul în care angajează Delegații și este responsabil pentru orice impozite și contribuții PRSI datorate de Delegați sau de Subcontractor. Pentru evitarea oricărui dubiu, deducerea de impozite și PRSI de către Contractor din plățile efectuate către Subcontractor nu creează și nu implică nicio obligație a Contractorului de a administra sau colecta impozitele și contribuțiile PRSI ale Delegaților.",
+    ],
+  },
+  {
+    number: "6",
+    title: "Diverse",
+    paragraphs: [
+      "6.1 Subcontractorul confirmă că a citit și înțeles termenii și condițiile prezente și că i s-a recomandat să obțină consultanță juridică independentă și orice altă consultanță profesională pe care o consideră necesară înainte de a accepta orice plată sau de a acționa în temeiul acestui Contract. Subcontractorul confirmă, de asemenea, că a fost informat că statutul său de contractor independent are implicații, printre altele, asupra drepturilor de asigurări sociale, protecțiilor din dreptul muncii și fiscalității personale.",
+      "6.2 Ambele părți convin că aceasta reprezintă și este destinată să fie un contract obligatoriu din punct de vedere juridic, care guvernează natura relației contractuale dintre ele. Subcontractorul recunoaște că, prin acceptarea oricărei plăți de la Contractor și prin continuarea prestării Serviciilor către Contractor sau clienții acestuia, Subcontractorul acceptă și este obligat de acești termeni și condiții, care sunt publicate și disponibile la samwisebc.com/legal/contract.",
+      "6.3 Ambele părți convin că, cu excepția acordurilor verbale menționate în acest Contract, acești termeni și condiții reprezintă întregul acord dintre ele, înlocuind toate aranjamentele, înțelegerile, reprezentările, garanțiile și acordurile anterioare scrise sau verbale (dacă există) dintre ele.",
+      "6.4 Contractorul poate modifica acești termeni periodic, publicând versiunea modificată la samwisebc.com/legal/contract; continuarea acceptării plăților și continuarea prestării Serviciilor de către Subcontractor după publicare constituie acceptarea oricărei astfel de modificări. Orice modificare care afectează negativ drepturile deja dobândite ale Subcontractorului în legătură cu Serviciile deja prestate va necesita acordul scris al ambelor părți.",
+      "6.5 Titlurile folosite în Contract sunt doar pentru ușurința referinței și nu sunt destinate să fie interpretate ca parte din termenii conveniți între părți. Referințele la genul masculin includ și genul feminin.",
+      "6.6 Părțile convin că acest contract este guvernat de legile Irlandei și este supus jurisdicției exclusive a Irlandei.",
+    ],
+  },
+];
+
+const RECITALS_RO: RecitalBlock[] = [
+  { letter: "A", text: "Contractorul colaborează cu Subcontractori pentru prestarea Serviciilor (\"Serviciile\")." },
+  { letter: "B", text: "Acești termeni și condiții se vor aplica fiecărui angajament, cu excepția cazului în care sunt modificați, amendați sau s-a convenit altfel (verbal sau în alt mod) în conformitate cu prevederile specifice ale acestui contract." },
+  { letter: "C", text: "În baza acestor termeni, Subcontractorul are dreptul de a folosi înlocuitori, angajați ai subcontractorului sau asistenți angajați (\"Delegații\") pentru prestarea serviciilor convenite. Termenul Subcontractor din acest contract este considerat a include orice Delegați pe care Subcontractorul îi angajează pentru prestarea serviciilor." },
+  { letter: "D", text: "Subcontractorul garantează că deține competențele, abilitățile, licențele și autorizările (furnizate fie de Subcontractor, fie de orice Delegați) care pot fi disponibile periodic Contractorului." },
+  { letter: "E", text: "Subcontractorul desfășoară propria sa activitate comercială și, sub rezerva termenilor acestui contract, îi revine lui să decidă cum și când, sub rezerva orelor de funcționare a șantierului, se realizează lucrarea asociată acestuia, folosind un management adecvat în programarea angajamentelor și executarea sarcinilor." },
+];
+
+const LEGALLY_BINDING_BANNER_RO = "Părțile convin că au citit și înțeles termenii de mai sus și că aceștia reflectă cu acuratețe acordul dintre părți și că ambele părți au avut posibilitatea de a solicita consultanță înainte de acordul asupra acestor termeni. Prin continuarea prestării serviciilor și prin acceptarea plății în baza acestui contract, părțile garantează că contractul în întregime este real și reflectă acordul efectiv dintre părți.";
+
+// ---------- Locale dispatch ----------
+
+export function contractSections(locale: Locale): SectionBlock[] {
+  return locale === "ro" ? CONTRACT_SECTIONS_RO : CONTRACT_SECTIONS_EN;
+}
+
+export function recitals(locale: Locale): RecitalBlock[] {
+  return locale === "ro" ? RECITALS_RO : RECITALS_EN;
+}
+
+export function legallyBindingBanner(locale: Locale): string {
+  return locale === "ro" ? LEGALLY_BINDING_BANNER_RO : LEGALLY_BINDING_BANNER_EN;
+}
+
+// Back-compat exports for any caller that still imports the EN
+// constants directly (e.g. PDF generator that we haven't localised
+// yet). Keep these aliased to EN so PDFs stay legally binding.
+export const CONTRACT_SECTIONS = CONTRACT_SECTIONS_EN;
+export const RECITALS = RECITALS_EN;
+export const LEGALLY_BINDING_BANNER = LEGALLY_BINDING_BANNER_EN;

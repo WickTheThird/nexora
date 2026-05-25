@@ -318,5 +318,23 @@
   "footer": {
     "rights": "© {{year}} {{name}}, Toate drepturile rezervate",
     "email": "Email"
+  },
+  "legalContract": {
+    "title": "Contract 'Subcontractor'",
+    "subtitle": "Contract pentru servicii",
+    "subcontractorPlaceholder": "[Subcontractorul]",
+    "subcontractorBody": "Partea care colaborează cu Contractorul pentru prestarea serviciilor, așa cum este identificată pe fiecare Aviz de Plată emis în baza acestui contract.",
+    "acceptanceHeading": "Acceptare",
+    "agreedTerms": "Termeni conveniți",
+    "recitals": "Considerente",
+    "legallyBindingHeading": "Acesta este un document obligatoriu din punct de vedere juridic",
+    "forContractor": "În numele și pentru Contractor:",
+    "forSubcontractor": "În numele și pentru Subcontractor:",
+    "authorisedSignatory": "Semnatar autorizat",
+    "acceptanceRecorded": "Acceptarea este înregistrată prin Avizul de Plată (vezi clauza de Acceptare de mai sus).",
+    "footerLabel": "Contract pentru Servicii",
+    "print": "Tipărește / Salvează ca PDF",
+    "courtesyTranslation": "Această traducere în română este oferită cu titlu informativ. Versiunea obligatorie juridic este textul în engleză - schimbă la EN pentru a o citi.",
+    "courtesyTranslationLabel": "Traducere"
   }
 }

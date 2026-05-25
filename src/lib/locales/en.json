@@ -318,5 +318,23 @@
   "footer": {
     "rights": "© {{year}} {{name}}, All Rights Reserved",
     "email": "Email"
+  },
+  "legalContract": {
+    "title": "'Subcontractor' Contract",
+    "subtitle": "Contract for services",
+    "subcontractorPlaceholder": "[The Subcontractor]",
+    "subcontractorBody": "The party engaging with the Contractor for the provision of services, as identified on each Payment Advice issued under this contract.",
+    "acceptanceHeading": "Acceptance",
+    "agreedTerms": "Agreed terms",
+    "recitals": "Recitals",
+    "legallyBindingHeading": "This is a legally binding document",
+    "forContractor": "For and on Behalf of the Contractor:",
+    "forSubcontractor": "For and on Behalf of the Subcontractor:",
+    "authorisedSignatory": "Authorised Signatory",
+    "acceptanceRecorded": "Acceptance recorded via Payment Advice (see Acceptance clause above).",
+    "footerLabel": "Contract for Services",
+    "print": "Print / Save as PDF",
+    "courtesyTranslation": "This Romanian translation is provided as a courtesy. The legally binding version is the English text - switch to EN to read it.",
+    "courtesyTranslationLabel": "Translation"
   }
 }

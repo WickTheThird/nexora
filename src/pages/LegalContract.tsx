@@ -1,22 +1,25 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Logo } from "@/components/ui/Logo";
 import { LocaleSwitcher } from "@/components/ui/LocaleSwitcher";
 import {
-  CONTRACT_SECTIONS,
-  RECITALS,
-  LEGALLY_BINDING_BANNER,
+  contractSections,
+  recitals,
+  legallyBindingBanner,
   acceptanceClause,
+  type Locale,
 } from "@/lib/contractTemplate";
-import { ArrowLeft, Printer, FileText } from "lucide-react";
+import { ArrowLeft, Printer, FileText, Info } from "lucide-react";
 
 // Public, no-auth route. Renders the Contract for Services as a
 // polished legal document. Pulls BC's contractor identity from the
 // /public/branding endpoint (read-only subset of app_settings).
 //
-// Anyone can read this page; it's referenced by the acceptance clause
-// printed on every payment advice. Accepting payment + this page being
-// publicly accessible = implicit agreement to the terms.
+// Bilingual: the active i18n locale picks which copy renders. The EN
+// text is the legally binding version; when the user is on RO we
+// show a courtesy translation + a banner at the top making clear
+// the EN version prevails in any dispute.
 
 interface Branding {
   contractorName: string;
@@ -33,7 +36,11 @@ const API_URL = (window as { __SAMWISE_CONFIG__?: { apiUrl?: string } }).__SAMWI
   || "https://nexora-api.bumbufilip22.workers.dev";
 
 export function LegalContract() {
+  const { t, i18n } = useTranslation();
   const [branding, setBranding] = useState<Branding | null>(null);
+  // Normalise the i18next language down to our supported locale set.
+  // anything that isn't "ro" falls back to "en".
+  const locale: Locale = i18n.language?.slice(0, 2) === "ro" ? "ro" : "en";
 
   useEffect(() => {
     fetch(`${API_URL}/public/branding`)
@@ -63,7 +70,13 @@ export function LegalContract() {
   const clause = acceptanceClause({
     contractorName: branding.contractorName,
     publicUrl: publicUrl.replace(/^https?:\/\//, "").replace(/\/#\//, "/"),
-  });
+  }, locale);
+
+  // Locale-driven sources. These swap when the user clicks the EN/RO
+  // toggle - useTranslation triggers a re-render on language change.
+  const sections = contractSections(locale);
+  const recitalRows = recitals(locale);
+  const bindingBanner = legallyBindingBanner(locale);
 
   return (
     <div className="min-h-screen bg-ink-50/30">
@@ -82,11 +95,27 @@ export function LegalContract() {
               className="inline-flex items-center gap-1.5 text-sm text-ink-700 hover:text-ink-900 px-3 py-1.5 rounded-md border border-ink-200 hover:border-ink-300"
             >
               <Printer className="h-4 w-4" />
-              Print / Save as PDF
+              {t("legalContract.print")}
             </button>
           </div>
         </div>
       </div>
+
+      {/* RO-only courtesy translation disclaimer. Renders ABOVE the
+          document body so the reader can't miss that EN is binding. */}
+      {locale === "ro" && (
+        <div className="max-w-3xl mx-auto px-8 pt-6 print:hidden">
+          <div className="rounded-md bg-sky-50 border border-sky-200 px-4 py-3 flex items-start gap-2.5">
+            <Info className="h-4 w-4 text-sky-700 mt-0.5 shrink-0" />
+            <div className="text-sm text-sky-900">
+              <span className="font-semibold uppercase text-[11px] tracking-wider mr-2">
+                {t("legalContract.courtesyTranslationLabel")}
+              </span>
+              {t("legalContract.courtesyTranslation")}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* The document itself */}
       <article
@@ -96,9 +125,9 @@ export function LegalContract() {
         {/* Header */}
         <header className="border-b border-ink-200 pb-5 mb-8 text-center">
           <h1 className="text-2xl font-bold tracking-tight text-ink-900 uppercase">
-            'Subcontractor' Contract
+            {t("legalContract.title")}
           </h1>
-          <p className="text-sm text-ink-600 mt-1.5 italic">Contract for services</p>
+          <p className="text-sm text-ink-600 mt-1.5 italic">{t("legalContract.subtitle")}</p>
         </header>
 
         {/* Parties */}
@@ -112,31 +141,30 @@ export function LegalContract() {
             {" "}(the 'Contractor') and;
           </p>
           <p className="mb-4 italic text-ink-700">
-            [The Subcontractor]
+            {t("legalContract.subcontractorPlaceholder")}
             <br />
             <span className="text-sm">
-              The party engaging with the Contractor for the provision of services, as identified
-              on each Payment Advice issued under this contract.
+              {t("legalContract.subcontractorBody")}
             </span>
           </p>
         </section>
 
         {/* Acceptance call-out */}
         <section className="rounded-md bg-amber-50 border border-amber-200 px-5 py-4 mb-8 text-[14px] leading-6">
-          <div className="font-semibold text-amber-900 mb-1">Acceptance</div>
+          <div className="font-semibold text-amber-900 mb-1">{t("legalContract.acceptanceHeading")}</div>
           <p className="text-amber-900">{clause}</p>
         </section>
 
         {/* Recitals */}
         <section className="mb-8">
           <h2 className="text-base font-bold uppercase tracking-wider text-ink-900 mb-3">
-            Agreed terms
+            {t("legalContract.agreedTerms")}
           </h2>
           <h3 className="text-sm font-semibold uppercase tracking-wider text-ink-700 mb-3">
-            Recitals
+            {t("legalContract.recitals")}
           </h3>
           <ol className="space-y-3 text-[15px] leading-7 text-ink-900">
-            {RECITALS.map((r) => (
+            {recitalRows.map((r) => (
               <li key={r.letter} className="flex gap-3">
                 <span className="font-bold w-5 shrink-0">{r.letter}.</span>
                 <span>{r.text}</span>
@@ -146,7 +174,7 @@ export function LegalContract() {
         </section>
 
         {/* Sections */}
-        {CONTRACT_SECTIONS.map((s) => (
+        {sections.map((s) => (
           <section key={s.number} className="mb-8 break-inside-avoid">
             <h3 className="text-base font-bold uppercase tracking-wider text-ink-900 mb-3">
               {s.number}. {s.title}
@@ -162,32 +190,28 @@ export function LegalContract() {
         {/* Legally-binding banner */}
         <section className="border-t-2 border-ink-300 pt-6 mb-8">
           <h3 className="text-base font-bold uppercase tracking-wider text-ink-900 mb-3 text-center">
-            This is a legally binding document
+            {t("legalContract.legallyBindingHeading")}
           </h3>
-          <p className="text-[14px] leading-6 text-ink-800">{LEGALLY_BINDING_BANNER}</p>
+          <p className="text-[14px] leading-6 text-ink-800">{bindingBanner}</p>
         </section>
 
         {/* Signature footer */}
         <section className="grid grid-cols-2 gap-8 mt-12 text-[14px] leading-6 text-ink-900">
           <div>
-            <div className="font-semibold mb-2">For and on Behalf of the Contractor:</div>
+            <div className="font-semibold mb-2">{t("legalContract.forContractor")}</div>
             <div className="border-t border-ink-300 pt-2 mt-10">
               {/* Generic "Authorised Signatory" instead of a specific
                   director name. The page is a public reference set of
-                  terms (paid-acceptance model) - naming a person here
-                  adds no legal weight and breaks every time
-                  personnel change. If a bespoke wet-signed copy is
-                  ever needed, the admin can issue it offline with
-                  the actual signer's name filled in then. */}
+                  terms (paid-acceptance model). */}
               <div className="font-semibold">{branding.contractorName}</div>
-              <div className="text-xs text-ink-500 mt-1">Authorised Signatory</div>
+              <div className="text-xs text-ink-500 mt-1">{t("legalContract.authorisedSignatory")}</div>
             </div>
           </div>
           <div>
-            <div className="font-semibold mb-2">For and on Behalf of the Subcontractor:</div>
+            <div className="font-semibold mb-2">{t("legalContract.forSubcontractor")}</div>
             <div className="border-t border-ink-300 pt-2 mt-10">
               <div className="italic text-ink-500">
-                Acceptance recorded via Payment Advice (see Acceptance clause above).
+                {t("legalContract.acceptanceRecorded")}
               </div>
             </div>
           </div>
@@ -198,7 +222,7 @@ export function LegalContract() {
       <footer className="max-w-3xl mx-auto px-6 py-6 text-center text-xs text-ink-500 print:hidden">
         <div className="flex items-center justify-center gap-1.5 mb-1">
           <FileText className="h-3 w-3" />
-          {branding.contractorName} - Contract for Services
+          {branding.contractorName} - {t("legalContract.footerLabel")}
         </div>
         {(branding.phoneRoi || branding.phoneNi) && (
           <div className="mb-1">
