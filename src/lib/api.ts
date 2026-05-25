@@ -718,6 +718,16 @@ export const api = {
       { body: { email } },
     ),
 
+  // Invite another admin. No public sign-up path for admin role (the
+  // BC back office) - this is the only way to create one. Returns
+  // the temp password once; the invitee also gets it via email.
+  adminInviteAdmin: (email: string) =>
+    request<{ userId: string; email: string; tempPassword: string; note: string }>(
+      "POST",
+      "/admin/admin-users/invite",
+      { body: { email } },
+    ),
+
   // -------- primary portal (read-only) --------
   getMyPrimary: () =>
     request<{

@@ -380,6 +380,94 @@ export function Settings() {
           </Button>
         </div>
       </form>
+
+      {/* Admin invite panel - lives outside the settings form because
+          it triggers its own server action (POST /admin/admin-users/invite)
+          and shouldn't be bundled with the settings PUT. There's no
+          public sign-up for admin role; this is the only path to
+          create one. */}
+      <div className="max-w-2xl mt-8">
+        <InviteAdminPanel />
+      </div>
     </>
+  );
+}
+
+// Self-contained panel: email input + "Send invite" button. On
+// success surfaces the temp password (copyable) AND mentions the
+// email was sent. Temp password is shown only once.
+function InviteAdminPanel() {
+  const toast = useToast();
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ email: string; tempPassword: string } | null>(null);
+
+  const send = async (e: FormEvent) => {
+    e.preventDefault();
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed.includes("@")) {
+      toast.error("Enter a valid email");
+      return;
+    }
+    setBusy(true);
+    try {
+      const r = await api.adminInviteAdmin(trimmed);
+      setResult({ email: r.email, tempPassword: r.tempPassword });
+      setEmail("");
+      toast.success("Invite sent");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to invite");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="card-padded">
+      <h2 className="text-base font-semibold text-ink-900 mb-1">Invite another admin</h2>
+      <p className="text-sm text-ink-500 mb-5">
+        Admin accounts can only be created by another admin. The invitee receives an email
+        with their sign-in link and a temporary password; they will be forced to set a new
+        password on first login.
+      </p>
+      <form onSubmit={send} className="flex gap-2 flex-wrap items-end">
+        <div className="flex-1 min-w-[240px]">
+          <Input
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="newadmin@example.com"
+            required
+          />
+        </div>
+        <Button type="submit" variant="accent" loading={busy}>Send invite</Button>
+      </form>
+
+      {result && (
+        <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+          <div className="text-sm font-medium text-emerald-900 mb-2">
+            Invite sent to {result.email}
+          </div>
+          <div className="text-xs text-emerald-800 mb-2">
+            The invitee received an email with these credentials. If they don't get it
+            (spam, etc.), share the temporary password below securely - it is shown ONCE.
+          </div>
+          <div className="rounded bg-white border border-emerald-200 p-2 font-mono text-xs flex items-center justify-between gap-2">
+            <span className="select-all">{result.tempPassword}</span>
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(result.tempPassword).catch(() => {});
+                toast.success("Copied");
+              }}
+              className="text-[11px] uppercase tracking-wider font-semibold text-emerald-700 hover:text-emerald-900"
+            >
+              Copy
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
