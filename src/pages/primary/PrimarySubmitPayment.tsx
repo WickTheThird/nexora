@@ -54,11 +54,11 @@ type Row = {
   // item; admin uses it when generating the payment. Only the three
   // legal Irish RCT bands are valid.
   rctRate: "" | "0" | "20" | "35";
-  // Per-row mode toggle (item 9). When "direct", qty/rate/material/
-  // extras are ignored and grossDirect is used as the line total.
-  // Default "breakdown" keeps the existing calculation.
-  mode: "breakdown" | "direct";
-  grossDirect: string;
+  // Optional gross override (item 9). If the user types a non-zero
+  // value here it REPLACES the qty × rate + material + extras
+  // calculation. Left empty / 0 = compute from breakdown. No mode
+  // toggle - just another input the user can fill instead.
+  grossOverride: string;
 };
 
 function operativeToRow(o: OperativeRow): Row {
@@ -77,19 +77,17 @@ function operativeToRow(o: OperativeRow): Row {
     // sub onboarding / admin patch). Empty string = "not picked yet"
     // so the dropdown shows the placeholder option.
     rctRate: (o.rctRate as "0" | "20" | "35") ?? "",
-    mode: "breakdown",
-    grossDirect: "0",
+    grossOverride: "",
   };
 }
 
-// Compute the per-row gross amount in cents. Two modes:
-//   - "breakdown": qty × rate + materialValue + extras (legacy default)
-//   - "direct":    grossDirect, ignoring the breakdown fields
+// Compute the per-row gross amount in cents.
+//   - If grossOverride is set (non-zero), it wins.
+//   - Otherwise fall back to qty × rate + materialValue + extras.
 // Used by the totals row, the per-row preview, and the submit payload.
 export function rowGrossMinor(r: Row): number {
-  if (r.mode === "direct") {
-    return Math.round((parseFloat(r.grossDirect) || 0) * 100);
-  }
+  const override = parseFloat(r.grossOverride) || 0;
+  if (override > 0) return Math.round(override * 100);
   const qty = parseFloat(r.quantity) || 0;
   const rate = parseFloat(r.rate) || 0;
   const mat = parseFloat(r.materialValue) || 0;
@@ -240,8 +238,7 @@ export function PrimarySubmitPayment() {
               extras: saved.extrasMinor != null ? (saved.extrasMinor / 100).toFixed(2) : "0",
               notes: saved.notes || "",
               rctRate: (saved.rctRate as "0" | "20" | "35") ?? (op.rctRate as "0" | "20" | "35") ?? "",
-              mode: "breakdown" as const,
-              grossDirect: "0",
+              grossOverride: "",
             } : operativeToRow(op);
           });
           // Items that didn't match an active operative (e.g. operative
@@ -261,8 +258,7 @@ export function PrimarySubmitPayment() {
               extras: it.extrasMinor != null ? (it.extrasMinor / 100).toFixed(2) : "0",
               notes: it.notes || "",
               rctRate: (it.rctRate as "0" | "20" | "35") ?? "",
-              mode: "breakdown" as const,
-              grossDirect: "0",
+              grossOverride: "",
             }));
           setRows([...hydrated, ...adhoc]);
         } else {
@@ -286,7 +282,7 @@ export function PrimarySubmitPayment() {
     operativeId: "", subcontractorRef: "", subcontractorName: "",
     jobNumber: "", siteAddress: "", quantity: "0", rate: "0",
     materialValue: "0", extras: "0", notes: "", rctRate: "",
-    mode: "breakdown", grossDirect: "0",
+    grossOverride: "",
   }]);
   const removeRow = (i: number) => setRows((prev) => prev.filter((_, idx) => idx !== i));
 
@@ -374,16 +370,17 @@ export function PrimarySubmitPayment() {
   // rows for SUBMIT (no point sending empty advices) but keeps
   // everything for SAVE (drafts are scratch work).
   //
-  // Rows in "direct" mode send grossOverrideMinor and zero out the
-  // breakdown fields so the server's gross calc uses the override.
-  // The server-side worker treats grossOverrideMinor > 0 as the
-  // line total (no qty × rate).
+  // If the user filled the Gross override on a row, that value wins:
+  // we zero out qty/rate/material and stuff the override into `extras`
+  // so the worker's existing gross formula (qty*rate + material +
+  // extras) returns exactly the override amount. No worker change.
   const buildItems = (filterEmpty: boolean) => rows
     .filter(r => filterEmpty
       ? (rowGrossMinor(r) > 0 && (r.subcontractorRef || "").trim().length > 0)
       : true)
     .map(row => {
-      if (row.mode === "direct") {
+      const override = parseFloat(row.grossOverride) || 0;
+      if (override > 0) {
         return {
           subcontractorRef: row.subcontractorRef,
           subcontractorName: row.subcontractorName || undefined,
@@ -393,11 +390,7 @@ export function PrimarySubmitPayment() {
           rate: undefined,
           rctRate: row.rctRate || undefined,
           materialValue: undefined,
-          // We use `extras` as the gross-direct carrier: the server's
-          // existing gross calc is `qty*rate + material + extras`, and
-          // with the others zeroed `extras` becomes the line total.
-          // This avoids needing a separate worker schema change.
-          extras: row.grossDirect || undefined,
+          extras: row.grossOverride,
           notes: row.notes || undefined,
         };
       }
@@ -719,53 +712,48 @@ export function PrimarySubmitPayment() {
               const q = parseFloat(row.quantity) || 0;
               const isAuto = !!row.operativeId;
               const cap = hoursCapFor(jobCardType);
-              const overCap = row.mode === "breakdown" && q > cap;
-              const isDirect = row.mode === "direct";
-              const setMode = (m: "breakdown" | "direct") => updateRow(i, "mode", m);
+              // Gross override active when the user typed a value > 0.
+              // In that case we still leave the breakdown inputs editable
+              // (no toggle, no disable) - they're free to fill either
+              // approach. We just tag the breakdown inputs as "ignored"
+              // visually so they know which input is winning.
+              const override = parseFloat(row.grossOverride) || 0;
+              const usingOverride = override > 0;
+              const overCap = !usingOverride && q > cap;
               return (
                 <tr key={row.operativeId || `adhoc-${i}`} className={`border-b border-ink-100 last:border-b-0 ${overCap ? "bg-red-50" : ""}`}>
                   <td className="px-3 py-2 text-ink-900">
                     <div>{row.subcontractorName || "-"}</div>
-                    {/* Mode toggle (item 9): switch between qty × rate
-                        breakdown and a single gross-direct field. Saved
-                        on the row so the user's choice persists per
-                        operative across page navigations. */}
-                    <div className="mt-1 inline-flex items-center text-[10px] rounded border border-ink-200 overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => setMode("breakdown")}
-                        className={`px-1.5 py-0.5 ${row.mode === "breakdown" ? "bg-ink-900 text-white" : "bg-white text-ink-500 hover:bg-ink-50"}`}
-                      >
-                        Breakdown
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setMode("direct")}
-                        className={`px-1.5 py-0.5 ${row.mode === "direct" ? "bg-ink-900 text-white" : "bg-white text-ink-500 hover:bg-ink-50"}`}
-                      >
-                        Gross only
-                      </button>
-                    </div>
                     {overCap && (
                       <div className="text-xs text-red-700 mt-0.5 font-medium">
                         Too many hours for {row.subcontractorName || "this operative"} ({q}h &gt; {cap}h cap)
                       </div>
                     )}
-                  </td>
-                  {/* Qty / Rate / Extras / Material - active only in
-                      breakdown mode. Greyed out and ignored in "Gross
-                      only" mode so the user knows the row total comes
-                      from the Gross cell. */}
-                  <td className="px-2 py-2"><input inputMode="decimal" disabled={isDirect} className={`w-20 px-2 py-1 text-sm rounded border outline-none text-right tabular-nums ${isDirect ? "bg-ink-50 text-ink-300 border-ink-100" : (overCap ? "border-red-400 focus:border-red-600 bg-red-50" : "border-ink-200 focus:border-ink-900")}`} value={row.quantity} onChange={(ev) => updateRow(i, "quantity", ev.target.value)} placeholder="0" /></td>
-                  <td className="px-2 py-2"><input inputMode="decimal" disabled={isDirect} className={`w-20 px-2 py-1 text-sm rounded border outline-none text-right tabular-nums ${isDirect ? "bg-ink-50 text-ink-300 border-ink-100" : "border-ink-200 focus:border-ink-900"}`} value={row.rate} onChange={(ev) => updateRow(i, "rate", ev.target.value)} placeholder="0" /></td>
-                  <td className="px-2 py-2"><input inputMode="decimal" disabled={isDirect} className={`w-20 px-2 py-1 text-sm rounded border outline-none text-right tabular-nums ${isDirect ? "bg-ink-50 text-ink-300 border-ink-100" : "border-ink-200 focus:border-ink-900"}`} value={row.extras} onChange={(ev) => updateRow(i, "extras", ev.target.value)} placeholder="0" /></td>
-                  <td className="px-2 py-2"><input inputMode="decimal" disabled={isDirect} className={`w-20 px-2 py-1 text-sm rounded border outline-none text-right tabular-nums ${isDirect ? "bg-ink-50 text-ink-300 border-ink-100" : "border-ink-200 focus:border-ink-900"}`} value={row.materialValue} onChange={(ev) => updateRow(i, "materialValue", ev.target.value)} placeholder="0" /></td>
-                  <td className="px-2 py-2">
-                    {isDirect ? (
-                      <input inputMode="decimal" className="w-24 px-2 py-1 text-sm rounded border border-emerald-300 bg-emerald-50 focus:border-emerald-600 outline-none text-right tabular-nums font-semibold" value={row.grossDirect} onChange={(ev) => updateRow(i, "grossDirect", ev.target.value)} placeholder="0.00" />
-                    ) : (
-                      <div className="text-right tabular-nums font-medium text-ink-700">{grossMinor > 0 ? fmtMoneyEur(grossMinor) : "-"}</div>
+                    {usingOverride && (
+                      <div className="text-[10px] text-emerald-700 mt-0.5">Using Gross override</div>
                     )}
+                  </td>
+                  {/* Breakdown fields - always editable. If the user
+                      fills the Gross field on the right with a value,
+                      that wins and these are visually muted so the
+                      user knows they're being ignored. */}
+                  <td className="px-2 py-2"><input inputMode="decimal" className={`w-20 px-2 py-1 text-sm rounded border outline-none text-right tabular-nums ${usingOverride ? "border-ink-100 text-ink-400" : (overCap ? "border-red-400 focus:border-red-600 bg-red-50" : "border-ink-200 focus:border-ink-900")}`} value={row.quantity} onChange={(ev) => updateRow(i, "quantity", ev.target.value)} placeholder="0" /></td>
+                  <td className="px-2 py-2"><input inputMode="decimal" className={`w-20 px-2 py-1 text-sm rounded border outline-none text-right tabular-nums ${usingOverride ? "border-ink-100 text-ink-400" : "border-ink-200 focus:border-ink-900"}`} value={row.rate} onChange={(ev) => updateRow(i, "rate", ev.target.value)} placeholder="0" /></td>
+                  <td className="px-2 py-2"><input inputMode="decimal" className={`w-20 px-2 py-1 text-sm rounded border outline-none text-right tabular-nums ${usingOverride ? "border-ink-100 text-ink-400" : "border-ink-200 focus:border-ink-900"}`} value={row.extras} onChange={(ev) => updateRow(i, "extras", ev.target.value)} placeholder="0" /></td>
+                  <td className="px-2 py-2"><input inputMode="decimal" className={`w-20 px-2 py-1 text-sm rounded border outline-none text-right tabular-nums ${usingOverride ? "border-ink-100 text-ink-400" : "border-ink-200 focus:border-ink-900"}`} value={row.materialValue} onChange={(ev) => updateRow(i, "materialValue", ev.target.value)} placeholder="0" /></td>
+                  {/* Gross cell: a normal input now (item 9). Leave it
+                      empty to use the breakdown. Type a value to
+                      override - it becomes the line total. Placeholder
+                      shows the computed breakdown so the user can see
+                      what they would get without typing anything. */}
+                  <td className="px-2 py-2">
+                    <input
+                      inputMode="decimal"
+                      className={`w-24 px-2 py-1 text-sm rounded border outline-none text-right tabular-nums ${usingOverride ? "border-emerald-300 bg-emerald-50 focus:border-emerald-600 font-semibold" : "border-ink-200 focus:border-ink-900"}`}
+                      value={row.grossOverride}
+                      onChange={(ev) => updateRow(i, "grossOverride", ev.target.value)}
+                      placeholder={grossMinor > 0 ? (grossMinor / 100).toFixed(2) : "0.00"}
+                    />
                   </td>
                   <td className="px-2 py-2">
                     <div className="flex items-center gap-1">
