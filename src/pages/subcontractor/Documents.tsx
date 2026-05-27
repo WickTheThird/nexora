@@ -179,7 +179,14 @@ function MetadataModal({
     // Refuse the whole upload if the card is already expired - matches
     // the platform-wide rule that payments cannot run against expired
     // documents. There's no point letting them upload it.
-    if (expMs < Date.now()) {
+    //
+    // Compare on a date-only basis: ymdToMs("2026-05-27") returns
+    // midnight UTC of that day, but "now" can be later the same day,
+    // so a naive `expMs < Date.now()` rejects today's date as
+    // expired. We compare the YYYY-MM-DD strings directly, which
+    // is lexicographically correct for ISO dates.
+    const todayYmd = new Date().toISOString().slice(0, 10);
+    if (expiresAt < todayYmd) {
       setErr("This document is already expired. Renew it before uploading.");
       return;
     }
