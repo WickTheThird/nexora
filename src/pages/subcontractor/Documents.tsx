@@ -133,7 +133,6 @@ function ymdToMs(s: string): number | null {
 // Refuses submit if expires < today.
 function MetadataModal({
   open, mode, docTypeLabel, initial, fileName, onSubmit, onClose, busy,
-  fullMetadata = true,
 }: {
   open: boolean;
   mode: "upload" | "edit";
@@ -143,91 +142,57 @@ function MetadataModal({
   onSubmit: (m: DocumentMetadataPatch) => Promise<void> | void;
   onClose: () => void;
   busy: boolean;
-  // When false (non-required docs) the modal only asks for the
-  // expiry date - everything else is auto-nullified on submit. The
-  // 4-field detailed flow stays for required docs (Photo ID +
-  // Manual Handling) so admin has enough context to verify them.
-  fullMetadata?: boolean;
 }) {
-  const [issuingBody, setIssuingBody] = useState(initial.issuingBody || "");
-  const [cardNumber, setCardNumber] = useState(initial.cardNumber || "");
-  const [holderName, setHolderName] = useState(initial.holderName || "");
-  const [issuedAt, setIssuedAt] = useState(dateToYmd(initial.issuedAt));
+  // Simplified 2026-05-27: every upload (required or not) only
+  // captures the expiry date. That's all we need for the renewal
+  // cron + the payment-block gate; issuer / card number / holder
+  // name were optional anyway and admin can add them later if a
+  // formal audit ever requires it.
   const [expiresAt, setExpiresAt] = useState(dateToYmd(initial.expiresAt));
   const [err, setErr] = useState<string | null>(null);
 
   // Reset when the modal reopens for a different doc.
   useEffect(() => {
     if (!open) return;
-    setIssuingBody(initial.issuingBody || "");
-    setCardNumber(initial.cardNumber || "");
-    setHolderName(initial.holderName || "");
-    setIssuedAt(dateToYmd(initial.issuedAt));
     setExpiresAt(dateToYmd(initial.expiresAt));
     setErr(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initial.issuingBody, initial.cardNumber, initial.holderName, initial.issuedAt, initial.expiresAt]);
+  }, [open, initial.expiresAt]);
 
   const handleSubmit = async () => {
     setErr(null);
     const expMs = ymdToMs(expiresAt);
-    const issMs = ymdToMs(issuedAt);
     if (!expMs) {
       setErr("Expiry date is required.");
       return;
     }
-    // Refuse the whole upload if the card is already expired - matches
-    // the platform-wide rule that payments cannot run against expired
-    // documents. There's no point letting them upload it.
-    //
-    // Compare on a date-only basis: ymdToMs("2026-05-27") returns
-    // midnight UTC of that day, but "now" can be later the same day,
-    // so a naive `expMs < Date.now()` rejects today's date as
-    // expired. We compare the YYYY-MM-DD strings directly, which
-    // is lexicographically correct for ISO dates.
+    // Refuse the upload if the date entered is already in the past.
+    // Compare YYYY-MM-DD strings (lexicographic = chronological for
+    // ISO dates) so today's date is treated as valid through end of
+    // day, not midnight UTC.
     const todayYmd = new Date().toISOString().slice(0, 10);
     if (expiresAt < todayYmd) {
       setErr("This document is already expired. Renew it before uploading.");
       return;
     }
-    if (issMs && expMs && issMs > expMs) {
-      setErr("Issue date is after the expiry date.");
-      return;
-    }
-    // For non-required docs the modal only asks for expiry - null
-    // out the other fields so the worker stores them as empty and
-    // admin doesn't see misleading blanks if the sub didn't fill
-    // them in.
-    await onSubmit(
-      fullMetadata
-        ? {
-            issuingBody: issuingBody.trim() || null,
-            cardNumber: cardNumber.trim() || null,
-            holderName: holderName.trim() || null,
-            issuedAt: issMs,
-            expiresAt: expMs,
-          }
-        : {
-            issuingBody: null,
-            cardNumber: null,
-            holderName: null,
-            issuedAt: null,
-            expiresAt: expMs,
-          },
-    );
+    await onSubmit({
+      issuingBody: null,
+      cardNumber: null,
+      holderName: null,
+      issuedAt: null,
+      expiresAt: expMs,
+    });
   };
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title={mode === "upload" ? `Details for ${docTypeLabel}` : `Edit ${docTypeLabel} details`}
+      title={mode === "upload" ? `Expiry date for ${docTypeLabel}` : `Edit expiry date - ${docTypeLabel}`}
       description={
         mode === "upload"
-          ? fullMetadata
-            ? "Copy these values from the card itself. They appear on every payment advice and on your contractor file."
-            : "Just enter the expiry date so we can remind you before it lapses."
-          : "You have 10 minutes after each save to correct details. After that, contact the office via Support."
+          ? "Enter the expiry date printed on the document. We'll remind you 14 days before it lapses."
+          : "You have 10 minutes after each save to correct the date. After that, contact the office via Support."
       }
       footer={
         <>
@@ -244,38 +209,7 @@ function MetadataModal({
             File: <span className="font-medium">{fileName}</span>
           </div>
         )}
-        <div className="grid sm:grid-cols-2 gap-4">
-          {fullMetadata && (
-            <>
-              <Input
-                label="Issuing body"
-                value={issuingBody}
-                onChange={(e) => setIssuingBody(e.target.value)}
-                placeholder="e.g. Solas, QQI, HSA"
-                hint="Who issued the card."
-              />
-              <Input
-                label="Card number"
-                value={cardNumber}
-                onChange={(e) => setCardNumber(e.target.value)}
-                placeholder="e.g. SP-0123456"
-                hint="The reference printed on the card."
-              />
-              <Input
-                label="Holder name (on card)"
-                value={holderName}
-                onChange={(e) => setHolderName(e.target.value)}
-                placeholder="As shown on the card"
-                hint="Should match your PPS-registered name."
-              />
-              <Input
-                label="Issue date"
-                type="date"
-                value={issuedAt}
-                onChange={(e) => setIssuedAt(e.target.value)}
-              />
-            </>
-          )}
+        <div>
           <Input
             label="Expiry date"
             type="date"
@@ -315,13 +249,9 @@ function ChangeRequestModal({
   useEffect(() => {
     if (!open || !doc) return;
     setMsg(
-      `Please update my ${docTypeLabel} details (uploaded ${fmtDateTime(doc.uploadedAt)}, file: ${doc.originalFilename}). Current values:\n` +
-      `Issuer: ${doc.issuingBody || "-"}\n` +
-      `Card #: ${doc.cardNumber || "-"}\n` +
-      `Holder: ${doc.holderName || "-"}\n` +
-      `Issued: ${doc.issuedAt ? fmtDate(doc.issuedAt) : "-"}\n` +
-      `Expires: ${doc.expiresAt ? fmtDate(doc.expiresAt) : "-"}\n\n` +
-      `New values:\n`,
+      `Please update my ${docTypeLabel} expiry date (uploaded ${fmtDateTime(doc.uploadedAt)}, file: ${doc.originalFilename}).\n` +
+      `Current expiry: ${doc.expiresAt ? fmtDate(doc.expiresAt) : "-"}\n` +
+      `New expiry: \n`,
     );
   }, [open, doc, docTypeLabel]);
 
@@ -382,9 +312,6 @@ export function Documents() {
     type: DocumentType;
     typeLabel: string;
     file: File;
-    // Whether to render the full 5-field metadata modal (required
-    // docs) or just the expiry date (everything else).
-    fullMetadata: boolean;
   } | null>(null);
   const [editingDoc, setEditingDoc] = useState<{
     doc: DocumentRecord;
@@ -415,12 +342,7 @@ export function Documents() {
   // expired documents" guard rail - the modal refuses submission for
   // any card whose expiry is already in the past.
   const onFilePicked = (type: DocumentType, typeLabel: string, file: File) => {
-    // Look the doc type up in the folder definitions to decide which
-    // modal shape to show. Required = full 4-field metadata. Anything
-    // else = just expiry date (sub still gets the renewal reminders).
-    const def = folders.flatMap((f) => f.types).find((t) => t.value === type);
-    const fullMetadata = !!def?.required;
-    setPendingUpload({ type, typeLabel, file, fullMetadata });
+    setPendingUpload({ type, typeLabel, file });
   };
 
   // Stage 2: metadata captured, fire the POST.
@@ -638,26 +560,11 @@ export function Documents() {
                               )}
                             </div>
                           </div>
-                          {/* Card metadata strip. Read-only view of what
-                              the sub entered at upload (or what admin
-                              has since amended). */}
-                          <dl className="mt-3 grid grid-cols-2 sm:grid-cols-5 gap-x-4 gap-y-1 text-xs">
-                            <div>
-                              <dt className="text-ink-400">Issuer</dt>
-                              <dd className="text-ink-800">{d.issuingBody || "-"}</dd>
-                            </div>
-                            <div>
-                              <dt className="text-ink-400">Card #</dt>
-                              <dd className="text-ink-800">{d.cardNumber || "-"}</dd>
-                            </div>
-                            <div>
-                              <dt className="text-ink-400">Holder</dt>
-                              <dd className="text-ink-800">{d.holderName || "-"}</dd>
-                            </div>
-                            <div>
-                              <dt className="text-ink-400">Issued</dt>
-                              <dd className="text-ink-800">{d.issuedAt ? fmtDate(d.issuedAt) : "-"}</dd>
-                            </div>
+                          {/* Expiry-only strip. We no longer capture
+                              issuer / card number / holder name -
+                              just the expiry date drives renewal
+                              reminders + the payment-block gate. */}
+                          <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                             <div>
                               <dt className="text-ink-400">Expires</dt>
                               <dd className={`font-medium ${
@@ -691,7 +598,6 @@ export function Documents() {
         mode="upload"
         docTypeLabel={pendingUpload?.typeLabel || ""}
         fileName={pendingUpload?.file.name}
-        fullMetadata={pendingUpload?.fullMetadata ?? true}
         initial={{
           expiresAt: null, issuedAt: null, cardNumber: null,
           issuingBody: null, holderName: null,
@@ -705,19 +611,7 @@ export function Documents() {
         open={editingDoc !== null}
         mode="edit"
         docTypeLabel={editingDoc?.typeLabel || ""}
-        // Same rule for the in-place edit modal: required docs get
-        // the full 4-field form, optional docs only see the expiry
-        // input. Look up the required flag from the folder defs.
-        fullMetadata={
-          !!folders.flatMap((f) => f.types).find((t) => t.value === editingDoc?.doc.documentType)?.required
-        }
-        initial={editingDoc ? {
-          expiresAt: editingDoc.doc.expiresAt,
-          issuedAt: editingDoc.doc.issuedAt,
-          cardNumber: editingDoc.doc.cardNumber,
-          issuingBody: editingDoc.doc.issuingBody,
-          holderName: editingDoc.doc.holderName,
-        } : {}}
+        initial={editingDoc ? { expiresAt: editingDoc.doc.expiresAt } : {}}
         onClose={() => setEditingDoc(null)}
         onSubmit={(m) => performMetadataPatch(editingDoc!.doc.id, m)}
         busy={savingMetadata}
