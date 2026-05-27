@@ -40,19 +40,23 @@ type Question =
   | { kind: "yesnona"; key: string; noteKey?: string; risky?: YNA[] };
 export type RevenueItem = Section | Question;
 
-// All Revenue tests follow the same direction: "no" is the answer
-// that points toward employment-like classification. For the
-// pension/sick-pay question, BOTH "no" answer AND staying employee-
-// bound are risky; "yes" (excluded, sole trader) and "na" (Limited
-// Company) are safe.
+// Most Revenue tests follow the same direction: "no" is the answer
+// that points toward employment-like classification, so we render a
+// red warning when picked. Exceptions:
+//   - supplyMaterials + engageOthersOwnExpense: NEUTRAL. Plenty of
+//     genuine self-employed trades don't supply materials and don't
+//     engage anyone else - it doesn't tilt the classification. We
+//     offer Yes / No / N/A and don't flag any answer as risky.
+//   - excludedPensionSickScheme: Yes (excluded, sole trader) and
+//     N/A (Limited Company) are both safe; only No is risky.
 export const REVENUE_QUESTIONS: RevenueItem[] = [
   { kind: "section", key: "_sec_contract", sectionKey: "contract" },
   { kind: "yesno",   key: "notLabourOnly",            risky: ["no"] },
 
   { kind: "section", key: "_sec_will", sectionKey: "will" },
-  { kind: "yesno",   key: "supplyMaterials",          risky: ["no"] },
+  { kind: "yesnona", key: "supplyMaterials" },
   { kind: "yesno",   key: "providePlantMachinery",    risky: ["no"] },
-  { kind: "yesno",   key: "engageOthersOwnExpense",   risky: ["no"] },
+  { kind: "yesnona", key: "engageOthersOwnExpense" },
   { kind: "yesno",   key: "agreedPaymentNoOvertime",  risky: ["no"] },
   { kind: "yesnona", key: "excludedPensionSickScheme", risky: ["no"] },
   { kind: "yesno",   key: "ownTransport",             risky: ["no"] },
