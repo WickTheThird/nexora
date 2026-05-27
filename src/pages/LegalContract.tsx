@@ -42,6 +42,27 @@ export function LegalContract() {
   // anything that isn't "ro" falls back to "en".
   const locale: Locale = i18n.language?.slice(0, 2) === "ro" ? "ro" : "en";
 
+  // Scroll-to-read tracking (moved from Questionnaire 2026-05-27 per
+  // user request - it belongs on the contract terms, not on yes/no
+  // answers). When the sub reaches the bottom of the document we
+  // flip a green "Read" badge in the top utility bar so they have a
+  // clear visual confirmation. Non-blocking - we don't gate any
+  // action; just visible acknowledgement.
+  const [scrolledToBottom, setScrolledToBottom] = useState(false);
+  useEffect(() => {
+    const check = () => {
+      const el = document.scrollingElement || document.documentElement;
+      const max = el.scrollHeight - el.clientHeight;
+      if (max <= 0 || el.scrollTop + el.clientHeight >= el.scrollHeight - 200) {
+        setScrolledToBottom(true);
+        window.removeEventListener("scroll", check);
+      }
+    };
+    check();
+    window.addEventListener("scroll", check, { passive: true });
+    return () => window.removeEventListener("scroll", check);
+  }, []);
+
   useEffect(() => {
     fetch(`${API_URL}/public/branding`)
       .then((r) => r.json())
@@ -88,6 +109,19 @@ export function LegalContract() {
             <Logo />
           </Link>
           <div className="flex items-center gap-3">
+            {/* Read-status pill - flips green once the reader has
+                scrolled to the bottom of the contract. Non-blocking;
+                just an acknowledgement that they've seen the terms. */}
+            <span
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium uppercase tracking-wider border ${
+                scrolledToBottom
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                  : "bg-ink-50 border-ink-200 text-ink-500"
+              }`}
+              title={scrolledToBottom ? "You've read the contract" : "Scroll to the bottom to mark as read"}
+            >
+              {scrolledToBottom ? "✓ Read" : "Scroll to read"}
+            </span>
             <LocaleSwitcher size="sm" />
             <button
               type="button"

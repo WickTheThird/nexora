@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { api, ApiError } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
@@ -160,24 +160,10 @@ export function Questionnaire() {
   // so the questionnaire shows "Work Questionnaire - John Doe /
   // Address: 1 Main St, Dublin, D02 ABCD" at the top.
   const [subHeader, setSubHeader] = useState<{ fullName: string; address: string } | null>(null);
-  // Scroll-to-read gate (items 14, 15). Submit stays disabled until
-  // the sub has scrolled to the bottom of the page. Sentinel div at
-  // the very end fires an IntersectionObserver; once seen, the gate
-  // unlocks permanently for this mount.
-  const [scrolledToBottom, setScrolledToBottom] = useState(false);
-  const bottomSentinelRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    const el = bottomSentinelRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver((entries) => {
-      if (entries.some((e) => e.isIntersecting)) {
-        setScrolledToBottom(true);
-        obs.disconnect();
-      }
-    }, { threshold: 0.5 });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
+  // Scroll-to-read gate removed 2026-05-27 (user request: it was
+  // blocking submit even with defaults pre-filled). Lives on the
+  // /legal/contract page instead, where reading terms is more
+  // meaningful than skimming yes/no answers.
   // Default-pre-filled answer map. Built from REVENUE_QUESTIONS.
   // The sub can flip any answer; defaults exist so the form isn't
   // an empty wall of radios on first paint.
@@ -318,19 +304,7 @@ export function Questionnaire() {
         description={subHeader?.address
           ? `${t("questionnaire.subtitle")} · Address: ${subHeader.address}`
           : t("questionnaire.subtitle")}
-        right={
-          <div className="flex items-center gap-2">
-            {/* "READ" badge turns green once the sub scrolls all the
-                way to the bottom of the page (item 14). Visual cue
-                that they've actually seen every question. */}
-            {editable && (
-              <Badge tone={scrolledToBottom ? "success" : "neutral"}>
-                {scrolledToBottom ? "Read" : "Scroll to read"}
-              </Badge>
-            )}
-            {existing ? statusBadge(existing.status) : statusBadge("not_started")}
-          </div>
-        }
+        right={existing ? statusBadge(existing.status) : statusBadge("not_started")}
       />
 
       {existing && !editable && (
@@ -467,28 +441,17 @@ export function Questionnaire() {
         )}
 
         {editable && (
-          <>
-            {/* Scroll sentinel - the IntersectionObserver above
-                trips once this enters the viewport, marking the
-                page as "read" and unlocking the Submit button. */}
-            <div ref={bottomSentinelRef} className="h-1" />
-            {!scrolledToBottom && (
-              <div className="mt-4 rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900 text-center">
-                Scroll to the bottom of the page to confirm you've read every question.
-              </div>
-            )}
-            <div className="flex justify-end pt-5">
-              <Button
-                type="submit"
-                variant="accent"
-                loading={submitting}
-                leftIcon={<Send className="h-4 w-4" />}
-                disabled={!allAnswered || !scrolledToBottom}
-              >
-                {existing ? t("questionnaire.resubmit") : t("questionnaire.submit")}
-              </Button>
-            </div>
-          </>
+          <div className="flex justify-end pt-5">
+            <Button
+              type="submit"
+              variant="accent"
+              loading={submitting}
+              leftIcon={<Send className="h-4 w-4" />}
+              disabled={!allAnswered}
+            >
+              {existing ? t("questionnaire.resubmit") : t("questionnaire.submit")}
+            </Button>
+          </div>
         )}
       </form>
 

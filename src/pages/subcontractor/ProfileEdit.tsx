@@ -272,20 +272,21 @@ export function ProfileEdit() {
         right={
           <>
             <Button variant="outline" type="submit" loading={saving} leftIcon={<Save className="h-4 w-4"/>}>{t("common.save")}</Button>
-            {/* Submit for review only makes sense before approval. After
-                approval the sub can still edit (save), but there's no
-                "review" workflow to enter. */}
-            {(sub.onboardingStatus === "invited" || sub.onboardingStatus === "in_progress" || sub.onboardingStatus === "changes_requested") && (
-              <Button
-                type="button"
-                variant="accent"
-                loading={submitting}
-                onClick={requestSubmit}
-                leftIcon={<Send className="h-4 w-4" />}
-              >
-                {t("profile.submitForReview")}
-              </Button>
-            )}
+            {/* Submit for review available regardless of onboarding
+                status (user request 2026-05-27): "personal information
+                stuff should be able to upload regardless of the
+                status". The server still respects the actual state -
+                e.g. an already-approved sub just gets a no-op /
+                informational response. */}
+            <Button
+              type="button"
+              variant="accent"
+              loading={submitting}
+              onClick={requestSubmit}
+              leftIcon={<Send className="h-4 w-4" />}
+            >
+              {t("profile.submitForReview")}
+            </Button>
           </>
         }
       />
