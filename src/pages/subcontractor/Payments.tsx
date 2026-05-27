@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, ApiError, brandName } from "@/lib/api";
-import type { PaymentRecord, Subcontractor, BankDetails } from "@/lib/types";
+import type { PaymentRecord, Subcontractor } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Empty } from "@/components/ui/Empty";
@@ -49,7 +49,16 @@ export function Payments() {
   const toast = useToast();
   const [items, setItems] = useState<PaymentRecord[]>([]);
   const [sub, setSub] = useState<Subcontractor | null>(null);
-  const [bank, setBank] = useState<BankDetails | null>(null);
+  // BC company info (Samwise) fetched from /public/branding so the
+  // sub's invoice "BILL TO" block shows the real contracting party
+  // (BC) instead of the placeholder "[Principal]". Under RCT
+  // reverse-charge, the sub invoices BC, not the developer.
+  const [bcBranding, setBcBranding] = useState<{
+    contractorName: string;
+    contractorAddress: string | null;
+    contractorVat: string | null;
+    contractorEmail: string | null;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -68,13 +77,19 @@ export function Payments() {
   const [folderYear, setFolderYear] = useState<number | null>(null);
 
   const refresh = async () => {
-    const [allPayments, p] = await Promise.all([
+    const [allPayments, p, branding] = await Promise.all([
       loadAll(),
       api.getMyProfile(),
+      // Public branding endpoint - no auth required; returns BC's
+      // company info (name, address, VAT) for the invoice header.
+      fetch(`${(window as { __SAMWISE_CONFIG__?: { apiUrl?: string } }).__SAMWISE_CONFIG__?.apiUrl || "https://nexora-api.bumbufilip22.workers.dev"}/public/branding`)
+        .then((r) => r.json())
+        .then((j) => j?.data || j)
+        .catch(() => null),
     ]);
     setItems(allPayments);
     setSub(p.subcontractor);
-    setBank(p.bank);
+    setBcBranding(branding);
   };
 
   useEffect(() => {
@@ -117,9 +132,21 @@ export function Payments() {
           issuedAt: new Date(p.invoicedAt || p.createdAt).toISOString(),
           period: { from: p.periodStart || p.paymentDate, to: p.periodEnd || p.paymentDate },
           invoiceNumber: p.invoiceNumber || p.id,
-          principal: { name: null, address: null, vat: null, email: null },
+          // BILL TO = BC (Samwise) under RCT reverse-charge. The
+          // developer-principal is not the recipient of this
+          // invoice; that's a separate BC->developer invoice.
+          principal: {
+            name: bcBranding?.contractorName || "Samwise Building Contractors Ltd",
+            address: bcBranding?.contractorAddress || null,
+            vat: bcBranding?.contractorVat || null,
+            email: bcBranding?.contractorEmail || null,
+          },
           subcontractor: sub,
-          bank: bank,
+          // Bank details deliberately omitted: this is a fiscal
+          // document, the sub is a service provider invoicing BC
+          // and shouldn't expose their bank info on the invoice
+          // PDF. BC already has the bank details from sub's profile.
+          bank: null,
           lines: [p],
           totals: {
             gross: p.grossMinor, rct: p.rctDeductionMinor, net: p.netMinor,
