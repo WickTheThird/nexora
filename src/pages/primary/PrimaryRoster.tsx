@@ -8,6 +8,7 @@ import { Empty } from "@/components/ui/Empty";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { parseRosterCsv, type RosterRow } from "@/lib/rosterCsv";
+import * as XLSX from "xlsx";
 import { Users, UserPlus, Upload, Trash2, FileSpreadsheet, Pencil } from "lucide-react";
 
 // The principal's worker roster.
@@ -347,11 +348,37 @@ function CsvImportModal({ open, onClose, onImported }: { open: boolean; onClose:
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    const text = await f.text();
-    const r = parseRosterCsv(text);
-    setGood(r.good);
-    setBad(r.bad);
     setImported(null);
+    try {
+      // .xlsx / .xls handled via SheetJS - convert the first sheet to
+      // CSV text, then let parseRosterCsv do the column detection.
+      // Most people upload spreadsheets straight from Excel/Numbers
+      // without thinking about file format.
+      const isExcel =
+        /\.(xlsx|xls)$/i.test(f.name) ||
+        f.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+        f.type === "application/vnd.ms-excel";
+      let text: string;
+      if (isExcel) {
+        const buf = await f.arrayBuffer();
+        const wb = XLSX.read(buf, { type: "array" });
+        const sheetName = wb.SheetNames[0];
+        if (!sheetName) {
+          setBad([{ rowIndex: 0, raw: [], issue: "Workbook has no sheets." }]);
+          setGood([]);
+          return;
+        }
+        text = XLSX.utils.sheet_to_csv(wb.Sheets[sheetName]);
+      } else {
+        text = await f.text();
+      }
+      const r = parseRosterCsv(text);
+      setGood(r.good);
+      setBad(r.bad);
+    } catch (err) {
+      setBad([{ rowIndex: 0, raw: [], issue: `Couldn't read file: ${err instanceof Error ? err.message : String(err)}` }]);
+      setGood([]);
+    }
   };
 
   const importNow = async () => {
@@ -373,8 +400,8 @@ function CsvImportModal({ open, onClose, onImported }: { open: boolean; onClose:
     <Modal
       open={open}
       onClose={onClosed}
-      title="Import subcontractors from CSV"
-      description="Upload a CSV with PPS, email and name. Column order doesn't matter; we'll detect them automatically. Names can be one column (Full Name) or split (First + Last)."
+      title="Import subcontractors"
+      description="Upload a CSV or Excel file (.xlsx / .xls) with PPS, email and name. Column order doesn't matter; we'll detect them automatically. Names can be one column (Full Name) or split (First + Last)."
       footer={
         <>
           <Button variant="ghost" onClick={onClosed} disabled={busy}>Close</Button>
@@ -391,7 +418,7 @@ function CsvImportModal({ open, onClose, onImported }: { open: boolean; onClose:
           <input
             ref={fileRef}
             type="file"
-            accept=".csv,text/csv"
+            accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
             onChange={onFile}
             className="block w-full text-sm file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-ink-900 file:text-white file:text-xs file:font-medium hover:file:bg-ink-800"
           />
