@@ -340,6 +340,10 @@ export type PrimarySubmissionStatus =
   | "held"
   | "submitted"
   | "processing"
+  // Invoices issued + payment_records created, but not all payments
+  // have been settled by admin yet. Auto-promotes to 'completed'
+  // when the last payment_record is marked paid.
+  | "awaiting_payment"
   | "completed"
   | "rejected";
 
