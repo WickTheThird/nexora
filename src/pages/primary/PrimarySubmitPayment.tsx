@@ -54,6 +54,11 @@ type Row = {
   // item; admin uses it when generating the payment. Only the three
   // legal Irish RCT bands are valid.
   rctRate: "" | "0" | "20" | "35";
+  // Per-row mode toggle (item 9). When "direct", qty/rate/material/
+  // extras are ignored and grossDirect is used as the line total.
+  // Default "breakdown" keeps the existing calculation.
+  mode: "breakdown" | "direct";
+  grossDirect: string;
 };
 
 function operativeToRow(o: OperativeRow): Row {
@@ -72,7 +77,24 @@ function operativeToRow(o: OperativeRow): Row {
     // sub onboarding / admin patch). Empty string = "not picked yet"
     // so the dropdown shows the placeholder option.
     rctRate: (o.rctRate as "0" | "20" | "35") ?? "",
+    mode: "breakdown",
+    grossDirect: "0",
   };
+}
+
+// Compute the per-row gross amount in cents. Two modes:
+//   - "breakdown": qty × rate + materialValue + extras (legacy default)
+//   - "direct":    grossDirect, ignoring the breakdown fields
+// Used by the totals row, the per-row preview, and the submit payload.
+export function rowGrossMinor(r: Row): number {
+  if (r.mode === "direct") {
+    return Math.round((parseFloat(r.grossDirect) || 0) * 100);
+  }
+  const qty = parseFloat(r.quantity) || 0;
+  const rate = parseFloat(r.rate) || 0;
+  const mat = parseFloat(r.materialValue) || 0;
+  const ext = parseFloat(r.extras) || 0;
+  return Math.round((qty * rate + mat + ext) * 100);
 }
 
 function parseCsv(text: string): string[][] {
@@ -218,6 +240,8 @@ export function PrimarySubmitPayment() {
               extras: saved.extrasMinor != null ? (saved.extrasMinor / 100).toFixed(2) : "0",
               notes: saved.notes || "",
               rctRate: (saved.rctRate as "0" | "20" | "35") ?? (op.rctRate as "0" | "20" | "35") ?? "",
+              mode: "breakdown" as const,
+              grossDirect: "0",
             } : operativeToRow(op);
           });
           // Items that didn't match an active operative (e.g. operative
@@ -237,6 +261,8 @@ export function PrimarySubmitPayment() {
               extras: it.extrasMinor != null ? (it.extrasMinor / 100).toFixed(2) : "0",
               notes: it.notes || "",
               rctRate: (it.rctRate as "0" | "20" | "35") ?? "",
+              mode: "breakdown" as const,
+              grossDirect: "0",
             }));
           setRows([...hydrated, ...adhoc]);
         } else {
@@ -260,6 +286,7 @@ export function PrimarySubmitPayment() {
     operativeId: "", subcontractorRef: "", subcontractorName: "",
     jobNumber: "", siteAddress: "", quantity: "0", rate: "0",
     materialValue: "0", extras: "0", notes: "", rctRate: "",
+    mode: "breakdown", grossDirect: "0",
   }]);
   const removeRow = (i: number) => setRows((prev) => prev.filter((_, idx) => idx !== i));
 
@@ -343,25 +370,50 @@ export function PrimarySubmitPayment() {
     setTimeout(() => window.print(), 50);
   };
 
-  // Build the items[] payload from current rows. Filters out zero-qty rows
-  // for SUBMIT (no point sending empty advices) but keeps everything for
-  // SAVE (drafts are scratch work).
+  // Build the items[] payload from current rows. Filters out zero-gross
+  // rows for SUBMIT (no point sending empty advices) but keeps
+  // everything for SAVE (drafts are scratch work).
+  //
+  // Rows in "direct" mode send grossOverrideMinor and zero out the
+  // breakdown fields so the server's gross calc uses the override.
+  // The server-side worker treats grossOverrideMinor > 0 as the
+  // line total (no qty × rate).
   const buildItems = (filterEmpty: boolean) => rows
     .filter(r => filterEmpty
-      ? ((parseFloat(r.quantity) || 0) > 0 && (r.subcontractorRef || "").trim().length > 0)
+      ? (rowGrossMinor(r) > 0 && (r.subcontractorRef || "").trim().length > 0)
       : true)
-    .map(row => ({
-      subcontractorRef: row.subcontractorRef,
-      subcontractorName: row.subcontractorName || undefined,
-      jobNumber: row.jobNumber || undefined,
-      siteAddress: row.siteAddress || undefined,
-      quantity: row.quantity || undefined,
-      rate: row.rate || undefined,
-      rctRate: row.rctRate || undefined,
-      materialValue: row.materialValue || undefined,
-      extras: row.extras || undefined,
-      notes: row.notes || undefined,
-    }));
+    .map(row => {
+      if (row.mode === "direct") {
+        return {
+          subcontractorRef: row.subcontractorRef,
+          subcontractorName: row.subcontractorName || undefined,
+          jobNumber: row.jobNumber || undefined,
+          siteAddress: row.siteAddress || undefined,
+          quantity: undefined,
+          rate: undefined,
+          rctRate: row.rctRate || undefined,
+          materialValue: undefined,
+          // We use `extras` as the gross-direct carrier: the server's
+          // existing gross calc is `qty*rate + material + extras`, and
+          // with the others zeroed `extras` becomes the line total.
+          // This avoids needing a separate worker schema change.
+          extras: row.grossDirect || undefined,
+          notes: row.notes || undefined,
+        };
+      }
+      return {
+        subcontractorRef: row.subcontractorRef,
+        subcontractorName: row.subcontractorName || undefined,
+        jobNumber: row.jobNumber || undefined,
+        siteAddress: row.siteAddress || undefined,
+        quantity: row.quantity || undefined,
+        rate: row.rate || undefined,
+        rctRate: row.rctRate || undefined,
+        materialValue: row.materialValue || undefined,
+        extras: row.extras || undefined,
+        notes: row.notes || undefined,
+      };
+    });
 
   // A3 hardening: send the user-seen totals so the server can validate
   // that the user agreed to exactly THIS Total to Pay BC (within ±€0.05).
@@ -663,29 +715,58 @@ export function PrimarySubmitPayment() {
                 </td>
               </tr>
             ) : rows.map((row, i) => {
+              const grossMinor = rowGrossMinor(row);
               const q = parseFloat(row.quantity) || 0;
-              const rt = parseFloat(row.rate) || 0;
-              const m = parseFloat(row.materialValue) || 0;
-              const e = parseFloat(row.extras) || 0;
-              const grossMinor = Math.round((q * rt + m + e) * 100);
               const isAuto = !!row.operativeId;
               const cap = hoursCapFor(jobCardType);
-              const overCap = q > cap;
+              const overCap = row.mode === "breakdown" && q > cap;
+              const isDirect = row.mode === "direct";
+              const setMode = (m: "breakdown" | "direct") => updateRow(i, "mode", m);
               return (
                 <tr key={row.operativeId || `adhoc-${i}`} className={`border-b border-ink-100 last:border-b-0 ${overCap ? "bg-red-50" : ""}`}>
                   <td className="px-3 py-2 text-ink-900">
-                    {row.subcontractorName || "-"}
+                    <div>{row.subcontractorName || "-"}</div>
+                    {/* Mode toggle (item 9): switch between qty × rate
+                        breakdown and a single gross-direct field. Saved
+                        on the row so the user's choice persists per
+                        operative across page navigations. */}
+                    <div className="mt-1 inline-flex items-center text-[10px] rounded border border-ink-200 overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setMode("breakdown")}
+                        className={`px-1.5 py-0.5 ${row.mode === "breakdown" ? "bg-ink-900 text-white" : "bg-white text-ink-500 hover:bg-ink-50"}`}
+                      >
+                        Breakdown
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMode("direct")}
+                        className={`px-1.5 py-0.5 ${row.mode === "direct" ? "bg-ink-900 text-white" : "bg-white text-ink-500 hover:bg-ink-50"}`}
+                      >
+                        Gross only
+                      </button>
+                    </div>
                     {overCap && (
                       <div className="text-xs text-red-700 mt-0.5 font-medium">
                         Too many hours for {row.subcontractorName || "this operative"} ({q}h &gt; {cap}h cap)
                       </div>
                     )}
                   </td>
-                  <td className="px-2 py-2"><input inputMode="decimal" className={`w-20 px-2 py-1 text-sm rounded border outline-none text-right tabular-nums ${overCap ? "border-red-400 focus:border-red-600 bg-red-50" : "border-ink-200 focus:border-ink-900"}`} value={row.quantity} onChange={(ev) => updateRow(i, "quantity", ev.target.value)} placeholder="0" /></td>
-                  <td className="px-2 py-2"><input inputMode="decimal" className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.rate} onChange={(ev) => updateRow(i, "rate", ev.target.value)} placeholder="0" /></td>
-                  <td className="px-2 py-2"><input inputMode="decimal" className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.extras} onChange={(ev) => updateRow(i, "extras", ev.target.value)} placeholder="0" /></td>
-                  <td className="px-2 py-2"><input inputMode="decimal" className="w-20 px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none text-right tabular-nums" value={row.materialValue} onChange={(ev) => updateRow(i, "materialValue", ev.target.value)} placeholder="0" /></td>
-                  <td className="px-2 py-2 text-right tabular-nums font-medium text-ink-700">{grossMinor > 0 ? fmtMoneyEur(grossMinor) : "-"}</td>
+                  {/* Qty / Rate / Extras / Material - active only in
+                      breakdown mode. Greyed out and ignored in "Gross
+                      only" mode so the user knows the row total comes
+                      from the Gross cell. */}
+                  <td className="px-2 py-2"><input inputMode="decimal" disabled={isDirect} className={`w-20 px-2 py-1 text-sm rounded border outline-none text-right tabular-nums ${isDirect ? "bg-ink-50 text-ink-300 border-ink-100" : (overCap ? "border-red-400 focus:border-red-600 bg-red-50" : "border-ink-200 focus:border-ink-900")}`} value={row.quantity} onChange={(ev) => updateRow(i, "quantity", ev.target.value)} placeholder="0" /></td>
+                  <td className="px-2 py-2"><input inputMode="decimal" disabled={isDirect} className={`w-20 px-2 py-1 text-sm rounded border outline-none text-right tabular-nums ${isDirect ? "bg-ink-50 text-ink-300 border-ink-100" : "border-ink-200 focus:border-ink-900"}`} value={row.rate} onChange={(ev) => updateRow(i, "rate", ev.target.value)} placeholder="0" /></td>
+                  <td className="px-2 py-2"><input inputMode="decimal" disabled={isDirect} className={`w-20 px-2 py-1 text-sm rounded border outline-none text-right tabular-nums ${isDirect ? "bg-ink-50 text-ink-300 border-ink-100" : "border-ink-200 focus:border-ink-900"}`} value={row.extras} onChange={(ev) => updateRow(i, "extras", ev.target.value)} placeholder="0" /></td>
+                  <td className="px-2 py-2"><input inputMode="decimal" disabled={isDirect} className={`w-20 px-2 py-1 text-sm rounded border outline-none text-right tabular-nums ${isDirect ? "bg-ink-50 text-ink-300 border-ink-100" : "border-ink-200 focus:border-ink-900"}`} value={row.materialValue} onChange={(ev) => updateRow(i, "materialValue", ev.target.value)} placeholder="0" /></td>
+                  <td className="px-2 py-2">
+                    {isDirect ? (
+                      <input inputMode="decimal" className="w-24 px-2 py-1 text-sm rounded border border-emerald-300 bg-emerald-50 focus:border-emerald-600 outline-none text-right tabular-nums font-semibold" value={row.grossDirect} onChange={(ev) => updateRow(i, "grossDirect", ev.target.value)} placeholder="0.00" />
+                    ) : (
+                      <div className="text-right tabular-nums font-medium text-ink-700">{grossMinor > 0 ? fmtMoneyEur(grossMinor) : "-"}</div>
+                    )}
+                  </td>
                   <td className="px-2 py-2">
                     <div className="flex items-center gap-1">
                       {sites.length > 0 ? (

@@ -5,6 +5,7 @@ import { useToast } from "@/components/ui/Toast";
 import type { BankDetails, ChangeRequest, Subcontractor } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { fmtDateTime } from "@/lib/format";
@@ -40,6 +41,11 @@ export function ProfileEdit() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // Two-step confirmation gate (item 12). Submit button now opens a
+  // review modal where the sub sees their key data spelled out before
+  // committing. Prevents the "I clicked Submit by accident with wrong
+  // PPS" class of bug.
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Sub-initiated "request changes from admin" - free-form message that
@@ -146,6 +152,38 @@ export function ProfileEdit() {
     }
   };
 
+  // Step 1: validate + open confirm modal. Sub clicks "Submit for
+  // review" -> we run the preflight checks here; if anything fails,
+  // the toast fires and the modal never opens. If everything's
+  // clean, we open the confirm modal that requires a second click.
+  const requestSubmit = () => {
+    if (!sub) return;
+    const missing: string[] = [];
+    if (!sub.fullName)          missing.push("Full name");
+    if (!sub.address1)          missing.push("Address line 1");
+    if (!sub.town)              missing.push("Town");
+    if (!sub.postcode)          missing.push("Postcode / Eircode");
+    if (!sub.dob)               missing.push("Date of birth");
+    if (!sub.tel)               missing.push("Telephone");
+    if (!sub.email)             missing.push("Email");
+    if (!sub.workType)          missing.push("Work type");
+    if (!sub.natureOfServices)  missing.push("Nature of services");
+    if (!sub.ppsNumber)         missing.push("PPS number");
+    if (missing.length > 0) {
+      toast.error(`Please fill: ${missing.join(", ")}`);
+      return;
+    }
+    if (sub && bank && bank.accountHolderName && sub.fullName) {
+      if (normalizeName(bank.accountHolderName) !== normalizeName(sub.fullName)) {
+        toast.error(
+          "Account holder name must match your PPS-registered name. Fix it before submitting.",
+        );
+        return;
+      }
+    }
+    setConfirmOpen(true);
+  };
+
   const submit = async () => {
     // Preflight: catch missing required fields before the round-trip
     // so the user sees a clear list instead of a generic server
@@ -236,7 +274,7 @@ export function ProfileEdit() {
                 type="button"
                 variant="accent"
                 loading={submitting}
-                onClick={submit}
+                onClick={requestSubmit}
                 leftIcon={<Send className="h-4 w-4" />}
               >
                 {t("profile.submitForReview")}
@@ -390,7 +428,7 @@ export function ProfileEdit() {
       {editable && (
         <div className="flex justify-end gap-2">
           <Button variant="outline" type="submit" loading={saving} leftIcon={<Save className="h-4 w-4"/>}>Save</Button>
-          <Button type="button" variant="accent" loading={submitting} onClick={submit} leftIcon={<Send className="h-4 w-4" />}>Submit for review</Button>
+          <Button type="button" variant="accent" loading={submitting} onClick={requestSubmit} leftIcon={<Send className="h-4 w-4" />}>Submit for review</Button>
         </div>
       )}
 
@@ -468,6 +506,56 @@ export function ProfileEdit() {
           </div>
         )}
       </section>
+
+      {/* Two-step confirmation modal (item 12). Sub sees a digest of
+          their entered data + a deliberate Confirm button. Prevents
+          accidental submissions. Re-uses the existing submit() flow
+          - this modal is purely a "are you sure?" gate. */}
+      <Modal
+        open={confirmOpen}
+        onClose={() => !submitting && setConfirmOpen(false)}
+        title="Review your details before submitting"
+        description="Once you submit, your details are locked for admin review. Double-check the key fields below."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setConfirmOpen(false)} disabled={submitting}>Go back</Button>
+            <Button variant="accent" loading={submitting} leftIcon={<Send className="h-4 w-4" />}
+              onClick={async () => { await submit(); setConfirmOpen(false); }}>
+              Confirm and submit
+            </Button>
+          </>
+        }
+      >
+        {sub && (
+          <dl className="text-sm grid grid-cols-3 gap-x-4 gap-y-2">
+            <dt className="text-ink-500">Full name</dt>
+            <dd className="col-span-2 text-ink-900 font-medium">{sub.fullName || "-"}</dd>
+            <dt className="text-ink-500">PPS number</dt>
+            <dd className="col-span-2 text-ink-900 font-mono">{sub.ppsNumber || "-"}</dd>
+            <dt className="text-ink-500">Date of birth</dt>
+            <dd className="col-span-2 text-ink-900">{sub.dob || "-"}</dd>
+            <dt className="text-ink-500">Address</dt>
+            <dd className="col-span-2 text-ink-900">{[sub.address1, sub.address2, sub.town, sub.postcode].filter(Boolean).join(", ")}</dd>
+            <dt className="text-ink-500">Telephone</dt>
+            <dd className="col-span-2 text-ink-900">{sub.tel || "-"}</dd>
+            <dt className="text-ink-500">Email</dt>
+            <dd className="col-span-2 text-ink-900">{sub.email || "-"}</dd>
+            <dt className="text-ink-500">Work type</dt>
+            <dd className="col-span-2 text-ink-900">{sub.workType || "-"}</dd>
+            {bank && (
+              <>
+                <dt className="text-ink-500">IBAN</dt>
+                <dd className="col-span-2 text-ink-900 font-mono">{bank.iban || "-"}</dd>
+                <dt className="text-ink-500">Account holder</dt>
+                <dd className="col-span-2 text-ink-900">{bank.accountHolderName || "-"}</dd>
+              </>
+            )}
+          </dl>
+        )}
+        <div className="mt-4 rounded-md bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900">
+          If anything above is wrong, click <strong>Go back</strong> and fix it. Submitted profiles can only be amended via a change request to BC.
+        </div>
+      </Modal>
     </form>
   );
 }

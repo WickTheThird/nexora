@@ -1,10 +1,11 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { api, ApiError } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import type { QuestionnaireRecord } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/layout/PortalShell";
 import { fmtDateTime } from "@/lib/format";
@@ -153,6 +154,25 @@ export function Questionnaire() {
   const [existing, setExisting] = useState<QuestionnaireRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  // Scroll-to-read gate (items 14, 15). Submit stays disabled until
+  // the sub has scrolled to the bottom of the page. Sentinel div at
+  // the very end fires an IntersectionObserver; once seen, the gate
+  // unlocks permanently for this mount.
+  const [scrolledToBottom, setScrolledToBottom] = useState(false);
+  const bottomSentinelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = bottomSentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        setScrolledToBottom(true);
+        obs.disconnect();
+      }
+    }, { threshold: 0.5 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
   // Default-pre-filled answer map. Built from REVENUE_QUESTIONS.
   // The sub can flip any answer; defaults exist so the form isn't
   // an empty wall of radios on first paint.
@@ -218,7 +238,11 @@ export function Questionnaire() {
   const answeredCount = questions.filter((q) => !!answers[q.key]).length;
   const progress = Math.round((answeredCount / questions.length) * 100);
 
-  const submit = async (e: FormEvent) => {
+  // Two-step gate (item 12): form submit opens a confirm modal where
+  // the sub sees a summary of their answers before committing. The
+  // legacy `submit` function below does the actual POST after they
+  // click Confirm in the modal.
+  const onFormSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!allAnswered) {
       toast.error(t("questionnaire.missingAnswers"));
@@ -228,6 +252,10 @@ export function Questionnaire() {
       toast.error(t("questionnaire.nameRequired"));
       return;
     }
+    setConfirmOpen(true);
+  };
+
+  const submit = async () => {
     setSubmitting(true);
     try {
       // Bundle answers + per-question details + the full-name
@@ -263,7 +291,19 @@ export function Questionnaire() {
       <PageHeader
         title={t("questionnaire.title")}
         description={t("questionnaire.subtitle")}
-        right={existing ? statusBadge(existing.status) : statusBadge("not_started")}
+        right={
+          <div className="flex items-center gap-2">
+            {/* "READ" badge turns green once the sub scrolls all the
+                way to the bottom of the page (item 14). Visual cue
+                that they've actually seen every question. */}
+            {editable && (
+              <Badge tone={scrolledToBottom ? "success" : "neutral"}>
+                {scrolledToBottom ? "Read" : "Scroll to read"}
+              </Badge>
+            )}
+            {existing ? statusBadge(existing.status) : statusBadge("not_started")}
+          </div>
+        }
       />
 
       {existing && !editable && (
@@ -319,7 +359,7 @@ export function Questionnaire() {
         </div>
       )}
 
-      <form onSubmit={submit} className="card-padded space-y-1">
+      <form onSubmit={onFormSubmit} className="card-padded space-y-1">
         {REVENUE_QUESTIONS.map((item) => {
           if (item.kind === "section") {
             return (
@@ -400,19 +440,69 @@ export function Questionnaire() {
         )}
 
         {editable && (
-          <div className="flex justify-end pt-5">
-            <Button
-              type="submit"
-              variant="accent"
-              loading={submitting}
-              leftIcon={<Send className="h-4 w-4" />}
-              disabled={!allAnswered}
-            >
-              {existing ? t("questionnaire.resubmit") : t("questionnaire.submit")}
-            </Button>
-          </div>
+          <>
+            {/* Scroll sentinel - the IntersectionObserver above
+                trips once this enters the viewport, marking the
+                page as "read" and unlocking the Submit button. */}
+            <div ref={bottomSentinelRef} className="h-1" />
+            {!scrolledToBottom && (
+              <div className="mt-4 rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900 text-center">
+                Scroll to the bottom of the page to confirm you've read every question.
+              </div>
+            )}
+            <div className="flex justify-end pt-5">
+              <Button
+                type="submit"
+                variant="accent"
+                loading={submitting}
+                leftIcon={<Send className="h-4 w-4" />}
+                disabled={!allAnswered || !scrolledToBottom}
+              >
+                {existing ? t("questionnaire.resubmit") : t("questionnaire.submit")}
+              </Button>
+            </div>
+          </>
         )}
       </form>
+
+      {/* Two-step confirm gate. Sub sees the summary of every Q+A
+          and the typed full name before the actual POST fires.
+          Submitted questionnaires can only be amended via change
+          request, so we want a deliberate confirm. */}
+      <Modal
+        open={confirmOpen}
+        onClose={() => !submitting && setConfirmOpen(false)}
+        title={t("questionnaire.confirmTitle")}
+        description={t("questionnaire.confirmBody")}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setConfirmOpen(false)} disabled={submitting}>
+              {t("common.back")}
+            </Button>
+            <Button variant="accent" loading={submitting}
+              onClick={async () => { await submit(); setConfirmOpen(false); }}
+              leftIcon={<Send className="h-4 w-4" />}>
+              {t("questionnaire.confirmCta")}
+            </Button>
+          </>
+        }
+      >
+        <dl className="text-xs space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+          {questions.map((q) => {
+            const v = answers[q.key];
+            return (
+              <div key={q.key} className="grid grid-cols-12 gap-3 py-1 border-b border-ink-100 last:border-b-0">
+                <dt className="col-span-9 text-ink-700">{t(`questionnaire.questions.${q.key}`)}</dt>
+                <dd className="col-span-3 text-right font-medium uppercase text-ink-900">{v ?? "-"}</dd>
+              </div>
+            );
+          })}
+          <div className="pt-2 grid grid-cols-2 gap-3 text-ink-800">
+            <div><span className="text-ink-500">Forename:</span> <strong>{forename}</strong></div>
+            <div><span className="text-ink-500">Surname:</span> <strong>{surname}</strong></div>
+          </div>
+        </dl>
+      </Modal>
     </>
   );
 }

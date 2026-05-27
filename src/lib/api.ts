@@ -567,6 +567,12 @@ export const api = {
   // Status flips to 'paid'.
   adminMarkPaymentPaid: (paymentId: string) =>
     request<PaymentRecord>("POST", `/admin/payments/${paymentId}/mark-paid`),
+  adminBulkMarkPaymentsPaid: (paymentIds: string[]) =>
+    request<{ requested: number; succeeded: number; failed: number; results: Array<{ id: string; ok: boolean; error?: string }> }>(
+      "POST",
+      "/admin/payments/bulk-mark-paid",
+      { body: { paymentIds } },
+    ),
   // Global payment listing for the Advice kanban. Joins subcontractor name.
   adminListPayments: (params: { status?: string; from?: string; to?: string; limit?: number } = {}) => {
     const q = new URLSearchParams();

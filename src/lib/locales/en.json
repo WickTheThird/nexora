@@ -273,6 +273,9 @@
       "riskWarning": "This answer may indicate that you are not genuinely self-employed. If Revenue classifies your contract as employment-like, your RCT deduction rate can be 35% instead of 0% or 20%. Answer based on your real working arrangement."
     },
     "progressLabel": "{{answered}} of {{total}} answered",
+    "confirmTitle": "Review your answers",
+    "confirmBody": "Once submitted, your questionnaire is locked for admin review. Double-check your answers and full name below.",
+    "confirmCta": "Confirm and submit",
     "nameRequired": "Please enter your forename and surname.",
     "readyToSubmit": "Ready to submit?",
     "readyToSubmitBody": "Please re-read the answers above, then type your full name as a final declaration.",
