@@ -491,7 +491,7 @@ export function Payments() {
                                     onClick={() => downloadInvoice(p)}
                                     leftIcon={<Download className="h-4 w-4" />}
                                   >
-                                    Invoice PDF
+                                    Generate invoice
                                   </Button>
                                   {p.hasRemittance && (
                                     <a
