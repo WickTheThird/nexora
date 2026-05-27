@@ -79,8 +79,8 @@
       "questionnaireHint": "Declarații de conformitate",
       "photoId": "Act de identitate cu fotografie",
       "photoIdHint": "Încarcă un act de identitate clar",
-      "hsCard": "Card de sănătate și securitate (H&S)",
-      "hsCardHint": "Încarcă cardul tău actual de securitate"
+      "manualHandling": "Manual Handling",
+      "manualHandlingHint": "Încarcă certificatul tău Manual Handling"
     },
     "stepState": {
       "completed": "Finalizat",

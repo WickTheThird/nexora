@@ -66,9 +66,9 @@ const folders: DocFolder[] = [
     icon: ShieldCheck,
     description: "Your training and safety credentials.",
     types: [
-      { value: "hs_card",         label: "H&S card",          icon: ShieldCheck, hint: "Current safety card", required: true },
+      { value: "manual_handling", label: "Manual Handling",   icon: Boxes,       hint: "Manual handling cert (typically annual)", required: true },
+      { value: "hs_card",         label: "H&S card",          icon: ShieldCheck, hint: "Current safety card (optional)" },
       { value: "safe_pass",       label: "Safe Pass",         icon: HardHat,     hint: "Solas Safe Pass card (3-year cycle)" },
-      { value: "manual_handling", label: "Manual Handling",   icon: Boxes,       hint: "Manual handling cert (typically annual)" },
       { value: "first_aid",       label: "First Aid",         icon: HeartPulse,  hint: "Occupational first-aid cert (if applicable)" },
       { value: "ppe",             label: "PPE",               icon: HardHat,     hint: "PPE training / sign-off" },
     ],

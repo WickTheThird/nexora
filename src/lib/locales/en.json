@@ -79,8 +79,8 @@
       "questionnaireHint": "Compliance declarations",
       "photoId": "Photographic ID",
       "photoIdHint": "Upload a clear photo ID",
-      "hsCard": "H&S card",
-      "hsCardHint": "Upload your current safety card"
+      "manualHandling": "Manual Handling",
+      "manualHandlingHint": "Upload your Manual Handling certificate"
     },
     "stepState": {
       "completed": "Completed",

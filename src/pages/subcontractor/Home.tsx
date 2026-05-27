@@ -38,7 +38,7 @@ const stepMeta: Record<StepKey, { labelKey: string; icon: React.ComponentType<{c
   application_form: { labelKey: "home.step.applicationForm", icon: User,           href: "/app/profile",       hintKey: "home.step.applicationFormHint" },
   questionnaire:    { labelKey: "home.step.questionnaire",   icon: ClipboardCheck, href: "/app/questionnaire", hintKey: "home.step.questionnaireHint"   },
   photo_id:         { labelKey: "home.step.photoId",         icon: FolderUp,       href: "/app/documents",     hintKey: "home.step.photoIdHint"         },
-  hs_card:          { labelKey: "home.step.hsCard",          icon: FolderUp,       href: "/app/documents",     hintKey: "home.step.hsCardHint"          },
+  manual_handling:  { labelKey: "home.step.manualHandling",  icon: FolderUp,       href: "/app/documents",     hintKey: "home.step.manualHandlingHint"  },
 };
 
 function StepIcon({ s }: { s: StepStatus }) {

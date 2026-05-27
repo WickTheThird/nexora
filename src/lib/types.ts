@@ -11,11 +11,14 @@ export type OnboardingStatus =
   | "active"
   | "rejected";
 
+// Onboarding gate steps. Updated 2026-05-27: required docs are now
+// Photo ID + Manual Handling (was Photo ID + H&S card). H&S card
+// stays in the Documents folder as optional.
 export type StepKey =
   | "application_form"
   | "questionnaire"
   | "photo_id"
-  | "hs_card";
+  | "manual_handling";
 export type StepStatus =
   | "locked"
   | "not_started"
