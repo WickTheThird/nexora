@@ -202,8 +202,6 @@
     "types": {
       "photo_id": "Act de identitate cu fotografie",
       "photo_idHint": "Pașaport sau permis de conducere",
-      "hs_card": "Card H&S",
-      "hs_cardHint": "Card actual de securitate",
       "safe_pass": "Safe Pass",
       "safe_passHint": "Card Solas Safe Pass (ciclu de 3 ani)",
       "manual_handling": "Manual Handling",

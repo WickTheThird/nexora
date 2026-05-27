@@ -19,7 +19,6 @@ import {
   Download,
   FileText,
   IdCard,
-  ShieldCheck,
   FilePlus,
   HardHat,
   HeartPulse,
@@ -50,6 +49,13 @@ type DocFolder = {
   description: string;
   types: DocTypeDef[];
 };
+// Folder structure simplified 2026-05-27. "H&S card" was a
+// UK-specific term that doesn't carry meaning in Ireland; removed
+// from the upload picker (the doc-type value stays accepted by the
+// API for legacy back-compat). The old "Cards & Certs" and "Other"
+// folders consolidated into one "Other Courses / Cards" group -
+// only Photo ID is genuinely in its own category (Identity), and
+// the rest are all just various training cards / certs / docs.
 const folders: DocFolder[] = [
   {
     key: "identity",
@@ -61,27 +67,18 @@ const folders: DocFolder[] = [
     ],
   },
   {
-    key: "cards-certs",
-    label: "Cards & Certs",
-    icon: ShieldCheck,
-    description: "Your training and safety credentials.",
+    key: "courses-cards",
+    label: "Other Courses / Cards",
+    icon: FolderOpen,
+    description: "Training, safety cards, insurance, trade certs - anything else relevant.",
     types: [
       { value: "manual_handling", label: "Manual Handling",   icon: Boxes,       hint: "Manual handling cert (typically annual)", required: true },
-      { value: "hs_card",         label: "H&S card",          icon: ShieldCheck, hint: "Current safety card (optional)" },
       { value: "safe_pass",       label: "Safe Pass",         icon: HardHat,     hint: "Solas Safe Pass card (3-year cycle)" },
       { value: "first_aid",       label: "First Aid",         icon: HeartPulse,  hint: "Occupational first-aid cert (if applicable)" },
       { value: "ppe",             label: "PPE",               icon: HardHat,     hint: "PPE training / sign-off" },
-    ],
-  },
-  {
-    key: "other",
-    label: "Other",
-    icon: FolderOpen,
-    description: "Insurance, trade certs, anything else.",
-    types: [
-      { value: "insurance", label: "Insurance",      icon: FileText, hint: "Public liability etc." },
-      { value: "cert",      label: "Trade certs",    icon: FileText, hint: "Trade-specific certifications" },
-      { value: "other",     label: "Other",          icon: FileText, hint: "Anything else relevant" },
+      { value: "insurance",       label: "Insurance",         icon: FileText,    hint: "Public liability etc." },
+      { value: "cert",            label: "Trade certs",       icon: FileText,    hint: "Trade-specific certifications" },
+      { value: "other",           label: "Other",             icon: FileText,    hint: "Anything else relevant" },
     ],
   },
 ];

@@ -202,8 +202,6 @@
     "types": {
       "photo_id": "Photographic ID",
       "photo_idHint": "Passport or driving licence",
-      "hs_card": "H&S card",
-      "hs_cardHint": "Current safety card",
       "safe_pass": "Safe Pass",
       "safe_passHint": "Solas Safe Pass card (3-year cycle)",
       "manual_handling": "Manual Handling",

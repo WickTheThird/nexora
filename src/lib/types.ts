@@ -33,7 +33,6 @@ export type StepStatus =
 // list falls into "other".
 export type DocumentType =
   | "photo_id"
-  | "hs_card"
   | "insurance"
   | "cert"
   | "safe_pass"
