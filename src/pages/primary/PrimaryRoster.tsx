@@ -330,6 +330,11 @@ function CsvImportModal({ open, onClose, onImported }: { open: boolean; onClose:
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [good, setGood] = useState<RosterRow[]>([]);
   const [bad, setBad] = useState<Array<{ rowIndex: number; raw: string[]; issue: string }>>([]);
+  // Info about which xlsx sheet we picked + how many other sheets
+  // existed. Set when the user uploads a multi-sheet workbook so we
+  // can show a banner: "Imported from 'Sheet 3' (workbook had 4
+  // sheets total)" - lets them verify we picked the right one.
+  const [sheetInfo, setSheetInfo] = useState<{ picked: string; total: number } | null>(null);
   const [busy, setBusy] = useState(false);
   const [imported, setImported] = useState<{ added: number; skipped: Array<{ pps: string; reason: string }> } | null>(null);
 
@@ -337,6 +342,7 @@ function CsvImportModal({ open, onClose, onImported }: { open: boolean; onClose:
     setGood([]);
     setBad([]);
     setImported(null);
+    setSheetInfo(null);
     if (fileRef.current) fileRef.current.value = "";
   };
 
@@ -349,6 +355,7 @@ function CsvImportModal({ open, onClose, onImported }: { open: boolean; onClose:
     const f = e.target.files?.[0];
     if (!f) return;
     setImported(null);
+    setSheetInfo(null);
     try {
       // .xlsx / .xls handled via SheetJS - convert the first sheet to
       // CSV text, then let parseRosterCsv do the column detection.
@@ -362,13 +369,38 @@ function CsvImportModal({ open, onClose, onImported }: { open: boolean; onClose:
       if (isExcel) {
         const buf = await f.arrayBuffer();
         const wb = XLSX.read(buf, { type: "array" });
-        const sheetName = wb.SheetNames[0];
-        if (!sheetName) {
+        if (wb.SheetNames.length === 0) {
           setBad([{ rowIndex: 0, raw: [], issue: "Workbook has no sheets." }]);
           setGood([]);
           return;
         }
-        text = XLSX.utils.sheet_to_csv(wb.Sheets[sheetName]);
+        // Multi-sheet workbooks: pick the sheet that looks like a
+        // roster (has PPS-like cells). Fall back to the first sheet
+        // if none qualify - parseRosterCsv will then surface its
+        // own "couldn't find PPS or email column" error.
+        const PPS_RE = /^\s*\d{7}[A-Za-z]{1,2}\s*$/;
+        let bestName = wb.SheetNames[0];
+        let bestScore = -1;
+        for (const name of wb.SheetNames) {
+          const csv = XLSX.utils.sheet_to_csv(wb.Sheets[name]);
+          let ppsHits = 0;
+          for (const line of csv.split(/\r?\n/).slice(0, 50)) {
+            for (const cell of line.split(",")) {
+              if (PPS_RE.test(cell)) ppsHits++;
+            }
+          }
+          if (ppsHits > bestScore) {
+            bestScore = ppsHits;
+            bestName = name;
+          }
+        }
+        text = XLSX.utils.sheet_to_csv(wb.Sheets[bestName]);
+        if (wb.SheetNames.length > 1) {
+          // Tell the user which sheet we picked - they may have
+          // expected a different one.
+          setSheetInfo({ picked: bestName, total: wb.SheetNames.length });
+          console.info(`[roster import] picked sheet "${bestName}" (${bestScore} PPS-like cells) out of ${wb.SheetNames.length} sheets`);
+        }
       } else {
         text = await f.text();
       }
@@ -428,6 +460,12 @@ function CsvImportModal({ open, onClose, onImported }: { open: boolean; onClose:
           </p>
         </div>
 
+        {sheetInfo && !imported && (
+          <div className="rounded-lg bg-sky-50 border border-sky-200 p-3 text-xs text-sky-900">
+            Imported from sheet <strong>"{sheetInfo.picked}"</strong> (workbook had {sheetInfo.total} sheets total).
+            We picked the sheet with the most PPS-like cells. If we got the wrong one, save the right sheet as a separate file and re-upload.
+          </div>
+        )}
         {imported && (
           <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm">
             <strong className="text-emerald-900">Done.</strong> Added {imported.added}.
