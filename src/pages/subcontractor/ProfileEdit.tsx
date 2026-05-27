@@ -164,11 +164,14 @@ export function ProfileEdit() {
     if (!sub.town)              missing.push("Town");
     if (!sub.postcode)          missing.push("Postcode / Eircode");
     if (!sub.dob)               missing.push("Date of birth");
+    if (!sub.placeOfBirth)      missing.push("Place of birth");
     if (!sub.tel)               missing.push("Telephone");
+    if (!sub.mob)               missing.push("Mobile");
     if (!sub.email)             missing.push("Email");
     if (!sub.workType)          missing.push("Work type");
     if (!sub.natureOfServices)  missing.push("Nature of services");
     if (!sub.ppsNumber)         missing.push("PPS number");
+    if (sub.vatRegistered && !sub.vatNumber) missing.push("VAT number");
     if (missing.length > 0) {
       toast.error(`Please fill: ${missing.join(", ")}`);
       return;
@@ -196,11 +199,14 @@ export function ProfileEdit() {
       if (!sub.town)              missing.push("Town");
       if (!sub.postcode)          missing.push("Postcode / Eircode");
       if (!sub.dob)               missing.push("Date of birth");
+      if (!sub.placeOfBirth)      missing.push("Place of birth");
       if (!sub.tel)               missing.push("Telephone");
+      if (!sub.mob)               missing.push("Mobile");
       if (!sub.email)             missing.push("Email");
       if (!sub.workType)          missing.push("Work type");
       if (!sub.natureOfServices)  missing.push("Nature of services");
       if (!sub.ppsNumber)         missing.push("PPS number");
+      if (sub.vatRegistered && !sub.vatNumber) missing.push("VAT number");
       if (missing.length > 0) {
         toast.error(`Please fill: ${missing.join(", ")}`);
         return;

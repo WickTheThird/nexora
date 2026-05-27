@@ -155,6 +155,11 @@ export function Questionnaire() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // Enagh-style header: sub's name + address shown above the form.
+  // Pulled from /me/profile alongside the existing onboarding view
+  // so the questionnaire shows "Work Questionnaire - John Doe /
+  // Address: 1 Main St, Dublin, D02 ABCD" at the top.
+  const [subHeader, setSubHeader] = useState<{ fullName: string; address: string } | null>(null);
   // Scroll-to-read gate (items 14, 15). Submit stays disabled until
   // the sub has scrolled to the bottom of the page. Sentinel div at
   // the very end fires an IntersectionObserver; once seen, the gate
@@ -195,8 +200,26 @@ export function Questionnaire() {
   useEffect(() => {
     (async () => {
       try {
-        const q = await api.getMyQuestionnaire();
+        // Fetch profile in parallel to populate the Enagh-style
+        // "Work Questionnaire - Name / Address:" header at the top.
+        const [q, profile] = await Promise.all([
+          api.getMyQuestionnaire(),
+          api.getMyProfile().catch(() => null),
+        ]);
         setExisting(q);
+        if (profile?.subcontractor) {
+          const s = profile.subcontractor;
+          const addr = [s.address1, s.address2, s.town, s.postcode]
+            .filter(Boolean).join(", ");
+          setSubHeader({ fullName: s.fullName || "", address: addr });
+          // Pre-fill forename/surname from profile full_name (Enagh
+          // splits "John Doe" -> John + Doe). User can still edit.
+          if (s.fullName && !forename && !surname) {
+            const parts = s.fullName.trim().split(/\s+/);
+            setForename(parts[0] || "");
+            setSurname(parts.slice(1).join(" ") || "");
+          }
+        }
         if (q?.answers) {
           // Pre-fill values from the existing record. Schema keys
           // are normalised against the current v2 keyset so any
@@ -289,8 +312,12 @@ export function Questionnaire() {
   return (
     <>
       <PageHeader
-        title={t("questionnaire.title")}
-        description={t("questionnaire.subtitle")}
+        title={subHeader?.fullName
+          ? `${t("questionnaire.title")} - ${subHeader.fullName}`
+          : t("questionnaire.title")}
+        description={subHeader?.address
+          ? `${t("questionnaire.subtitle")} · Address: ${subHeader.address}`
+          : t("questionnaire.subtitle")}
         right={
           <div className="flex items-center gap-2">
             {/* "READ" badge turns green once the sub scrolls all the
