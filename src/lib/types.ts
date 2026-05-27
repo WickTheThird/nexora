@@ -506,6 +506,12 @@ export interface PaymentRecord {
   grossMinor: number;
   rctRate: RctRate | null;
   rctDeductionMinor: number;
+  // BC service fee deducted from this sub's payment (per-worker flat
+  // from app_settings.service_fee_per_worker_minor at process time).
+  // 0 for records created before the 2026-05-27 fee restructure.
+  // Optional in the TS type so existing mock-payload sites that
+  // build a PaymentRecord by hand don't have to set it.
+  serviceFeeMinor?: number;
   netMinor: number;
   rctAuthNumber: string | null;
   vatReverseCharge: boolean;
