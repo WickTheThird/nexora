@@ -398,9 +398,9 @@ export function Documents() {
       const msg =
         e instanceof ApiError
           ? e.code === "UPLOAD_TOO_LARGE"
-            ? "File is larger than 10MB."
+            ? "File is larger than 25MB. Try compressing it or take a smaller photo."
             : e.code === "UNSUPPORTED_MEDIA_TYPE"
-            ? "Only PDF / JPG / PNG / HEIC allowed."
+            ? "Only PDF / JPG / PNG / HEIC / WebP allowed."
             : e.code === "DOCUMENT_EXPIRED"
             ? "This document is already expired. Renew it before uploading."
             : e.message
@@ -525,7 +525,7 @@ export function Documents() {
                     <input
                       ref={(el) => (fileRefs.current[dt.value] = el)}
                       type="file"
-                      accept="application/pdf,image/jpeg,image/png,image/heic,image/heif"
+                      accept="application/pdf,image/jpeg,image/jpg,image/png,image/heic,image/heif,image/webp"
                       className="hidden"
                       onChange={(e) => {
                         const f = e.target.files?.[0];
