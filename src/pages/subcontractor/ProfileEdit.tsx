@@ -147,6 +147,27 @@ export function ProfileEdit() {
   };
 
   const submit = async () => {
+    // Preflight: catch missing required fields before the round-trip
+    // so the user sees a clear list instead of a generic server
+    // error like "VALIDATION_FAILED: missing required fields: pps_number".
+    // Must match REQUIRED_FOR_SUBMIT in worker.js.
+    if (sub) {
+      const missing: string[] = [];
+      if (!sub.fullName)          missing.push("Full name");
+      if (!sub.address1)          missing.push("Address line 1");
+      if (!sub.town)              missing.push("Town");
+      if (!sub.postcode)          missing.push("Postcode / Eircode");
+      if (!sub.dob)               missing.push("Date of birth");
+      if (!sub.tel)               missing.push("Telephone");
+      if (!sub.email)             missing.push("Email");
+      if (!sub.workType)          missing.push("Work type");
+      if (!sub.natureOfServices)  missing.push("Nature of services");
+      if (!sub.ppsNumber)         missing.push("PPS number");
+      if (missing.length > 0) {
+        toast.error(`Please fill: ${missing.join(", ")}`);
+        return;
+      }
+    }
     // Hard gate: the bank account holder name MUST match the legal
     // name registered on PPS. Banks reject payments to mismatched
     // names, and our RCT filing carries the PPS name to Revenue - if
