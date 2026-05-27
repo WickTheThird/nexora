@@ -136,6 +136,7 @@ function ymdToMs(s: string): number | null {
 // Refuses submit if expires < today.
 function MetadataModal({
   open, mode, docTypeLabel, initial, fileName, onSubmit, onClose, busy,
+  fullMetadata = true,
 }: {
   open: boolean;
   mode: "upload" | "edit";
@@ -145,6 +146,11 @@ function MetadataModal({
   onSubmit: (m: DocumentMetadataPatch) => Promise<void> | void;
   onClose: () => void;
   busy: boolean;
+  // When false (non-required docs) the modal only asks for the
+  // expiry date - everything else is auto-nullified on submit. The
+  // 4-field detailed flow stays for required docs (Photo ID +
+  // Manual Handling) so admin has enough context to verify them.
+  fullMetadata?: boolean;
 }) {
   const [issuingBody, setIssuingBody] = useState(initial.issuingBody || "");
   const [cardNumber, setCardNumber] = useState(initial.cardNumber || "");
@@ -184,13 +190,27 @@ function MetadataModal({
       setErr("Issue date is after the expiry date.");
       return;
     }
-    await onSubmit({
-      issuingBody: issuingBody.trim() || null,
-      cardNumber: cardNumber.trim() || null,
-      holderName: holderName.trim() || null,
-      issuedAt: issMs,
-      expiresAt: expMs,
-    });
+    // For non-required docs the modal only asks for expiry - null
+    // out the other fields so the worker stores them as empty and
+    // admin doesn't see misleading blanks if the sub didn't fill
+    // them in.
+    await onSubmit(
+      fullMetadata
+        ? {
+            issuingBody: issuingBody.trim() || null,
+            cardNumber: cardNumber.trim() || null,
+            holderName: holderName.trim() || null,
+            issuedAt: issMs,
+            expiresAt: expMs,
+          }
+        : {
+            issuingBody: null,
+            cardNumber: null,
+            holderName: null,
+            issuedAt: null,
+            expiresAt: expMs,
+          },
+    );
   };
 
   return (
@@ -200,7 +220,9 @@ function MetadataModal({
       title={mode === "upload" ? `Details for ${docTypeLabel}` : `Edit ${docTypeLabel} details`}
       description={
         mode === "upload"
-          ? "Copy these values from the card itself. They appear on every payment advice and on your contractor file."
+          ? fullMetadata
+            ? "Copy these values from the card itself. They appear on every payment advice and on your contractor file."
+            : "Just enter the expiry date so we can remind you before it lapses."
           : "You have 10 minutes after each save to correct details. After that, contact the office via Support."
       }
       footer={
@@ -219,33 +241,37 @@ function MetadataModal({
           </div>
         )}
         <div className="grid sm:grid-cols-2 gap-4">
-          <Input
-            label="Issuing body"
-            value={issuingBody}
-            onChange={(e) => setIssuingBody(e.target.value)}
-            placeholder="e.g. Solas, QQI, HSA"
-            hint="Who issued the card."
-          />
-          <Input
-            label="Card number"
-            value={cardNumber}
-            onChange={(e) => setCardNumber(e.target.value)}
-            placeholder="e.g. SP-0123456"
-            hint="The reference printed on the card."
-          />
-          <Input
-            label="Holder name (on card)"
-            value={holderName}
-            onChange={(e) => setHolderName(e.target.value)}
-            placeholder="As shown on the card"
-            hint="Should match your PPS-registered name."
-          />
-          <Input
-            label="Issue date"
-            type="date"
-            value={issuedAt}
-            onChange={(e) => setIssuedAt(e.target.value)}
-          />
+          {fullMetadata && (
+            <>
+              <Input
+                label="Issuing body"
+                value={issuingBody}
+                onChange={(e) => setIssuingBody(e.target.value)}
+                placeholder="e.g. Solas, QQI, HSA"
+                hint="Who issued the card."
+              />
+              <Input
+                label="Card number"
+                value={cardNumber}
+                onChange={(e) => setCardNumber(e.target.value)}
+                placeholder="e.g. SP-0123456"
+                hint="The reference printed on the card."
+              />
+              <Input
+                label="Holder name (on card)"
+                value={holderName}
+                onChange={(e) => setHolderName(e.target.value)}
+                placeholder="As shown on the card"
+                hint="Should match your PPS-registered name."
+              />
+              <Input
+                label="Issue date"
+                type="date"
+                value={issuedAt}
+                onChange={(e) => setIssuedAt(e.target.value)}
+              />
+            </>
+          )}
           <Input
             label="Expiry date"
             type="date"
@@ -352,6 +378,9 @@ export function Documents() {
     type: DocumentType;
     typeLabel: string;
     file: File;
+    // Whether to render the full 5-field metadata modal (required
+    // docs) or just the expiry date (everything else).
+    fullMetadata: boolean;
   } | null>(null);
   const [editingDoc, setEditingDoc] = useState<{
     doc: DocumentRecord;
@@ -382,7 +411,12 @@ export function Documents() {
   // expired documents" guard rail - the modal refuses submission for
   // any card whose expiry is already in the past.
   const onFilePicked = (type: DocumentType, typeLabel: string, file: File) => {
-    setPendingUpload({ type, typeLabel, file });
+    // Look the doc type up in the folder definitions to decide which
+    // modal shape to show. Required = full 4-field metadata. Anything
+    // else = just expiry date (sub still gets the renewal reminders).
+    const def = folders.flatMap((f) => f.types).find((t) => t.value === type);
+    const fullMetadata = !!def?.required;
+    setPendingUpload({ type, typeLabel, file, fullMetadata });
   };
 
   // Stage 2: metadata captured, fire the POST.
@@ -645,7 +679,7 @@ export function Documents() {
         </div>
       )}
       <p className="mt-6 text-xs text-ink-400">
-        Max 10MB per file. Allowed formats: PDF, JPG, PNG, HEIC/HEIF.
+        Max 25MB per file. Allowed formats: PDF, JPG, PNG, HEIC/HEIF, WebP.
       </p>
 
       <MetadataModal
@@ -653,6 +687,7 @@ export function Documents() {
         mode="upload"
         docTypeLabel={pendingUpload?.typeLabel || ""}
         fileName={pendingUpload?.file.name}
+        fullMetadata={pendingUpload?.fullMetadata ?? true}
         initial={{
           expiresAt: null, issuedAt: null, cardNumber: null,
           issuingBody: null, holderName: null,
@@ -666,6 +701,12 @@ export function Documents() {
         open={editingDoc !== null}
         mode="edit"
         docTypeLabel={editingDoc?.typeLabel || ""}
+        // Same rule for the in-place edit modal: required docs get
+        // the full 4-field form, optional docs only see the expiry
+        // input. Look up the required flag from the folder defs.
+        fullMetadata={
+          !!folders.flatMap((f) => f.types).find((t) => t.value === editingDoc?.doc.documentType)?.required
+        }
         initial={editingDoc ? {
           expiresAt: editingDoc.doc.expiresAt,
           issuedAt: editingDoc.doc.issuedAt,
