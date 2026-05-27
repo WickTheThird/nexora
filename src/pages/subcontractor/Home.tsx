@@ -105,8 +105,18 @@ export function Home() {
 
   const steps = onboarding?.steps;
   const totalSteps = steps ? Object.keys(steps).length : 4;
-  const doneCount = steps ? Object.values(steps).filter((s) => s === "completed").length : 0;
-  const progress = Math.round((doneCount / totalSteps) * 100);
+  // Progress counts partial credit so the bar moves the moment a sub
+  // takes action - not just when admin approves. A "completed" step
+  // counts 1.0; "in_progress" (uploaded / submitted but awaiting
+  // review) counts 0.5; "rejected" counts 0 (needs attention).
+  const stepValues = steps ? Object.values(steps) : [];
+  const stepScore = stepValues.reduce((acc, s) => {
+    if (s === "completed") return acc + 1;
+    if (s === "in_progress") return acc + 0.5;
+    return acc;
+  }, 0);
+  const doneCount = stepValues.filter((s) => s === "completed").length;
+  const progress = totalSteps > 0 ? Math.round((stepScore / totalSteps) * 100) : 0;
 
   const greeting = profile?.fullName?.split(" ")[0] || me?.email?.split("@")[0] || "there";
 
@@ -164,7 +174,7 @@ export function Home() {
           <div className="w-full max-w-xs">
             <div className="h-2 rounded-full bg-white/10 overflow-hidden">
               <div
-                className="h-full bg-accent-500 transition-all duration-500"
+                className="h-full bg-emerald-500 transition-all duration-500"
                 style={{ width: `${progress}%` }}
               />
             </div>
