@@ -14,12 +14,13 @@ function fmtMoney(minor: number) {
 }
 function statusBadge(s: PrimarySubmissionStatus) {
   const cfg: Record<PrimarySubmissionStatus, { tone: "neutral"|"info"|"success"|"danger"|"warn"; label: string }> = {
-    draft:      { tone: "neutral", label: "Draft" },
-    held:       { tone: "neutral", label: "Held (10-min)" },
-    submitted:  { tone: "warn",    label: "Awaiting action" },
-    processing: { tone: "info",    label: "Processing" },
-    completed:  { tone: "success", label: "Completed" },
-    rejected:   { tone: "danger",  label: "Rejected" },
+    draft:             { tone: "neutral", label: "Draft" },
+    held:              { tone: "neutral", label: "Held (10-min)" },
+    submitted:         { tone: "warn",    label: "Awaiting action" },
+    processing:        { tone: "info",    label: "Processing" },
+    awaiting_payment:  { tone: "info",    label: "Invoices issued - awaiting payments" },
+    completed:         { tone: "success", label: "Completed - all paid" },
+    rejected:          { tone: "danger",  label: "Rejected" },
   };
   const c = cfg[s];
   return <Badge tone={c.tone}>{c.label}</Badge>;
