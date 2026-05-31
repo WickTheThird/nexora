@@ -144,6 +144,7 @@ export function PrimaryInvoiceDetail() {
       grossAmountMinor: data.invoice.grossMinor,
       vatAmountMinor: data.invoice.vatMinor || 0,
       netAmountMinor: data.invoice.netMinor,
+      vatRatePercent: data.invoice.vatRatePercent ?? null,
     };
   };
 

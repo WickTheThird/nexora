@@ -20,11 +20,9 @@ function fmtDate(ms: number) {
 function statusBadge(s: PrimarySubmissionStatus) {
   const cfg: Record<PrimarySubmissionStatus, { tone: "neutral"|"info"|"success"|"danger"|"warn"; label: string }> = {
     draft:             { tone: "neutral", label: "Draft" },
-    held:              { tone: "neutral", label: "Held (10-min window)" },
-    submitted:         { tone: "warn",    label: "Awaiting your action" },
+    submitted:         { tone: "warn",    label: "Submitted" },
     processing:        { tone: "info",    label: "Processing" },
-    awaiting_payment:  { tone: "info",    label: "Invoices issued - awaiting payments" },
-    completed:         { tone: "success", label: "Completed - all paid" },
+    completed:         { tone: "success", label: "Completed" },
     rejected:          { tone: "danger",  label: "Rejected" },
   };
   const c = cfg[s];

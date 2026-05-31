@@ -74,58 +74,21 @@ export function PrimarySubmissionDetail() {
   const matchedCount = items.filter(i => i.matched).length;
   const status = submission.status;
   const isDraft = status === "draft";
-  // 'held' is the principal's 10-minute grace window after Submit -
-  // still editable, can be released early or cancelled back to draft.
-  const isHeld = status === "held";
-  const isLocked = status !== "draft" && status !== "held";
+  // Anything other than draft is locked. No more 10-min hold window.
+  const isLocked = status !== "draft";
 
   const submitNow = async () => {
     if (!id) return;
-    if (!window.confirm("Submit this Job Card?\n\nIt will enter a 10-minute hold window where you can still edit, cancel, or release it early. After 10 minutes it locks and goes to BC.")) return;
+    if (!window.confirm("Submit this Job Card to BC?\n\nIt will sit in BC's inbox until they pick it up. Invoices + payment advices are generated then.")) return;
     setActing(true);
     try {
       await api.submitMyDraftSubmission(id);
-      toast.success("Submitted - 10 minutes to edit before BC sees it.");
+      toast.success("Submitted to BC.");
       const r = await api.getMySubmission(id);
       setSubmission(r.submission);
       setItems(r.items);
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : "Submit failed");
-    } finally {
-      setActing(false);
-    }
-  };
-
-  // Skip the 10-minute hold and lock immediately.
-  const releaseNow = async () => {
-    if (!id) return;
-    if (!window.confirm("Send to BC right now? This will LOCK the Job Card immediately.")) return;
-    setActing(true);
-    try {
-      await api.releaseMyHeldSubmission(id);
-      toast.success("Sent to BC - locked.");
-      const r = await api.getMySubmission(id);
-      setSubmission(r.submission);
-      setItems(r.items);
-    } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : "Release failed");
-    } finally {
-      setActing(false);
-    }
-  };
-
-  // Pull the card back to draft for further editing.
-  const cancelHold = async () => {
-    if (!id) return;
-    setActing(true);
-    try {
-      await api.cancelMyHeldSubmission(id);
-      toast.success("Back to draft - keep editing.");
-      const r = await api.getMySubmission(id);
-      setSubmission(r.submission);
-      setItems(r.items);
-    } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : "Failed to cancel hold");
     } finally {
       setActing(false);
     }
@@ -248,21 +211,6 @@ export function PrimarySubmissionDetail() {
               Submit to BC
             </Button>
           </div>
-        ) : isHeld ? (
-          <div className="flex gap-2 flex-wrap">
-            <Button variant="ghost" onClick={exportCsv} leftIcon={<Download className="h-4 w-4" />}>
-              Download CSV
-            </Button>
-            <Button variant="outline" onClick={cancelHold} loading={acting} leftIcon={<Edit3 className="h-4 w-4" />}>
-              Cancel + edit
-            </Button>
-            <Button variant="outline" onClick={() => nav(`/primary/submissions/${submission.id}/edit`)} leftIcon={<Edit3 className="h-4 w-4" />}>
-              Edit
-            </Button>
-            <Button variant="accent" onClick={releaseNow} loading={acting} leftIcon={<Send className="h-4 w-4" />}>
-              Send to BC now
-            </Button>
-          </div>
         ) : isLocked ? (
           // Locked Job Card: principal cannot edit directly, but they
           // CAN ask BC to flip the status (back to draft, etc.) or to
@@ -271,9 +219,6 @@ export function PrimarySubmissionDetail() {
           // always available so the principal can hand the line items
           // to their accountant.
           <div className="flex flex-wrap gap-2 items-center">
-            {status === "submitted" && (
-              <Badge tone="warn"><Lock className="h-3 w-3 inline mr-1" />Locked - awaiting BC</Badge>
-            )}
             <Button variant="ghost" onClick={exportCsv} leftIcon={<Download className="h-4 w-4" />}>
               Download CSV
             </Button>
@@ -291,10 +236,6 @@ export function PrimarySubmissionDetail() {
       <Link to="/primary/submissions" className="inline-flex items-center gap-1 text-sm text-ink-600 hover:text-ink-900 mb-6">
         <ArrowLeft className="h-4 w-4" /> Back to Jobs Posted
       </Link>
-
-      {isHeld && submission.autoSubmitAt && (
-        <HoldBanner releaseAt={submission.autoSubmitAt} />
-      )}
 
       <div className="grid md:grid-cols-4 gap-4 mb-8">
         <div className="card-padded">
@@ -454,30 +395,25 @@ export function PrimarySubmissionDetail() {
               <th className="px-3 py-2 text-right">Qty</th>
               <th className="px-3 py-2 text-right">Rate</th>
               <th className="px-3 py-2 text-right">Gross</th>
-              <th className="px-3 py-2">Status</th>
             </tr>
           </thead>
           <tbody>
             {items.map((it) => (
               <tr key={it.id} className={`border-b border-ink-100 last:border-b-0 ${!it.matched ? "bg-amber-50/40" : ""}`}>
                 <td className="px-3 py-2 font-mono text-xs">{it.subcontractorRef || "-"}</td>
-                <td className="px-3 py-2">{it.subcontractorName || "-"}</td>
+                <td className="px-3 py-2">
+                  {it.subcontractorName || "-"}
+                  {!it.matched && (
+                    <span className="ml-2 text-amber-700 text-xs inline-flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" /> unmatched
+                    </span>
+                  )}
+                </td>
                 <td className="px-3 py-2 text-ink-600">{it.jobNumber || "-"}</td>
                 <td className="px-3 py-2 text-ink-600">{it.siteAddress || "-"}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{it.quantity.toFixed(2)}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{fmtMoney(it.rateMinor)}</td>
                 <td className="px-3 py-2 text-right tabular-nums font-medium">{fmtMoney(it.grossMinor)}</td>
-                <td className="px-3 py-2">
-                  {it.paymentId ? (
-                    <Badge tone="success">processed</Badge>
-                  ) : it.matched ? (
-                    <Badge tone="info">matched</Badge>
-                  ) : (
-                    <span className="text-amber-700 text-xs flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3" /> unmatched
-                    </span>
-                  )}
-                </td>
               </tr>
             ))}
           </tbody>
@@ -487,28 +423,3 @@ export function PrimarySubmissionDetail() {
   );
 }
 
-// Countdown banner shown while the Job Card is in its 10-minute hold
-// window. Updates every second so the principal sees the timer tick down.
-function HoldBanner({ releaseAt }: { releaseAt: number }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
-  const remainingMs = Math.max(0, releaseAt - now);
-  const mins = Math.floor(remainingMs / 60000);
-  const secs = Math.floor((remainingMs % 60000) / 1000);
-  return (
-    <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 mb-5 flex items-start gap-3">
-      <Lock className="h-4 w-4 text-amber-700 mt-0.5 shrink-0" />
-      <div className="flex-1">
-        <div className="text-sm font-semibold text-amber-900">
-          Hold window - locks in {mins}:{secs.toString().padStart(2, "0")}
-        </div>
-        <div className="text-xs text-amber-800 mt-0.5">
-          You have 10 minutes after submitting to fix anything. After the timer hits zero, the Job Card auto-sends to BC and you can't edit. Use "Cancel + edit" to keep working, or "Send to BC now" to lock immediately.
-        </div>
-      </div>
-    </div>
-  );
-}

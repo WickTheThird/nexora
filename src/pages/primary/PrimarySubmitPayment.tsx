@@ -341,13 +341,11 @@ export function PrimarySubmitPayment() {
   // "Calculate" button. The Calculate button is still here for users who
   // expect to click it - it just animates the totals panel.)
   const totals = useMemo(() => {
-    const totalGrossMinor = rows.reduce((s, r) => {
-      const q = parseFloat(r.quantity) || 0;
-      const rt = parseFloat(r.rate) || 0;
-      const m = parseFloat(r.materialValue) || 0;
-      const e = parseFloat(r.extras) || 0;
-      return s + Math.round((q * rt + m + e) * 100);
-    }, 0);
+    // Use rowGrossMinor so the override is respected: rows with a
+    // Gross typed in directly win over the breakdown calculation.
+    // Without this the override didn't propagate into Total Gross /
+    // Total to Pay BC.
+    const totalGrossMinor = rows.reduce((s, r) => s + rowGrossMinor(r), 0);
     const overrideMinor = lessSubsOverride.trim()
       ? Math.round((parseFloat(lessSubsOverride) || 0) * 100)
       : null;
@@ -454,6 +452,21 @@ export function PrimarySubmitPayment() {
   const submitJobCard = async () => {
     const cleaned = buildItems(true);
     if (cleaned.length === 0) { toast.error("No rows have a quantity > 0. Fill at least one operative's hours/days."); return; }
+    // Site required on every line. Without it the downstream
+    // primary_invoices lose their site_id link (snapshot reads "Multiple
+    // sites" / null) and per-site reporting silently drops the row.
+    // Validate before sending so the principal fixes it now rather than
+    // discovering it later in the admin Jobs list.
+    const missingSite = rows
+      .map((r, i) => ({ r, i }))
+      .filter(({ r }) => (parseFloat(r.quantity) || 0) > 0 && !r.siteAddress);
+    if (missingSite.length > 0) {
+      const labels = missingSite
+        .map(({ r, i }) => r.subcontractorName || r.subcontractorRef || `Row ${i + 1}`)
+        .join(", ");
+      toast.error(`Site is required for: ${labels}. Pick a Site ID for every operative before submitting.`);
+      return;
+    }
     // Hours cap: refuse if any row exceeds the period ceiling.
     const cap = hoursCapFor(jobCardType);
     const offenders = rows.filter(r => (parseFloat(r.quantity) || 0) > cap);
@@ -757,22 +770,38 @@ export function PrimarySubmitPayment() {
                   </td>
                   <td className="px-2 py-2">
                     <div className="flex items-center gap-1">
-                      {sites.length > 0 ? (
-                        <select
-                          className="min-w-[140px] px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none bg-white"
-                          value={row.siteAddress}
-                          onChange={(ev) => updateRow(i, "siteAddress", ev.target.value)}
-                        >
-                          <option value="">- Site ID -</option>
-                          {sites.map((s) => (
-                            <option key={s.id} value={s.siteId}>
-                              {s.siteId}{s.projectName ? ` - ${s.projectName}` : ""}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input className="min-w-[120px] px-2 py-1 text-sm rounded border border-ink-200 focus:border-ink-900 outline-none" value={row.siteAddress} onChange={(ev) => updateRow(i, "siteAddress", ev.target.value)} placeholder="Site" />
-                      )}
+                      {(() => {
+                        // Red-border highlight when the row has hours
+                        // but no Site - matches the submit-time
+                        // validation so the user spots empties without
+                        // hunting through the table.
+                        const qty = parseFloat(row.quantity) || 0;
+                        const missingSite = qty > 0 && !row.siteAddress;
+                        const borderCls = missingSite
+                          ? "border-red-400 bg-red-50 focus:border-red-500"
+                          : "border-ink-200 focus:border-ink-900";
+                        return sites.length > 0 ? (
+                          <select
+                            className={`min-w-[140px] px-2 py-1 text-sm rounded border outline-none bg-white ${borderCls}`}
+                            value={row.siteAddress}
+                            onChange={(ev) => updateRow(i, "siteAddress", ev.target.value)}
+                          >
+                            <option value="">- Site ID -</option>
+                            {sites.map((s) => (
+                              <option key={s.id} value={s.siteId}>
+                                {s.siteId}{s.projectName ? ` - ${s.projectName}` : ""}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            className={`min-w-[120px] px-2 py-1 text-sm rounded border outline-none ${borderCls}`}
+                            value={row.siteAddress}
+                            onChange={(ev) => updateRow(i, "siteAddress", ev.target.value)}
+                            placeholder="Site"
+                          />
+                        );
+                      })()}
                       <button
                         type="button"
                         onClick={async () => {

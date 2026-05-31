@@ -35,6 +35,7 @@ type Row = {
   kind: "submission" | "tender";
   ref: string;
   primaryName: string | null;
+  siteLabel: string | null;
   status: string;
   visibility?: string;
   itemCount?: number;
@@ -42,6 +43,15 @@ type Row = {
   createdAt: number;
   detailHref: string;
 };
+
+// Compact "Site" rendering for a submission's distinct site list.
+// One site: show the code. Multiple: show the first + "+N more".
+// None (legacy / unmatched): null so we fall back to a dash.
+function siteLabelFor(codes: string[] | undefined): string | null {
+  if (!codes || codes.length === 0) return null;
+  if (codes.length === 1) return codes[0];
+  return `${codes[0]} +${codes.length - 1} more`;
+}
 
 export function AdminJobs() {
   const toast = useToast();
@@ -73,7 +83,8 @@ export function AdminJobs() {
       id: `sub-${s.id}`,
       kind: "submission",
       ref: s.jobRef || s.id.slice(0, 8),
-      primaryName: null,
+      primaryName: s.primaryName ?? null,
+      siteLabel: siteLabelFor(s.siteCodes),
       status: s.status,
       itemCount: s.itemCount,
       totalGrossMinor: s.totalGrossMinor,
@@ -85,6 +96,7 @@ export function AdminJobs() {
       kind: "tender",
       ref: t.jobRef || t.id.slice(0, 8),
       primaryName: t.primaryName,
+      siteLabel: null,
       status: t.status,
       visibility: t.visibility,
       createdAt: t.createdAt,
@@ -116,6 +128,7 @@ export function AdminJobs() {
       r = r.filter(x =>
         x.ref.toLowerCase().includes(q) ||
         (x.primaryName || "").toLowerCase().includes(q) ||
+        (x.siteLabel || "").toLowerCase().includes(q) ||
         x.status.toLowerCase().includes(q)
       );
     }
@@ -126,6 +139,7 @@ export function AdminJobs() {
     exportRowsAsCsv(`admin-jobs-${new Date().toISOString().slice(0,10)}.csv`, filtered, [
       { header: "Type",       value: r => r.kind === "tender" ? "Tender post" : "Job Card" },
       { header: "Ref",        value: r => r.ref },
+      { header: "Site",       value: r => r.siteLabel ?? "" },
       { header: "Principal",  value: r => r.primaryName ?? "" },
       { header: "Status",     value: r => r.status },
       { header: "Visibility", value: r => r.visibility ?? "" },
@@ -171,7 +185,7 @@ export function AdminJobs() {
       <div className="card-padded mb-4 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
         <Input
           label="Search"
-          placeholder="Ref, principal, status..."
+          placeholder="Ref, site, principal, status..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -202,6 +216,7 @@ export function AdminJobs() {
               <tr className="text-left text-xs uppercase tracking-wider text-ink-500 font-semibold">
                 <th className="px-5 py-3">Type</th>
                 <th className="px-5 py-3">Ref</th>
+                <th className="px-5 py-3">Site</th>
                 <th className="px-5 py-3">Principal</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3 text-right">Items</th>
@@ -221,6 +236,9 @@ export function AdminJobs() {
                     )}
                   </td>
                   <td className="px-5 py-3 font-mono text-xs font-semibold text-ink-900">{r.ref}</td>
+                  <td className="px-5 py-3 font-mono text-xs text-ink-800">
+                    {r.siteLabel || <span className="text-ink-400 font-sans">-</span>}
+                  </td>
                   <td className="px-5 py-3 text-ink-700">{r.primaryName || <span className="text-ink-400">-</span>}</td>
                   <td className="px-5 py-3">
                     <Badge tone={

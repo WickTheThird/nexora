@@ -811,8 +811,17 @@ function generateBcInvoicePdf(inv: InvoicePayload, brandName: string): jsPDF {
   const gross = inv.grossAmountMinor != null ? inv.grossAmountMinor : inv.totals.gross;
   const vat = inv.vatAmountMinor != null ? inv.vatAmountMinor : 0;
   const net = inv.netAmountMinor != null ? inv.netAmountMinor : gross + vat;
-  const vatRate = inv.template ? null : null; // computed below from vat/gross
-  const vatRatePercent = gross > 0 ? Math.round((vat / gross) * 1000) / 10 : 0;
+  // VAT rate display logic:
+  //  - If VAT was actually charged (service invoices, admin fees, etc.)
+  //    derive the percent from the amounts.
+  //  - If VAT is 0 (the standard labour pass-through case under RCT
+  //    reverse-charge), show the headline snapshot rate so the principal
+  //    sees what they need to account for on their VAT3 return. Falls
+  //    back to 13.5% which is the Irish reduced rate for construction.
+  const vatRateForDisplay = vat > 0
+    ? (gross > 0 ? Math.round((vat / gross) * 1000) / 10 : 0)
+    : (inv.vatRatePercent != null ? inv.vatRatePercent : 13.5);
+  const vatRateLabel = `${vatRateForDisplay}%`;
 
   const detailLines: string[] = [];
   if (inv.invoiceKind === "service") {
@@ -831,7 +840,7 @@ function generateBcInvoicePdf(inv: InvoicePayload, brandName: string): jsPDF {
       detailLines.join("\n"),
       fmtMoneyMinor(gross, currency),
       fmtMoneyMinor(gross, currency),
-      vat > 0 ? `${vatRatePercent}%` : "0%",
+      vatRateLabel,
     ]],
     margin: { left: margin, right: margin },
     styles: { font: "helvetica", fontSize: 10, cellPadding: 6, valign: "top" },

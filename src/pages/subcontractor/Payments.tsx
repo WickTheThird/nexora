@@ -170,9 +170,13 @@ export function Payments() {
           accountantEmail: sub.accountantEmail,
         },
         brandName(),
-        "invoice",
+        // Sub side legally cannot issue invoices under RCT reverse-
+        // charge - we send them "Payment Advice" documents instead.
+        // The "advice" mode (default) renders the doc with that
+        // title + the Subcontractor Payment Advice layout.
+        "advice",
       );
-      toast.success("Invoice PDF downloaded");
+      toast.success("Payment advice downloaded");
     } catch {
       toast.error("Failed to generate PDF");
     } finally {
@@ -425,7 +429,7 @@ export function Payments() {
                         <th className="px-5 py-3">Date</th>
                         <th className="px-5 py-3">Period</th>
                         <th className="px-5 py-3">Hours</th>
-                        <th className="px-5 py-3">Invoice #</th>
+                        <th className="px-5 py-3">Reference</th>
                         <th className="px-5 py-3">Status</th>
                         <th className="px-5 py-3 text-right">Gross</th>
                         <th className="px-5 py-3 text-right">RCT</th>

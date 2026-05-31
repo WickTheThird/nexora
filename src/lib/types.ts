@@ -141,6 +141,11 @@ export interface InvoicePayload {
   vatAmountMinor?: number;
   grossAmountMinor?: number;
   netAmountMinor?: number;
+  // VAT rate snapshot (percent) from primary_invoices.vat_rate_percent_snapshot.
+  // Used by the BC invoice PDF to display the headline rate (13.5% for
+  // RCT construction services) even when vatAmountMinor is 0 due to
+  // VAT reverse-charge. Renders in the "VAT Rate" column.
+  vatRatePercent?: number | null;
   principal: {
     name: string | null;
     address: string | null;
@@ -331,19 +336,20 @@ export interface QuestionnaireRecord {
 // Status of a primary-tier invoice (BC → developer).
 export type PrimaryInvoiceStatus = "draft" | "sent" | "paid" | "cancelled";
 
-// Status of a primary submission (developer's payment data sent to BC for processing).
-// 'held' is the 10-minute grace window after the principal hits Submit -
-// the row is still editable; auto-promotes to 'submitted' when the
-// auto_submit_at timestamp passes.
+// Status of a primary submission. Visible states: submitted, processing,
+// completed. (draft + rejected exist internally but aren't part of the
+// "happy path" the user thinks about.)
+//   draft      = principal still editing
+//   submitted  = principal hit Submit. Invoices + payment_records auto-
+//                generated; row waiting for admin to start paying.
+//   processing = admin has marked at least one payment paid, but not
+//                all of them.
+//   completed  = every payment_record marked paid.
+//   rejected   = admin refused.
 export type PrimarySubmissionStatus =
   | "draft"
-  | "held"
   | "submitted"
   | "processing"
-  // Invoices issued + payment_records created, but not all payments
-  // have been settled by admin yet. Auto-promotes to 'completed'
-  // when the last payment_record is marked paid.
-  | "awaiting_payment"
   | "completed"
   | "rejected";
 
@@ -393,9 +399,14 @@ export interface PrimarySubmission {
   // older rows; new submissions always set them.
   jobCardType: JobCardType | null;
   dateEnding: string | null;
-  // ms-epoch when a 'held' submission auto-promotes to 'submitted'.
-  // Null when status is anything other than 'held'.
-  autoSubmitAt: number | null;
+  /** Distinct site codes touched by this Job Card. Populated by the
+   *  admin list endpoint via a GROUP_CONCAT subquery; undefined on
+   *  point-reads (the detail view has per-line items already). */
+  siteCodes?: string[];
+  /** Principal/developer name. Populated by the admin list endpoint
+   *  via a JOIN on primaries.name; undefined on point-reads (the
+   *  detail view loads the full primary record separately). */
+  primaryName?: string;
   createdAt: number;
   // Enagh-parity: surface the auto-generated principal invoice number on
   // the list view. Populated only after admin Process step completes;

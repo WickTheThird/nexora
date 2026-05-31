@@ -18,8 +18,9 @@ worker.ts
 # DB migrations are applied via `wrangler d1 execute --file=...` and
 # already reflected in the live schema. Each is a one-shot artifact
 # tied to a specific deploy; keeping them in the public repo adds
-# noise without adding capability.
+# noise without adding capability. Now collected under migrations/.
 migrate-*.sql
+migrations/
 
 # Local-only UML flow diagrams. Kept under docs/flows/ for in-repo
 # reference but explicitly NOT shipped to the public repo.

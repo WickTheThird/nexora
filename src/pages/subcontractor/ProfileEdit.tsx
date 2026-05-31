@@ -227,6 +227,46 @@ export function ProfileEdit() {
     }
     setSubmitting(true);
     try {
+      // Save first, THEN submit. Previously the Submit button only fired
+      // POST /me/profile/submit and relied on the user having clicked
+      // Save earlier; if they hadn't (or Save errored silently, or the
+      // form was repopulated after a stub adoption wipe), the server
+      // would see an empty DB row and reject with "missing required
+      // fields" even though every input on screen was filled. Saving
+      // here also pushes the latest values + triggers stub adoption
+      // (PPS hash match) so submit always runs against the final sub row.
+      if (sub && bank) {
+        const newSub = await api.patchMyProfile({
+          fullName: sub.fullName,
+          address1: sub.address1,
+          address2: sub.address2,
+          town: sub.town,
+          postcode: sub.postcode,
+          dob: sub.dob,
+          placeOfBirth: sub.placeOfBirth,
+          tel: sub.tel,
+          mob: sub.mob,
+          email: sub.email,
+          ppsNumber: sub.ppsNumber,
+          natureOfServices: sub.natureOfServices,
+          workType: sub.workType,
+          vatRegistered: sub.vatRegistered,
+          vatNumber: sub.vatNumber,
+          accountantEmail: sub.accountantEmail,
+        });
+        const newBank = await api.patchMyBank({
+          bankName: bank.bankName,
+          accountHolderName: bank.accountHolderName,
+          accountNumber: bank.accountNumber,
+          sortCode: bank.sortCode,
+          iban: bank.iban,
+          bic: bank.bic,
+          bankRef: bank.bankRef,
+          currency: bank.currency,
+        });
+        setSub(newSub);
+        setBank(newBank);
+      }
       const r = await api.submitMyProfile();
       toast.success("Application submitted for review");
       setSub((prev) =>

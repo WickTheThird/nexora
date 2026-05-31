@@ -39,8 +39,5 @@ bucket_name = "nexora-projects"
 #                14-day pre-expiry warning email + the at-expiry
 #                alert (sub + admin), dedup'd via the
 #                document_expiry_notifications table.
-#
-# Held Job Card submissions auto-release via lazy promotion on the
-# next admin read, not via a cron tick.
 [triggers]
 crons = ["0 6 * * *"]
