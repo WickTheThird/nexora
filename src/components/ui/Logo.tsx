@@ -13,9 +13,9 @@
 // is mounted under a sub-path (e.g. GitHub Pages serves us from /nexora/).
 // Cast via `unknown` because the project lacks /// <reference vite/client>.
 const BASE = ((import.meta as unknown) as { env: { BASE_URL: string } }).env.BASE_URL;
-// Asset name kept brand-neutral so a future re-skin doesn't require
-// renaming the file in /public. Currently still points at the
-// samwise-icon.png until the new Fintrex logo lands in /public.
+// Loaded from /public/fintrex-icon.png. The current PNG is a
+// placeholder copy of the previous brand's mark until new artwork
+// lands - swap the file in place, no code change needed.
 const ICON_URL = `${BASE}fintrex-icon.png`;
 
 export function Logo({
