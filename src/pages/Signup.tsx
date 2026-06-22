@@ -210,7 +210,7 @@ export function Signup() {
               : <>Create a <span className="text-accent-400">Subcontractor</span> account.</>}
           </h2>
         </div>
-        <div className="relative text-xs text-ink-500">© {new Date().getFullYear()} Samwise · BC</div>
+        <div className="relative text-xs text-ink-500">© {new Date().getFullYear()} Fintrex Contractors</div>
       </aside>
 
       <div className="flex items-center justify-center p-6 sm:p-10">

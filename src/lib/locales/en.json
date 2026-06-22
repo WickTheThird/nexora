@@ -54,7 +54,7 @@
     "noAccount": "Don't have an account?",
     "fullName": "Full name",
     "loginTitle": "Sign in to your portal",
-    "loginSubtitle": "Welcome back to Samwise.",
+    "loginSubtitle": "Welcome back to Fintrex Contractors.",
     "signupSubcontractor": "Sign up as a Subcontractor",
     "signupPrimary": "Sign up as a Principal",
     "checkYourEmail": "Check your email",
@@ -336,7 +336,7 @@
     "privacy": "Privacy notice",
     "privacyBody": "How we collect, store and use your personal data under GDPR.",
     "terms": "Terms of service",
-    "termsBody": "The platform terms that apply to your use of the Samwise portal."
+    "termsBody": "The platform terms that apply to your use of the Fintrex Contractors portal."
   },
   "footer": {
     "rights": "© {{year}} {{name}}, All Rights Reserved",

@@ -132,7 +132,7 @@ export function PortalShell({
           target="_blank"
           rel="noopener"
           className="mx-3 mb-1 flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-ink-500 hover:bg-ink-100 hover:text-ink-800 transition"
-          title="How Samwise works"
+          title="How Fintrex Contractors works"
         >
           <HelpCircle className="h-4 w-4" />
           <span>How it works</span>

@@ -63,7 +63,7 @@ function taxLiabilityLabel(rate: string | null): string {
 
 export function generateInvoicePdf(
   inv: InvoicePayload,
-  brandName = "Samwise",
+  brandName = "Fintrex Contractors",
   mode: PdfMode = "advice",
 ): jsPDF {
   if (mode === "bc_invoice") return generateBcInvoicePdf(inv, brandName);
@@ -317,9 +317,9 @@ function generatePaymentAdvicePdf(inv: InvoicePayload, brandName: string): jsPDF
   };
   // Canonical acceptance clause - user's verbatim wording, with the
   // contractor name interpolated from the payload + the contract URL.
-  const contractorName = inv.principal.name || `${brandName} Building Contractors Ltd`;
+  const contractorName = inv.principal.name || `${brandName} Contractors Ltd`;
   // Strip protocol from the URL for the rendered clause.
-  const contractUrl = "samwisebc.com/legal/contract";
+  const contractUrl = "fintrexcontractors.com/legal/contract";
   writeLines(
     `By accepting this payment, and by continuing to provide services to ${contractorName} or its clients, you acknowledge that you have had the opportunity to review the Contract for Services available at ${contractUrl}, and agree to be bound by its terms in respect of all services provided.`,
     pageWidth - margin * 2,
@@ -1148,7 +1148,7 @@ export function downloadRctSummaryPdf(payload: RctSummaryPayload): void {
 
 export function invoiceMailto(
   inv: InvoicePayload,
-  brandName = "Samwise",
+  brandName = "Fintrex Contractors",
   mode: PdfMode = "advice",
 ): string {
   const isInvoice = mode === "invoice";

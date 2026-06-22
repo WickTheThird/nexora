@@ -68,7 +68,7 @@ export function LegalContract() {
       .then((r) => r.json())
       .then((j) => setBranding(j.data || j))
       .catch(() => setBranding({
-        contractorName: "Samwise Building Contractors Ltd",
+        contractorName: "Fintrex Contractors Ltd",
         contractorAddress: null,
         contractorRegNumber: null,
         contractorSignatoryName: "JP Donnelly",

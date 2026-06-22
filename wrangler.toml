@@ -1,4 +1,6 @@
-# Cloudflare Worker config for the Samwise API.
+# Cloudflare Worker config for the Fintrex Contractors API.
+# (Internal worker name `nexora-api` is kept; it's just the
+# deployment artifact, decoupled from the public brand.)
 #
 # Setup checklist (one-time):
 #   1. npm install -D wrangler
@@ -21,6 +23,22 @@
 name = "nexora-api"
 main = "worker.js"
 compatibility_date = "2025-01-01"
+
+# Keep the default *.workers.dev URL alive alongside the custom domain.
+# Without this, declaring [[routes]] below auto-disables workers.dev
+# and breaks any frontend still pointing at the old URL (samwisebc.com
+# during the rebrand transition).
+workers_dev = true
+
+# Custom domain binding (added 2026-06 during Samwise → Fintrex rebrand).
+# Reachable at https://api.fintrexcontractors.com in addition to the
+# default https://nexora-api.bumbufilip22.workers.dev URL. Cloudflare
+# auto-provisions the DNS record + SSL cert on deploy. Requires the
+# `fintrexcontractors.com` zone to be in this Cloudflare account.
+[[routes]]
+pattern = "api.fintrexcontractors.com"
+zone_name = "fintrexcontractors.com"
+custom_domain = true
 
 # D1 binding - env.DB in worker.js. Database itself was created via the
 # dashboard ("nexora"). Get its UUID from `npx wrangler d1 list`.

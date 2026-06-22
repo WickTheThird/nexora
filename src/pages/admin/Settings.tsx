@@ -298,7 +298,7 @@ export function Settings() {
                 label="Bank account name"
                 value={data.bc_bank_account_name || ""}
                 onChange={(e) => set("bc_bank_account_name", e.target.value || null)}
-                placeholder="Samwise Building Contractors Ltd"
+                placeholder="Fintrex Contractors Ltd"
               />
               <Input
                 label="BIC"
@@ -344,7 +344,7 @@ export function Settings() {
                 label="Website"
                 value={data.bc_website || ""}
                 onChange={(e) => set("bc_website", e.target.value || null)}
-                placeholder="www.samwisebc.com"
+                placeholder="www.fintrexcontractors.com"
               />
             </div>
             <Input

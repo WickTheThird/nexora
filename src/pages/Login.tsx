@@ -97,7 +97,7 @@ export function Login() {
           </h2>
         </div>
         <div className="relative text-xs text-ink-500">
-          © {new Date().getFullYear()} Samwise · bc
+          © {new Date().getFullYear()} Fintrex Contractors
         </div>
       </div>
 

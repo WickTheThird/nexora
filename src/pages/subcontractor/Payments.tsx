@@ -49,7 +49,7 @@ export function Payments() {
   const toast = useToast();
   const [items, setItems] = useState<PaymentRecord[]>([]);
   const [sub, setSub] = useState<Subcontractor | null>(null);
-  // BC company info (Samwise) fetched from /public/branding so the
+  // BC company info (Fintrex) fetched from /public/branding so the
   // sub's invoice "BILL TO" block shows the real contracting party
   // (BC) instead of the placeholder "[Principal]". Under RCT
   // reverse-charge, the sub invoices BC, not the developer.
@@ -132,11 +132,11 @@ export function Payments() {
           issuedAt: new Date(p.invoicedAt || p.createdAt).toISOString(),
           period: { from: p.periodStart || p.paymentDate, to: p.periodEnd || p.paymentDate },
           invoiceNumber: p.invoiceNumber || p.id,
-          // BILL TO = BC (Samwise) under RCT reverse-charge. The
+          // BILL TO = BC (Fintrex) under RCT reverse-charge. The
           // developer-principal is not the recipient of this
           // invoice; that's a separate BC->developer invoice.
           principal: {
-            name: bcBranding?.contractorName || "Samwise Building Contractors Ltd",
+            name: bcBranding?.contractorName || "Fintrex Contractors Ltd",
             address: bcBranding?.contractorAddress || null,
             vat: bcBranding?.contractorVat || null,
             email: bcBranding?.contractorEmail || null,

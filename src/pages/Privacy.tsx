@@ -30,8 +30,8 @@ export function PrivacyPolicy({ showHeader = true }: { showHeader?: boolean }) {
 
         <h2>1. Who we are</h2>
         <p>
-          This portal ("the Service" or "Samwise") is operated by{" "}
-          <strong>Samwise Building Contractors Ltd</strong> (the "Operator" /
+          This portal ("the Service" or "Fintrex") is operated by{" "}
+          <strong>Fintrex Contractors Ltd</strong> (the "Operator" /
           "Controller" / "Principal Contractor"). Any reference to "we", "us",
           or "our" means the Operator. For questions relating to the processing
           of your personal data, contact us at{" "}
@@ -42,11 +42,11 @@ export function PrivacyPolicy({ showHeader = true }: { showHeader?: boolean }) {
         </p>
         <ul>
           <li><strong>Principals</strong> (developers / main contractors who hire the Operator) - given a read-mostly portal showing their linked subcontractors and the invoices the Operator has issued to them, plus the ability to submit payment data to the Operator for processing.</li>
-          <li><strong>The Operator</strong> (Samwise Building Contractors Ltd) - administers the platform, onboards subcontractors, processes payments, and issues consolidated invoices to Principals.</li>
+          <li><strong>The Operator</strong> (Fintrex Contractors Ltd) - administers the platform, onboards subcontractors, processes payments, and issues consolidated invoices to Principals.</li>
           <li><strong>Subcontractors</strong> - sole traders engaged by the Operator; given a self-service portal to manage their profile, contract, timesheets and payments.</li>
         </ul>
         <p className="rounded-lg bg-ink-100 border border-ink-200 p-3 text-sm not-prose">
-          <strong>Disclaimer.</strong> Samwise is not affiliated with, endorsed by,
+          <strong>Disclaimer.</strong> Fintrex Contractors is not affiliated with, endorsed by,
           or operated on behalf of the Revenue Commissioners or any other
           government agency. The Operator is a Principal Contractor in its own
           right and remains solely responsible for its compliance with the

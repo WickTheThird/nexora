@@ -54,7 +54,7 @@
     "noAccount": "Nu ai cont?",
     "fullName": "Nume complet",
     "loginTitle": "Autentifică-te în portal",
-    "loginSubtitle": "Bine ai revenit pe Samwise.",
+    "loginSubtitle": "Bine ai revenit pe Fintrex Contractors.",
     "signupSubcontractor": "Înregistrează-te ca Subcontractor",
     "signupPrimary": "Înregistrează-te ca Principal",
     "checkYourEmail": "Verifică-ți emailul",
@@ -336,7 +336,7 @@
     "privacy": "Notă de confidențialitate",
     "privacyBody": "Cum colectăm, stocăm și folosim datele tale personale conform GDPR.",
     "terms": "Termeni și condiții",
-    "termsBody": "Termenii platformei aplicabili folosirii portalului Samwise."
+    "termsBody": "Termenii platformei aplicabili folosirii portalului Fintrex Contractors."
   },
   "footer": {
     "rights": "© {{year}} {{name}}, Toate drepturile rezervate",

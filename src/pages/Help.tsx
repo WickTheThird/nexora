@@ -62,7 +62,7 @@ export function Help() {
           </div>
         </div>
 
-        <h1 className="text-3xl font-bold text-ink-900 mb-2">How Samwise works</h1>
+        <h1 className="text-3xl font-bold text-ink-900 mb-2">How Fintrex Contractors works</h1>
         <p className="text-ink-600 mb-6">
           A 3-tier portal connecting BC Construction (admin), Principal contractors, and Subcontractors.
         </p>

@@ -37,8 +37,8 @@ export function Terms() {
 
         <h2>1. Definitions</h2>
         <p>
-          "Service" means the Samwise portal accessible via a web browser.
-          "Operator" means <strong>Samwise Building Contractors Ltd</strong>,
+          "Service" means the Fintrex Contractors portal accessible via a web browser.
+          "Operator" means <strong>Fintrex Contractors Ltd</strong>,
           the company operating the Service. "Principal" means a developer or
           main contractor who hires the Operator and is granted access to
           their own scoped portal. "Subcontractor" means a sole trader engaged
@@ -78,7 +78,7 @@ export function Terms() {
         <p>
           The Service records information used by the Operator to comply with
           the Relevant Contracts Tax (RCT) regime, VAT obligations and other
-          tax filings. <strong>Samwise is not affiliated with, endorsed by, or
+          tax filings. <strong>Fintrex Contractors is not affiliated with, endorsed by, or
           operated on behalf of the Revenue Commissioners.</strong>
         </p>
         <ul>

@@ -1,4 +1,4 @@
-// Service worker for Samwise sub portal.
+// Service worker for the Fintrex Contractors sub portal.
 //
 // Handles two things:
 //   1. push  - displays a notification when the server fires a VAPID push.
@@ -11,7 +11,7 @@
 // see the details. Future: parse encrypted payload for the real title/body.
 
 const NOTIF_DEFAULTS = {
-  icon: "/samwise-icon.png",
+  icon: "/fintrex-icon.png",
   badge: "/favicon-64.png",
 };
 
@@ -32,7 +32,7 @@ self.addEventListener("push", (event) => {
   } catch {
     data = { title: "New notification", body: "Tap to view." };
   }
-  const title = data.title || "Samwise";
+  const title = data.title || "Fintrex Contractors";
   const options = {
     body: data.body || "You have a new notification.",
     icon: NOTIF_DEFAULTS.icon,

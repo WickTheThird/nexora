@@ -1,6 +1,6 @@
-// Logo treatment for Samwise Building Contractors Ltd.
+// Logo treatment for Fintrex Contractors Ltd.
 //   Mark   = the circular construction emblem (icon-only PNG from /public)
-//   Wordmark = "Samwise" in display font + "Building Contractors" subtitle
+//   Wordmark = "Fintrex" in display font + "Contractors" subtitle
 //
 // Props:
 //   mark    - render just the badge (sidebar collapsed, mobile, etc.)
@@ -13,7 +13,10 @@
 // is mounted under a sub-path (e.g. GitHub Pages serves us from /nexora/).
 // Cast via `unknown` because the project lacks /// <reference vite/client>.
 const BASE = ((import.meta as unknown) as { env: { BASE_URL: string } }).env.BASE_URL;
-const ICON_URL = `${BASE}samwise-icon.png`;
+// Asset name kept brand-neutral so a future re-skin doesn't require
+// renaming the file in /public. Currently still points at the
+// samwise-icon.png until the new Fintrex logo lands in /public.
+const ICON_URL = `${BASE}fintrex-icon.png`;
 
 export function Logo({
   className = "",
@@ -32,17 +35,17 @@ export function Logo({
     <div className={`flex items-center gap-3 ${className}`}>
       <img
         src={ICON_URL}
-        alt="Samwise"
+        alt="Fintrex Contractors"
         className="h-9 w-9 rounded-md object-contain shrink-0"
         loading="eager"
       />
       {!mark && (
         <span className="flex flex-col leading-tight">
           <span className={`font-display font-bold tracking-tight text-[18px] ${titleClass}`}>
-            Samwise
+            Fintrex
           </span>
           <span className={`text-[10px] font-medium uppercase tracking-[0.12em] ${subtitleClass}`}>
-            Building Contractors
+            Contractors
           </span>
         </span>
       )}

@@ -1,4 +1,4 @@
-// Thin fetch wrapper that talks to the Samwise Worker API.
+// Thin fetch wrapper that talks to the Fintrex Contractors Worker API.
 // Reads the API base URL from runtime config (public/config.js), not from build
 // flags - so the SAME build artifact can be deployed to different domains.
 
@@ -34,22 +34,32 @@ declare global {
   interface Window {
     // Runtime config injected by public/config.js. Window-attached so it can
     // be edited in place after deployment without rebuilding the SPA.
+    //
+    // `__APP_CONFIG__` is the canonical name post-rebrand;
+    // `__SAMWISE_CONFIG__` is the legacy alias still set by config.js for
+    // backwards-compat with stale browser bundles. New code reads the
+    // canonical name first and falls back to the alias.
+    __APP_CONFIG__?: { apiUrl?: string; brand?: string };
     __SAMWISE_CONFIG__?: { apiUrl?: string; brand?: string };
   }
 }
 
+function runtimeConfig(): { apiUrl?: string; brand?: string } | undefined {
+  return window.__APP_CONFIG__ || window.__SAMWISE_CONFIG__;
+}
+
 function apiBase(): string {
-  const url = window.__SAMWISE_CONFIG__?.apiUrl;
+  const url = runtimeConfig()?.apiUrl;
   if (!url) {
     throw new Error(
-      "Samwise runtime config missing. Ensure /config.js defines window.__SAMWISE_CONFIG__.apiUrl",
+      "Runtime config missing. Ensure /config.js defines window.__APP_CONFIG__.apiUrl",
     );
   }
   return url.replace(/\/$/, "");
 }
 
 export function brandName(): string {
-  return window.__SAMWISE_CONFIG__?.brand || "Samwise";
+  return runtimeConfig()?.brand || "Fintrex Contractors";
 }
 
 // Token-based auth fallback for environments where third-party cookies are
@@ -137,7 +147,7 @@ async function request<T>(
     // redirect to /login instead of letting the page silently render zeros.
     if (code === "AUTH_REQUIRED" || code === "FORBIDDEN") {
       try {
-        window.dispatchEvent(new CustomEvent("samwise:auth-lost", { detail: { code } }));
+        window.dispatchEvent(new CustomEvent("app:auth-lost", { detail: { code } }));
       } catch { /* SSR / older browsers */ }
     }
     throw new ApiError(
@@ -268,7 +278,7 @@ export const api = {
     }),
   exportMyDataUrl: () =>
     // Returning URL so a plain <a> can download with credentials.
-    (window.__SAMWISE_CONFIG__?.apiUrl?.replace(/\/$/, "") || "") + "/me/export" + tokenQuery(),
+    (runtimeConfig()?.apiUrl?.replace(/\/$/, "") || "") + "/me/export" + tokenQuery(),
   submitErasureRequest: (reason?: string) =>
     request<{ id: string; note: string }>("POST", "/me/erasure-request", {
       body: { reason },

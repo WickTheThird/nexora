@@ -89,7 +89,7 @@ export function PrimaryInvoiceDetail() {
         userId: "",
         clientRef: null,
         subcontractorRef: null,
-        fullName: data.invoice.issuerName || "Samwise Building Contractors Ltd",
+        fullName: data.invoice.issuerName || "Fintrex Contractors Ltd",
         address1: data.invoice.issuerAddress || null,
         address2: null,
         town: null,

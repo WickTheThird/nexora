@@ -70,8 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       tokenStore.clear();
       setMe(null);
     };
-    window.addEventListener("samwise:auth-lost", onLost);
-    return () => window.removeEventListener("samwise:auth-lost", onLost);
+    window.addEventListener("app:auth-lost", onLost);
+    return () => window.removeEventListener("app:auth-lost", onLost);
   }, []);
 
   const login = async (email: string, password: string) => {
