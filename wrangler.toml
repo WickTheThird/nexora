@@ -15,10 +15,15 @@
 #   npm run worker:secret -- put BREVO_API_KEY     # set/rotate a secret
 #
 # Why we don't declare secrets in this file:
-#   AUTH_SECRET, BREVO_API_KEY, etc. are managed via `wrangler secret put`
-#   so they never land in git. EMAIL_FROM, APP_URL, ALLOWED_ORIGINS are
-#   already set as Plaintext vars in the dashboard - leaving them out of
-#   this file means wrangler won't overwrite them on deploy.
+#   AUTH_SECRET, BREVO_API_KEY, VAPID_PRIVATE_KEY etc. are managed via
+#   `wrangler secret put` so they never land in git.
+#
+# Plaintext vars convention (post-rebrand):
+#   EMAIL_FROM is declared in [vars] below so the sender address is
+#   versioned alongside the brand. APP_URL, ALLOWED_ORIGINS,
+#   VAPID_PUBLIC_KEY, VAPID_SUBJECT remain in the Cloudflare dashboard
+#   (declaring only EMAIL_FROM here adds/updates that var and leaves
+#   the others untouched - confirmed by Cloudflare docs).
 
 name = "nexora-api"
 main = "worker.js"
@@ -28,6 +33,8 @@ compatibility_date = "2025-01-01"
 # Without this, declaring [[routes]] below auto-disables workers.dev
 # and breaks any frontend still pointing at the old URL (samwisebc.com
 # during the rebrand transition).
+# IMPORTANT: this top-level key MUST appear BEFORE any [section] header,
+# otherwise TOML parses it as part of the previous table (e.g. vars.workers_dev).
 workers_dev = true
 
 # Custom domain binding (added 2026-06 during Samwise → Fintrex rebrand).
@@ -39,6 +46,12 @@ workers_dev = true
 pattern = "api.fintrexcontractors.com"
 zone_name = "fintrexcontractors.com"
 custom_domain = true
+
+# Plaintext env vars managed in this file (versioned alongside the brand).
+# Everything else (APP_URL, ALLOWED_ORIGINS, VAPID_*) stays in the
+# Cloudflare dashboard.
+[vars]
+EMAIL_FROM = "Fintrex Contractors <noreply@fintrexcontractors.com>"
 
 # D1 binding - env.DB in worker.js. Database itself was created via the
 # dashboard ("nexora"). Get its UUID from `npx wrangler d1 list`.
