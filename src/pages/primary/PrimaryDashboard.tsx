@@ -243,7 +243,7 @@ export function PrimaryDashboard() {
                   {primary.address && <div className="sm:col-span-2"><span className="text-ink-500">Address:</span> {primary.address}</div>}
                 </div>
                 <p className="text-xs text-ink-400 mt-4">
-                  To update any of these details, please contact BC Construction directly.
+                  To update any of these details, please contact Fintrex Contractors directly.
                 </p>
               </div>
 

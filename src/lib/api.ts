@@ -703,7 +703,7 @@ export const api = {
 
   // -------- primaries (admin) --------
   // Primary = top of the 3-tier hierarchy: developers / main contractors who
-  // hire BC Construction. Subs are linked to a primary; BC consolidates sub
+  // hire Fintrex Contractors. Subs are linked to a primary; BC consolidates sub
   // work and invoices the primary.
   adminListPrimaries: (includeArchived = false) =>
     request<{ items: Primary[] }>(

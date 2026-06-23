@@ -111,7 +111,7 @@ export function Settings() {
               label="Trading name"
               value={data.principal_name || ""}
               onChange={(e) => set("principal_name", e.target.value || null)}
-              placeholder="e.g. BC Construction Ltd"
+              placeholder="e.g. Fintrex Contractors Ltd"
             />
             <Textarea
               label="Address"

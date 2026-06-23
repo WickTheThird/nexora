@@ -437,7 +437,7 @@ export interface PrimarySubmissionItem {
   createdAt: number;
 }
 
-// An invoice issued by BC Construction (admin) to the primary (developer)
+// An invoice issued by Fintrex Contractors (admin) to the primary (developer)
 // for a period of work. Sums up all sub payments in the window for subs
 // linked to this primary, plus any markup.
 export interface PrimaryInvoice {
@@ -490,7 +490,7 @@ export interface PrimaryInvoice {
 }
 
 // Top of the 3-tier hierarchy: Primary (developer/main contractor) →
-// Admin (BC Construction) → Subcontractors. BC issues invoices UP to the
+// Admin (Fintrex Contractors) → Subcontractors. BC issues invoices UP to the
 // primary by consolidating sub work; subs invoice DOWN to BC.
 export interface Primary {
   id: string;

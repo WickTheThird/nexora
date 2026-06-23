@@ -1010,7 +1010,7 @@ export function PrimarySubmitPayment() {
         <div className="pb-sig">
           <div>Prepared by (name &amp; signature)</div>
           <div>Date</div>
-          <div>BC Construction stamp</div>
+          <div>Fintrex Contractors stamp</div>
         </div>
       </div>
     </>

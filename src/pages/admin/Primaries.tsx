@@ -15,7 +15,7 @@ import { Building2, Plus, Archive, Pencil, Download } from "lucide-react";
 import { exportRowsAsCsv } from "@/lib/csv";
 
 // Admin Primaries page. CRUD for the top tier of the 3-tier hierarchy:
-// developers / main contractors who hire BC Construction. Subcontractors
+// developers / main contractors who hire Fintrex Contractors. Subcontractors
 // reference these via subcontractors.primary_id; consolidated invoices flow
 // from BC up to a primary based on these relationships.
 export function Primaries() {
@@ -288,7 +288,7 @@ function PrimaryModal({
       onClose={onClose}
       width="lg"
       title={primary ? `Edit ${primary.name}` : "Add principal"}
-      description="A principal is a developer or main contractor who hires BC Construction. Subcontractors can be linked to a default principal."
+      description="A principal is a developer or main contractor who hires Fintrex Contractors. Subcontractors can be linked to a default principal."
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>

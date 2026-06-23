@@ -186,7 +186,7 @@ export function PrimaryInvoiceDetail() {
     <>
       <PageHeader
         title={`Invoice ${inv.invoiceNumber}`}
-        description={`From BC Construction · ${inv.periodStart} → ${inv.periodEnd}`}
+        description={`From Fintrex Contractors · ${inv.periodStart} → ${inv.periodEnd}`}
         right={
           <div className="flex gap-2">
             <Button
@@ -255,7 +255,7 @@ export function PrimaryInvoiceDetail() {
               ))}
               {inv.markupMinor > 0 && (
                 <tr className="bg-ink-50/50">
-                  <td className="px-5 py-3 text-ink-900 italic" colSpan={5}>BC Construction admin fee</td>
+                  <td className="px-5 py-3 text-ink-900 italic" colSpan={5}>Fintrex Contractors admin fee</td>
                   <td className="px-5 py-3 text-right tabular-nums font-medium">{fmtMoney(inv.markupMinor)}</td>
                 </tr>
               )}
@@ -269,7 +269,7 @@ export function PrimaryInvoiceDetail() {
       )}
 
       <p className="text-xs text-ink-400 mt-6">
-        To settle this invoice, please pay BC Construction at the bank details on the invoice and notify them by email.
+        To settle this invoice, please pay Fintrex Contractors at the bank details on the invoice and notify them by email.
       </p>
     </>
   );

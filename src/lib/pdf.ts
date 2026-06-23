@@ -1008,7 +1008,7 @@ export function generateRctSummaryPdf(p: RctSummaryPayload): jsPDF {
     const n = typeof v === "number" ? v : Number(v);
     return Number.isFinite(n) ? n : 0;
   };
-  const brand = safe(p.brandName, "BC Construction");
+  const brand = safe(p.brandName, "Fintrex Contractors");
   const generatedAt = safe(p.generatedAt, new Date().toLocaleDateString("en-IE"));
 
   doc.setFont("helvetica", "bold");

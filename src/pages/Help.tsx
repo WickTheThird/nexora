@@ -64,7 +64,7 @@ export function Help() {
 
         <h1 className="text-3xl font-bold text-ink-900 mb-2">How Fintrex Contractors works</h1>
         <p className="text-ink-600 mb-6">
-          A 3-tier portal connecting BC Construction (admin), Principal contractors, and Subcontractors.
+          A 3-tier portal connecting Fintrex Contractors (admin), Principal contractors, and Subcontractors.
         </p>
 
         {/* Role banner + show-all toggle (only when signed in). */}
@@ -112,7 +112,7 @@ export function Help() {
             <ul className="space-y-2 list-disc pl-5">
               <li><strong>Subcontractor</strong> (operative) - the person doing the work on site. They get paid by BC.</li>
               <li><strong>Principal</strong> (developer / main contractor) - the company that hires BC to manage operatives. They pay BC monthly.</li>
-              <li><strong>Admin</strong> (BC Construction) - the back office that processes Job Cards, issues advices, and reconciles with Revenue.</li>
+              <li><strong>Admin</strong> (Fintrex Contractors) - the back office that processes Job Cards, issues advices, and reconciles with Revenue.</li>
             </ul>
             <p>Money flows: <strong>Principal → BC → Subcontractor</strong>. Job Cards flow up; payment advices flow down.</p>
           </Section>
@@ -160,7 +160,7 @@ export function Help() {
           )}
 
           {showAdmin && (
-            <Section id="admin" title="Admin flow (BC Construction)">
+            <Section id="admin" title="Admin flow (Fintrex Contractors)">
               <p>Admin is the operations hub. Every admin page has its own ? button in the top-right with page-specific help. The high-level inbox flow:</p>
               <ul className="space-y-2 list-disc pl-5">
                 <li><strong>Recent Activity</strong> - review self-serve signups; approve creates the account + sends welcome email.</li>
